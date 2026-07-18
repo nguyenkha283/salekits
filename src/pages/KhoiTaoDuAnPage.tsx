@@ -43,19 +43,29 @@ export function KhoiTaoDuAnPage() {
     };
 
     try {
-      // TODO: thay bằng API thật, ví dụ:
-      //   const content = await syncProjectFromDrive(trimmedDriveLink);
-      // Hàm này chịu trách nhiệm: xác thực quyền đọc folder (qua
-      // CMS_SYNC_ACCOUNT_EMAIL đã được share sẵn), quét cây thư mục theo đúng
-      // bảng ánh xạ đã thống nhất (cau-truc-folder-drive-cms.md), convert từng
-      // file (.txt/.docx/Google Docs) qua sanitizeRichText(), rồi trả về
-      // CmsProjectContent để lưu vào project vừa tạo. Nếu folder thiếu file
-      // bắt buộc hoặc sai định dạng, nên throw lỗi cụ thể để hiển thị ở dưới
-      // thay vì chặn im lặng.
-      await new Promise((resolve) => setTimeout(resolve, 1200)); // giả lập độ trễ
+      const response = await fetch('/api/sync-overview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ driveFolderUrl: trimmedDriveLink })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error ?? 'Đồng bộ thất bại, vui lòng thử lại.');
+      }
 
       navigate('/hoan-tat', {
-        state: { project, driveFolderUrl: trimmedDriveLink }
+        state: {
+          project,
+          driveFolderUrl: trimmedDriveLink,
+          // syncedOverviewContent chứa dữ liệu mục Tổng quan vừa đọc từ Drive
+          // (heroSlides, overviewContent, overviewImages, locationContent,
+          // locationImages, overviewFloorPlanPreview, amenityImages).
+          // ProjectCreatedPage/backend lưu trữ chưa đọc field này — cần bổ
+          // sung khi nối vào CmsProjectContent thật.
+          syncedOverviewContent: data
+        }
       });
     } catch (error) {
       setIsSyncing(false);

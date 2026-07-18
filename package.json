@@ -14,14 +14,19 @@
     "react-dom": "^18.3.1",
     "@emotion/react": "^11.13.3",
     "react-router-dom": "^6.26.2",
-    "lucide-react": "0.522.0"
+    "lucide-react": "0.522.0",
+    "googleapis": "^144.0.0",
+    "mammoth": "^1.8.0",
+    "sanitize-html": "^2.13.1"
   },
   "devDependencies": {
     "@types/node": "^20.11.18",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.1",
+    "@types/sanitize-html": "^2.13.0",
     "@typescript-eslint/eslint-plugin": "^5.54.0",
     "@typescript-eslint/parser": "^5.54.0",
+    "@vercel/node": "^3.2.24",
     "@vitejs/plugin-react": "^4.2.1",
     "eslint": "^8.50.0",
     "eslint-plugin-react-hooks": "^4.6.0",

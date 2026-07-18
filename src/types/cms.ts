@@ -54,6 +54,12 @@ export interface AmenityImage {
   caption: string;
 }
 
+export interface OverviewFloorPlanPreviewItem {
+  id: string;
+  label: string;
+  image: HeroSlide;
+}
+
 export type AmenitiesCarouselType = 'carousel-single' | 'carousel-grid';
 
 export interface AmenitiesParagraphBlock {
@@ -77,6 +83,11 @@ export interface CmsProjectContent {
   description: string;
   descriptionColor?: string;
   overviewContent: string;
+  overviewImages: HeroSlide[];
+  locationContent: string;
+  locationContentColor?: string;
+  locationImages: HeroSlide[];
+  overviewFloorPlanPreview: OverviewFloorPlanPreviewItem[];
   featuredItems: FeaturedItem[];
   featuredProductsTitleColor?: string;
   featuredProductsDescription: string;
@@ -98,6 +109,7 @@ export interface CmsProjectContent {
 export type CmsTextEditorId =
 'description' |
 'overviewContent' |
+'locationContent' |
 'featuredProductsDescription' |
 'floorPlansDescription' |
 'amenitiesDescription' |
