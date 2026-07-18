@@ -1,4 +1,5 @@
-import { google, drive_v3 } from 'googleapis';
+import { google } from 'googleapis';
+import type { drive_v3 } from 'googleapis';
 
 let cachedAuth: InstanceType<typeof google.auth.GoogleAuth> | null = null;
 
