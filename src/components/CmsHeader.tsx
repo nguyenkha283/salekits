@@ -1,5 +1,5 @@
 import React from 'react';
-import { EyeIcon, PanelRightIcon, Settings2Icon } from 'lucide-react';
+import { EyeIcon, PanelRightIcon, RefreshCwIcon, Settings2Icon } from 'lucide-react';
 import { CmsRole } from '../types/cms';
 export type CmsRightPanelMode = 'document' | null;
 const ROLES: CmsRole[] = ['APM', 'Trưởng line', 'Quản lý bán hàng', 'Marketing'];
@@ -12,6 +12,9 @@ interface CmsHeaderProps {
   onPreview: () => void;
   onSaveDraft: () => void;
   onPublish: () => void;
+  /** Có mặt khi dự án được tạo từ folder Drive — hiển thị nút Đồng bộ lại. */
+  onResync?: () => void;
+  isResyncing?: boolean;
 }
 interface IconControlProps {
   active?: boolean;
@@ -45,7 +48,9 @@ export function CmsHeader({
   onOpenConfiguration,
   onPreview,
   onSaveDraft,
-  onPublish
+  onPublish,
+  onResync,
+  isResyncing = false
 }: CmsHeaderProps) {
   return (
     <header className="relative flex h-16 w-full items-center justify-between border-b border-neutral-200 bg-white px-4 sm:px-5">
@@ -87,6 +92,20 @@ export function CmsHeader({
       </div>
 
       <div className="flex items-center gap-1.5 sm:gap-2">
+        {onResync &&
+        <button
+          type="button"
+          onClick={onResync}
+          disabled={isResyncing}
+          className="flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md border border-[#6D3A18] px-2.5 text-xs font-semibold text-[#6D3A18] transition-colors hover:bg-[#6D3A18] hover:text-white focus:outline-none focus:ring-2 focus:ring-orange-300 disabled:cursor-not-allowed disabled:opacity-60 sm:px-3 sm:text-sm">
+          
+            <RefreshCwIcon
+            className={`h-4 w-4 ${isResyncing ? 'animate-spin' : ''}`}
+            aria-hidden="true" />
+          
+            {isResyncing ? 'Đang đồng bộ…' : 'Đồng bộ lại'}
+          </button>
+        }
         <button
           type="button"
           onClick={onSaveDraft}

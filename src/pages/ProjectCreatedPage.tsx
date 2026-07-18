@@ -83,7 +83,7 @@ function createEmptyFloorPlanTab(index = 1): FloorPlanTab {
 function createInitialContent(project: ProjectDraft): CmsProjectContent {
   return {
     hierarchy: project.hierarchy || 'Dự án',
-    projectName: '',
+    projectName: project.name || '',
     description: '',
     overviewContent: '',
     overviewImages: [],
@@ -102,6 +102,28 @@ function createInitialContent(project: ProjectDraft): CmsProjectContent {
     contactDescription: ''
   };
 }
+function mergeSyncedOverview(
+current: CmsProjectContent,
+synced: SyncedOverviewContent)
+: CmsProjectContent {
+  return {
+    ...current,
+    overviewContent: synced.overviewContent || current.overviewContent,
+    overviewImages: synced.overviewImages ?? current.overviewImages,
+    locationContent: synced.locationContent || current.locationContent,
+    locationImages: synced.locationImages ?? current.locationImages,
+    overviewFloorPlanPreview:
+    synced.overviewFloorPlanPreview ?? current.overviewFloorPlanPreview,
+    amenitiesBlock:
+    synced.amenityImages && synced.amenityImages.length > 0 ?
+    {
+      id: crypto.randomUUID(),
+      type: 'carousel-grid' as AmenitiesCarouselType,
+      images: synced.amenityImages
+    } :
+    current.amenitiesBlock
+  };
+}
 export function ProjectCreatedPage() {
   const location = useLocation();
   const locationState = location.state as ProjectEditorLocationState | null;
@@ -117,30 +139,7 @@ export function ProjectCreatedPage() {
   const [content, setContent] = useState<CmsProjectContent>(() => {
     const initial = createInitialContent(project);
     if (!syncedOverviewContent) return initial;
-
-    return {
-      ...initial,
-      overviewContent:
-      syncedOverviewContent.overviewContent || initial.overviewContent,
-      overviewImages:
-      syncedOverviewContent.overviewImages ?? initial.overviewImages,
-      locationContent:
-      syncedOverviewContent.locationContent || initial.locationContent,
-      locationImages:
-      syncedOverviewContent.locationImages ?? initial.locationImages,
-      overviewFloorPlanPreview:
-      syncedOverviewContent.overviewFloorPlanPreview ??
-      initial.overviewFloorPlanPreview,
-      amenitiesBlock:
-      syncedOverviewContent.amenityImages &&
-      syncedOverviewContent.amenityImages.length > 0 ?
-      {
-        id: crypto.randomUUID(),
-        type: 'carousel-grid' as AmenitiesCarouselType,
-        images: syncedOverviewContent.amenityImages
-      } :
-      initial.amenitiesBlock
-    };
+    return mergeSyncedOverview(initial, syncedOverviewContent);
   });
   const [activeMenu, setActiveMenu] = useState('Tổng quan');
   const [slides, setSlides] = useState<HeroSlide[]>(
@@ -277,6 +276,38 @@ export function ProjectCreatedPage() {
   function showNotice(message: string) {
     setNotice(message);
     window.setTimeout(() => setNotice(''), 2400);
+  }
+  const driveFolderUrl = locationState?.driveFolderUrl ?? '';
+  const [isResyncing, setIsResyncing] = useState(false);
+  async function handleResync() {
+    if (!driveFolderUrl || isResyncing) return;
+    setIsResyncing(true);
+    setUploadError('');
+    try {
+      const response = await fetch('/api/sync-overview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ driveFolderUrl })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error ?? 'Đồng bộ thất bại, vui lòng thử lại.');
+      }
+      const synced = data as SyncedOverviewContent;
+      setContent((current) => mergeSyncedOverview(current, synced));
+      setSlides(synced.heroSlides ?? []);
+      setActiveSlide(0);
+      showNotice('Đã đồng bộ lại dữ liệu từ Drive');
+    } catch (error) {
+      setUploadError(
+        error instanceof Error ?
+        error.message :
+        'Đồng bộ thất bại, vui lòng thử lại.'
+      );
+      window.setTimeout(() => setUploadError(''), 4000);
+    } finally {
+      setIsResyncing(false);
+    }
   }
   function requestUpload() {
     uploadInputRef.current?.click();
@@ -1059,7 +1090,9 @@ export function ProjectCreatedPage() {
         onOpenConfiguration={() => setConfigurationOpen(true)}
         onPreview={openPreview}
         onSaveDraft={() => showNotice('Đã lưu bản nháp')}
-        onPublish={() => showNotice('Dự án đã được xuất bản')} />
+        onPublish={() => showNotice('Dự án đã được xuất bản')}
+        onResync={driveFolderUrl ? handleResync : undefined}
+        isResyncing={isResyncing} />
       
 
       <input
