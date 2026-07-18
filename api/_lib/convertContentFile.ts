@@ -13,7 +13,7 @@ drive: drive_v3.Drive,
 fileId: string)
 : Promise<Buffer> {
   const response = await drive.files.get(
-    { fileId, alt: 'media' },
+    { fileId, alt: 'media' , supportsAllDrives: true },
     { responseType: 'arraybuffer' }
   );
   return Buffer.from(response.data as ArrayBuffer);
