@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getDriveClient } from './_lib/googleAuth';
+import { getDriveClient } from './_lib/googleAuth.js';
 import {
   extractFolderId,
   listChildren,
@@ -7,12 +7,12 @@ import {
   isImage,
   fileLabel,
   type DriveNode } from
-'./_lib/driveTree';
+'./_lib/driveTree.js';
 import {
   convertContentFileToHtml,
   findContentFileByBaseName,
   readCaptionIfExists } from
-'./_lib/convertContentFile';
+'./_lib/convertContentFile.js';
 
 interface SyncedImage {
   id: string;

@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getDriveClient } from '../_lib/googleAuth';
+import { getDriveClient } from '../_lib/googleAuth.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const fileId = req.query.fileId;

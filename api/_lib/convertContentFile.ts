@@ -1,8 +1,8 @@
 import type { drive_v3 } from 'googleapis';
 import mammoth from 'mammoth';
-import { sanitizeRichTextServer } from './richTextServer';
-import type { DriveNode } from './driveTree';
-import { isImage } from './driveTree';
+import { sanitizeRichTextServer } from './richTextServer.js';
+import type { DriveNode } from './driveTree.js';
+import { isImage } from './driveTree.js';
 
 const GOOGLE_DOC_MIME = 'application/vnd.google-apps.document';
 const DOCX_MIME =
