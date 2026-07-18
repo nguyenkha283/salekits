@@ -25,8 +25,19 @@ import {
   SelectedEditorBlock } from
 '../types/cms';
 import { ProjectDraft } from '../types/project';
+interface SyncedOverviewContent {
+  heroSlides: HeroSlide[];
+  overviewContent: string;
+  overviewImages: HeroSlide[];
+  locationContent: string;
+  locationImages: HeroSlide[];
+  overviewFloorPlanPreview: {id: string;label: string;image: HeroSlide;}[];
+  amenityImages: AmenityImage[];
+}
 interface ProjectEditorLocationState {
   project?: ProjectDraft;
+  driveFolderUrl?: string;
+  syncedOverviewContent?: SyncedOverviewContent;
 }
 const FALLBACK_PROJECT: ProjectDraft = {
   hierarchy: '',
@@ -75,6 +86,10 @@ function createInitialContent(project: ProjectDraft): CmsProjectContent {
     projectName: '',
     description: '',
     overviewContent: '',
+    overviewImages: [],
+    locationContent: '',
+    locationImages: [],
+    overviewFloorPlanPreview: [],
     featuredItems: createEmptyFeaturedItems(),
     featuredProductsDescription: '',
     featuredProducts: [createEmptyProduct()],
@@ -89,9 +104,9 @@ function createInitialContent(project: ProjectDraft): CmsProjectContent {
 }
 export function ProjectCreatedPage() {
   const location = useLocation();
-  const project =
-  (location.state as ProjectEditorLocationState | null)?.project ??
-  FALLBACK_PROJECT;
+  const locationState = location.state as ProjectEditorLocationState | null;
+  const project = locationState?.project ?? FALLBACK_PROJECT;
+  const syncedOverviewContent = locationState?.syncedOverviewContent;
   const [role, setRole] = useState<CmsRole>('APM');
   const [rightPanelMode, setRightPanelMode] = useState<CmsRightPanelMode>(null);
   const [configurationOpen, setConfigurationOpen] = useState(false);
@@ -99,11 +114,38 @@ export function ProjectCreatedPage() {
   createProjectConfiguration(project)
   );
   const [selectedBlock, setSelectedBlock] = useState<SelectedEditorBlock>(null);
-  const [content, setContent] = useState<CmsProjectContent>(() =>
-  createInitialContent(project)
-  );
+  const [content, setContent] = useState<CmsProjectContent>(() => {
+    const initial = createInitialContent(project);
+    if (!syncedOverviewContent) return initial;
+
+    return {
+      ...initial,
+      overviewContent:
+      syncedOverviewContent.overviewContent || initial.overviewContent,
+      overviewImages:
+      syncedOverviewContent.overviewImages ?? initial.overviewImages,
+      locationContent:
+      syncedOverviewContent.locationContent || initial.locationContent,
+      locationImages:
+      syncedOverviewContent.locationImages ?? initial.locationImages,
+      overviewFloorPlanPreview:
+      syncedOverviewContent.overviewFloorPlanPreview ??
+      initial.overviewFloorPlanPreview,
+      amenitiesBlock:
+      syncedOverviewContent.amenityImages &&
+      syncedOverviewContent.amenityImages.length > 0 ?
+      {
+        id: crypto.randomUUID(),
+        type: 'carousel-grid' as AmenitiesCarouselType,
+        images: syncedOverviewContent.amenityImages
+      } :
+      initial.amenitiesBlock
+    };
+  });
   const [activeMenu, setActiveMenu] = useState('Tổng quan');
-  const [slides, setSlides] = useState<HeroSlide[]>([]);
+  const [slides, setSlides] = useState<HeroSlide[]>(
+    () => syncedOverviewContent?.heroSlides ?? []
+  );
   const [leftBanner, setLeftBanner] = useState<HeroSlide | null>(null);
   const [rightBanner, setRightBanner] = useState<HeroSlide | null>(null);
   const [overviewBackgroundImage, setOverviewBackgroundImage] =
@@ -134,6 +176,13 @@ export function ProjectCreatedPage() {
   const [textSelection, setTextSelection] = useState<Range | null>(null);
   const [notice, setNotice] = useState('');
   const [uploadError, setUploadError] = useState('');
+  useEffect(() => {
+    if (!syncedOverviewContent) return;
+    setNotice('Đã đồng bộ dữ liệu Tổng quan từ Drive');
+    const timeout = window.setTimeout(() => setNotice(''), 2400);
+    return () => window.clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const mediaRef = useRef<{
     slides: HeroSlide[];
