@@ -109,6 +109,7 @@ export interface CmsProjectContent {
   locationContentColor?: string;
   locationImages: HeroSlide[];
   overviewFloorPlanPreview: OverviewFloorPlanPreviewItem[];
+  floorPlanImage: HeroSlide | null;
   image360: HeroSlide[];
   salesSheetFolderName: string;
   documents: DocumentsSection;

@@ -79,6 +79,7 @@ function createInitialContent(project: ProjectDraft): CmsProjectContent {
     locationContent: '',
     locationImages: [],
     overviewFloorPlanPreview: [],
+    floorPlanImage: null,
     image360: [],
     salesSheetFolderName: '',
     documents: {
@@ -107,6 +108,7 @@ interface SyncedContentPayload {
   locationImages?: HeroSlide[];
   overviewFloorPlanPreview?: CmsProjectContent['overviewFloorPlanPreview'];
   floorPlanTabs?: FloorPlanTab[];
+  floorPlanImage?: HeroSlide | null;
   salesSheetFolderName?: string;
   image360?: HeroSlide[];
   documents?: CmsProjectContent['documents'];
@@ -136,6 +138,10 @@ synced: SyncedContentPayload)
     synced.floorPlanTabs && synced.floorPlanTabs.length > 0 ?
     synced.floorPlanTabs :
     current.floorPlanTabs,
+    floorPlanImage:
+    synced.floorPlanImage !== undefined ?
+    synced.floorPlanImage :
+    current.floorPlanImage,
     salesSheetFolderName:
     synced.salesSheetFolderName || current.salesSheetFolderName,
     image360: synced.image360 ?? current.image360,

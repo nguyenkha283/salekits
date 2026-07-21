@@ -39,7 +39,6 @@ import {
   CmsTextEditorId,
   FeaturedItem,
   FeaturedProduct,
-  FloorPlanTab,
   HeroSlide,
   OverviewStyles } from
 '../types/cms';
@@ -229,11 +228,11 @@ export function ProjectContentEditor({
   onSelectOverviewCover,
   onSelectProductsTitle,
   onSelectProductImage,
-  onSelectFloorPlanImage,
+  onSelectFloorPlanImage: _onSelectFloorPlanImage,
   onReplaceProductImage,
   onRemoveProductImage,
   onRemoveProduct,
-  onReplaceFloorPlanImage,
+  onReplaceFloorPlanImage: _onReplaceFloorPlanImage,
   onAddAmenityImages,
   onClearAmenitiesBlock,
   onReplaceOverviewCoverImage,
@@ -659,9 +658,7 @@ export function ProjectContentEditor({
               canEdit={canEditOverview}
               displayMode={displayMode}
               onUpdateContent={updateContent}
-              onSelectText={onSelectTextEditor}
-              onSelectImage={onSelectFloorPlanImage}
-              onReplaceImage={onReplaceFloorPlanImage} />
+              onSelectText={onSelectTextEditor} />
             
 
               <AmenitiesSection
@@ -735,6 +732,58 @@ export function ProjectContentEditor({
                 onSelect={setFloorPlanLevel} />
               
               </div>
+
+              <div className="mt-6">
+                {content.floorPlanImage ?
+              <img
+                src={content.floorPlanImage.url}
+                alt={content.floorPlanImage.alt || 'Mặt bằng dự án'}
+                className="mx-auto max-h-[70vh] w-full object-contain" /> :
+
+
+              <div className="grid min-h-[320px] place-items-center rounded-md border border-dashed border-neutral-300 text-center text-sm text-neutral-500">
+                    Chưa có ảnh mặt bằng. Đưa ảnh vào folder Drive "02. Mặt
+                    bằng" rồi bấm "Đồng bộ lại".
+                  </div>
+              }
+              </div>
+            </section> :
+
+          activeMenu === 'Ảnh 360' ?
+          <section
+            className={`mt-[46px] bg-white p-5 ${isEditor && canEditActiveMenu ? 'border border-dashed border-[#6D3A18]' : ''}`}
+            aria-labelledby="image360-title">
+            
+              <h2
+              id="image360-title"
+              className="text-sm font-bold text-neutral-900">
+              
+                Ảnh 360
+              </h2>
+              {content.image360.length > 0 ?
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {content.image360.map((image) =>
+              <div
+                key={image.id}
+                className="overflow-hidden rounded-md bg-neutral-100">
+                
+                      <img
+                  src={image.url}
+                  alt={image.alt || image.name || 'Ảnh 360'}
+                  className="h-56 w-full object-cover" />
+                
+                      <p className="truncate px-3 py-2 text-xs text-neutral-600">
+                        {image.name}
+                      </p>
+                    </div>
+              )}
+                </div> :
+
+            <div className="mt-4 grid min-h-[240px] place-items-center rounded-md border border-dashed border-neutral-300 text-center text-sm text-neutral-500">
+                  Chưa có ảnh 360. Đưa ảnh vào folder Drive "04. Ảnh 360" rồi
+                  bấm "Đồng bộ lại".
+                </div>
+            }
             </section> :
 
           <ReadOnlySection
@@ -1513,126 +1562,36 @@ function FeaturedProductCard({
     </article>);
 
 }
-function hasFloorPlanBlockContent(block: FloorPlanTab['blocks'][number]) {
-  return block.type === 'image' || !isRichTextEmpty(block.paragraph);
-}
-function hasFloorPlanContent(tab: FloorPlanTab) {
-  return tab.blocks.some(hasFloorPlanBlockContent);
-}
-function createEmptyFloorPlanTab(index: number): FloorPlanTab {
-  return {
-    id: crypto.randomUUID(),
-    label: `Mặt bằng ${index}`,
-    blocks: []
-  };
-}
+/**
+ * Section "Mặt bằng dự án" hiển thị trong tab Tổng quan — nguồn dữ liệu là
+ * `overviewFloorPlanPreview` đồng bộ từ folder Drive "01. Tổng quan / Ảnh mặt
+ * bằng" (mỗi ảnh trong folder = 1 tab, tên file = tên tab). Read-only, muốn
+ * cập nhật thì đổi ảnh trong Drive rồi bấm "Đồng bộ lại".
+ */
 function ProjectFloorPlansSection({
   content,
   canEdit,
   displayMode,
   onUpdateContent,
-  onSelectText,
-  onSelectImage,
-  onReplaceImage
+  onSelectText
 
 
 
 
 
 
-
-
-}: {content: CmsProjectContent;canEdit: boolean;displayMode: DisplayMode;onUpdateContent: (content: Partial<CmsProjectContent>) => void;onSelectText: (editorId: CmsTextEditorId) => void;onSelectImage: (blockId: string) => void;onReplaceImage: (tabId: string, blockId: string, file: File) => void;}) {
+}: {content: CmsProjectContent;canEdit: boolean;displayMode: DisplayMode;onUpdateContent: (content: Partial<CmsProjectContent>) => void;onSelectText: (editorId: CmsTextEditorId) => void;}) {
   const isEditor = displayMode === 'editor';
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const [activeTabId, setActiveTabId] = useState(
-    content.floorPlanTabs[0]?.id ?? ''
-  );
-  const [showContentChoices, setShowContentChoices] = useState(false);
-  const [pendingImageBlockId, setPendingImageBlockId] = useState<string | null>(
-    null
-  );
-  const previewTabs = useMemo(
-    () => content.floorPlanTabs.filter(hasFloorPlanContent),
-    [content.floorPlanTabs]
-  );
-  const tabs = isEditor ? content.floorPlanTabs : previewTabs;
-  const activeTab =
-  tabs.find((tab) => tab.id === activeTabId) ?? tabs[0] ?? null;
-  const visibleBlocks = activeTab ?
-  isEditor ?
-  activeTab.blocks :
-  activeTab.blocks.filter(hasFloorPlanBlockContent) :
-  [];
+  const previewItems = content.overviewFloorPlanPreview;
+  const [activeTabId, setActiveTabId] = useState(previewItems[0]?.id ?? '');
+  const activeItem =
+  previewItems.find((item) => item.id === activeTabId) ?? previewItems[0] ?? null;
   useEffect(() => {
-    if (tabs.length > 0 && !tabs.some((tab) => tab.id === activeTabId)) {
-      setActiveTabId(tabs[0].id);
-      setShowContentChoices(false);
+    if (previewItems.length > 0 && !previewItems.some((item) => item.id === activeTabId)) {
+      setActiveTabId(previewItems[0].id);
     }
-  }, [activeTabId, tabs]);
-  if (!isEditor && previewTabs.length === 0) return null;
-  function updateTab(id: string, patch: Partial<FloorPlanTab>) {
-    onUpdateContent({
-      floorPlanTabs: content.floorPlanTabs.map((tab) =>
-      tab.id === id ?
-      {
-        ...tab,
-        ...patch
-      } :
-      tab
-      )
-    });
-  }
-  function updateTabLabel(id: string, label: string) {
-    updateTab(id, {
-      label
-    });
-  }
-  function updateParagraph(blockId: string, paragraph: string) {
-    if (!activeTab) return;
-    updateTab(activeTab.id, {
-      blocks: activeTab.blocks.map((block) =>
-      block.id === blockId && block.type === 'paragraph' ?
-      {
-        ...block,
-        paragraph
-      } :
-      block
-      )
-    });
-  }
-  function addTab() {
-    const nextTab = createEmptyFloorPlanTab(content.floorPlanTabs.length + 1);
-    onUpdateContent({
-      floorPlanTabs: [...content.floorPlanTabs, nextTab]
-    });
-    setActiveTabId(nextTab.id);
-    setShowContentChoices(false);
-  }
-  function chooseParagraph() {
-    if (!activeTab) return;
-    const blockId = crypto.randomUUID();
-    updateTab(activeTab.id, {
-      blocks: [
-      ...activeTab.blocks,
-      {
-        id: blockId,
-        type: 'paragraph',
-        paragraph: ''
-      }]
-
-    });
-    setShowContentChoices(false);
-    window.setTimeout(() => onSelectText(`floorPlanParagraph-${blockId}`), 0);
-  }
-  function requestImage() {
-    setPendingImageBlockId(crypto.randomUUID());
-    imageInputRef.current?.click();
-  }
-  function selectTab(tabId: string) {
-    setActiveTabId(tabId);
-    setShowContentChoices(false);
-  }
+  }, [activeTabId, previewItems]);
+  if (!isEditor && previewItems.length === 0) return null;
   return (
     <section
       className={`mt-[46px] py-[96px] ${isEditor && canEdit ? 'border border-dashed border-[#6D3A18]' : ''}`}
@@ -1675,186 +1634,52 @@ function ProjectFloorPlansSection({
 
         null}
 
-        <div
-          className="mt-10 flex flex-wrap items-center justify-center gap-2"
-          role="tablist"
-          aria-label="Mặt bằng dự án">
-          
-          {tabs.map((tab) => {
-            const active = tab.id === activeTab?.id;
-            const tabClassName = `rounded-full text-[16px] font-medium leading-6 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-300 ${active ? 'bg-[#F58720] text-white' : 'bg-[#F58720]/20 text-[#424843] hover:bg-[#F58720]/30'}`;
-            return isEditor ?
-            <input
-              key={tab.id}
-              type="text"
-              id={`floor-plan-tab-${tab.id}`}
-              role="tab"
-              aria-selected={active}
-              aria-label="Tên tab mặt bằng"
-              value={tab.label}
-              readOnly={!canEdit}
-              onFocus={() => selectTab(tab.id)}
-              onClick={() => selectTab(tab.id)}
-              onChange={(event) => updateTabLabel(tab.id, event.target.value)}
-              aria-controls={`floor-plan-panel-${tab.id}`}
-              className={`min-w-[124px] max-w-[240px] px-5 py-2 text-center outline-none placeholder:text-current read-only:cursor-default read-only:opacity-70 ${tabClassName}`} /> :
+        {previewItems.length === 0 && isEditor ?
+        <p className="mt-8 text-center text-sm text-neutral-500">
+            Chưa có ảnh mặt bằng. Đưa ảnh vào folder Drive "01. Tổng quan / Ảnh
+            mặt bằng" rồi bấm "Đồng bộ lại".
+          </p> :
 
-
-            <button
-              key={tab.id}
-              type="button"
-              id={`floor-plan-tab-${tab.id}`}
-              role="tab"
-              aria-selected={active}
-              aria-controls={`floor-plan-panel-${tab.id}`}
-              onClick={() => selectTab(tab.id)}
-              className={`px-5 py-2 ${tabClassName}`}>
-              
-                {tab.label}
-              </button>;
-
-          })}
-          {isEditor && canEdit &&
-          <button
-            type="button"
-            onClick={addTab}
-            aria-label="Thêm tab mặt bằng"
-            className="grid h-10 w-10 place-items-center rounded-full border border-dashed border-[#6D3A18] text-[#6D3A18] transition-colors hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-orange-200">
+        <>
+            <div
+            className="mt-10 flex flex-wrap items-center justify-center gap-2"
+            role="tablist"
+            aria-label="Mặt bằng dự án">
             
-              <PlusIcon className="h-5 w-5" aria-hidden="true" />
-            </button>
-          }
-        </div>
+              {previewItems.map((item) => {
+              const active = item.id === activeItem?.id;
+              const tabClassName = `rounded-full text-[16px] font-medium leading-6 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-300 px-5 py-2 ${active ? 'bg-[#F58720] text-white' : 'bg-[#F58720]/20 text-[#424843] hover:bg-[#F58720]/30'}`;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  aria-controls={`floor-plan-panel-${item.id}`}
+                  onClick={() => setActiveTabId(item.id)}
+                  className={tabClassName}>
+                  
+                    {item.label}
+                  </button>);
 
-        {activeTab &&
-        <div
-          id={`floor-plan-panel-${activeTab.id}`}
-          className={`mt-8 ${isEditor && canEdit ? 'border border-dashed border-[#6D3A18]' : ''}`}
-          role="tabpanel"
-          aria-labelledby={`floor-plan-tab-${activeTab.id}`}
-          aria-label={activeTab.label || 'Nội dung mặt bằng'}>
-          
-            {visibleBlocks.length > 0 ?
-          <div className="space-y-6 p-4 sm:p-6">
-                {visibleBlocks.map((block) =>
-            block.type === 'paragraph' ?
-            isEditor ?
-            <RichTextInput
-              key={block.id}
-              editorId={`floorPlanParagraph-${block.id}`}
-              editable={canEdit}
-              label={`Nội dung ${activeTab.label}`}
-              placeholder="Nhập nội dung mặt bằng"
-              value={block.paragraph}
-              onChange={(paragraph) =>
-              updateParagraph(block.id, paragraph)
-              }
-              onSelect={() =>
-              onSelectText(`floorPlanParagraph-${block.id}`)
-              }
-              className={`min-h-32 w-full rounded-md border border-neutral-200 p-5 text-[16px] leading-[26px] outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-neutral-400 [&_ol]:ml-5 [&_ol]:list-decimal [&_ul]:ml-5 [&_ul]:list-disc ${canEdit ? 'cursor-text' : 'cursor-not-allowed opacity-50'}`}
-              style={{
-                color: block.paragraphColor ?? '#424843'
-              }} /> :
+            })}
+            </div>
 
-
-            <div
-              key={block.id}
-              className="text-[16px] leading-[26px] [&_ol]:ml-5 [&_ol]:list-decimal [&_ul]:ml-5 [&_ul]:list-disc"
-              style={{
-                color: block.paragraphColor ?? '#424843'
-              }}
-              dangerouslySetInnerHTML={{
-                __html: sanitizeRichText(block.paragraph)
-              }} /> :
-
-
-
-            <div
-              key={block.id}
-              className={`group relative overflow-hidden ${isEditor && canEdit ? 'cursor-pointer' : ''}`}
-              onClick={() => {
-                if (isEditor && canEdit) onSelectImage(block.id);
-              }}>
-              
-                      <img
-                src={block.image.url}
-                alt={
-                block.image.alt || activeTab.label || 'Mặt bằng dự án'
-                }
-                className="max-h-[560px] min-h-[320px] w-full object-cover" />
-              
-                      {isEditor && canEdit &&
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/35 opacity-0 transition-opacity group-hover:opacity-100">
-                          <span className="rounded-md bg-white px-3 py-2 text-xs font-semibold text-[#6D3A18]">
-                            Chỉnh sửa hình ảnh
-                          </span>
-                        </div>
-              }
-                    </div>
-
-            )}
-              </div> :
-          !isEditor ? null : null}
-
-            {isEditor && canEdit &&
+            {activeItem &&
           <div
-            className={`flex flex-col items-center justify-center px-6 py-8 text-center ${visibleBlocks.length === 0 ? 'min-h-[320px]' : 'border-t border-dashed border-[#6D3A18]'}`}>
+            id={`floor-plan-panel-${activeItem.id}`}
+            className="mt-8"
+            role="tabpanel"
+            aria-label={activeItem.label || 'Nội dung mặt bằng'}>
             
-                {showContentChoices ?
-            <div className="flex flex-col items-center gap-3 sm:flex-row">
-                    <button
-                type="button"
-                onClick={chooseParagraph}
-                className="inline-flex items-center justify-center gap-2 rounded-md border border-[#6D3A18] bg-white px-5 py-3 text-sm font-semibold text-[#6D3A18] transition-colors hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-orange-200">
-                
-                      <FileTextIcon className="h-4 w-4" aria-hidden="true" />
-                      Thêm đoạn văn
-                    </button>
-                    <button
-                type="button"
-                onClick={requestImage}
-                className="inline-flex items-center justify-center gap-2 rounded-md bg-[#F58720] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#e07b12] focus:outline-none focus:ring-2 focus:ring-orange-200">
-                
-                      <ImageIcon className="h-4 w-4" aria-hidden="true" />
-                      Thêm hình ảnh
-                    </button>
-                  </div> :
-
-            <button
-              type="button"
-              onClick={() => setShowContentChoices(true)}
-              aria-label={`Thêm nội dung cho ${activeTab.label}`}
-              className="grid h-14 w-14 place-items-center rounded-full border border-dashed border-[#6D3A18] text-[#6D3A18] transition-colors hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-orange-200">
+                <img
+              src={activeItem.image.url}
+              alt={activeItem.image.alt || activeItem.label || 'Mặt bằng dự án'}
+              className="mx-auto max-h-[560px] w-full object-contain" />
               
-                    <PlusIcon className="h-7 w-7" aria-hidden="true" />
-                  </button>
-            }
-                <p className="mt-4 text-sm text-neutral-500">
-                  Thêm nội dung cho mặt bằng này
-                </p>
               </div>
           }
-          </div>
-        }
-
-        {isEditor &&
-        <input
-          ref={imageInputRef}
-          type="file"
-          accept="image/jpeg,image/png"
-          className="sr-only"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file && activeTab && pendingImageBlockId) {
-              onReplaceImage(activeTab.id, pendingImageBlockId, file);
-              window.setTimeout(() => onSelectImage(pendingImageBlockId), 0);
-            }
-            event.target.value = '';
-            setPendingImageBlockId(null);
-            setShowContentChoices(false);
-          }} />
-
+          </>
         }
       </div>
     </section>);

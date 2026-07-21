@@ -129,34 +129,23 @@ rootChildren: DriveNode[])
   };
 }
 
-/** "02. Mặt bằng" — tái dùng đúng shape floorPlanTabs đã có sẵn trong CMS. */
+/**
+ * "02. Mặt bằng" — chỉ đọc 1 ảnh mặt bằng duy nhất (theo yêu cầu mới nhất,
+ * bỏ cấu trúc tab con "01. Tòa A / 02. Tòa B" cũ). Ưu tiên ảnh đầu tiên
+ * (đã sort theo tên) đặt trực tiếp trong folder "02. Mặt bằng".
+ */
 export async function readFloorPlanSection(
 drive: drive_v3.Drive,
 rootChildren: DriveNode[])
-{
+: Promise<SyncedImage | null> {
   const floorPlanFolder = findChildByName(rootChildren, 'Mặt bằng', {
     folderOnly: true
   });
-  if (!floorPlanFolder) return [];
+  if (!floorPlanFolder) return null;
 
-  const towerFolders = (await listChildren(drive, floorPlanFolder.id)).filter(
-    (node) => node.mimeType === 'application/vnd.google-apps.folder'
-  );
-
-  return Promise.all(
-    towerFolders.map(async (tower) => {
-      const images = (await listChildren(drive, tower.id)).filter(isImage);
-      return {
-        id: tower.id,
-        label: fileLabel(tower.name),
-        blocks: images.map((image) => ({
-          id: image.id,
-          type: 'image' as const,
-          image: toSyncedImage(image)
-        }))
-      };
-    })
-  );
+  const children = await listChildren(drive, floorPlanFolder.id);
+  const firstImage = children.find(isImage);
+  return firstImage ? toSyncedImage(firstImage) : null;
 }
 
 /**

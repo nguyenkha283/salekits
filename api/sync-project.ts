@@ -37,7 +37,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const rootChildren = await listChildren(drive, rootFolderId);
 
     // Đọc song song 6 mục — không phụ thuộc lẫn nhau, chạy song song cho nhanh.
-    const [overview, floorPlanTabs, salesSheetFolderName, image360, documents, banners] =
+    const [overview, floorPlanImage, salesSheetFolderName, image360, documents, banners] =
     await Promise.all([
     readOverviewSection(drive, rootChildren),
     readFloorPlanSection(drive, rootChildren),
@@ -55,7 +55,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       overviewFloorPlanPreview: overview.overviewFloorPlanPreview,
       heroSlides: overview.heroSlides,
       amenityImages: overview.amenityImages,
-      floorPlanTabs,
+      floorPlanImage,
       salesSheetFolderName,
       image360,
       documents,

@@ -23,6 +23,20 @@ const FALLBACK_CONTENT: CmsProjectContent = {
   projectName: '',
   description: '',
   overviewContent: '',
+  overviewImages: [],
+  locationContent: '',
+  locationImages: [],
+  overviewFloorPlanPreview: [],
+  floorPlanImage: null,
+  image360: [],
+  salesSheetFolderName: '',
+  documents: {
+    training: [],
+    salesPolicyCoverImage: null,
+    salesPolicyGroups: [],
+    progress: [],
+    general: []
+  },
   featuredItems: Array.from(
     {
       length: 3
