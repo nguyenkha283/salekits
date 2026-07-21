@@ -1,5 +1,5 @@
 import React from 'react';
-import { EyeIcon, PanelRightIcon, Settings2Icon } from 'lucide-react';
+import { EyeIcon, PanelRightIcon, RefreshCwIcon, Settings2Icon } from 'lucide-react';
 import { CmsRole } from '../types/cms';
 export type CmsRightPanelMode = 'document' | null;
 const ROLES: CmsRole[] = ['APM', 'Trưởng line', 'Quản lý bán hàng', 'Marketing'];
@@ -12,6 +12,9 @@ interface CmsHeaderProps {
   onPreview: () => void;
   onSaveDraft: () => void;
   onPublish: () => void;
+  driveFolderUrl?: string;
+  isResyncing?: boolean;
+  onResync?: () => void;
 }
 interface IconControlProps {
   active?: boolean;
@@ -45,7 +48,10 @@ export function CmsHeader({
   onOpenConfiguration,
   onPreview,
   onSaveDraft,
-  onPublish
+  onPublish,
+  driveFolderUrl,
+  isResyncing = false,
+  onResync
 }: CmsHeaderProps) {
   return (
     <header className="relative flex h-16 w-full items-center justify-between border-b border-neutral-200 bg-white px-4 sm:px-5">
@@ -94,6 +100,20 @@ export function CmsHeader({
           
           Lưu nháp
         </button>
+        {driveFolderUrl &&
+        <button
+          type="button"
+          onClick={onResync}
+          disabled={isResyncing}
+          className="hidden h-8 items-center gap-1.5 rounded-md border border-neutral-300 px-2.5 text-xs font-semibold text-neutral-700 transition-colors hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-orange-100 disabled:cursor-not-allowed disabled:opacity-60 sm:flex sm:px-3 sm:text-sm">
+          
+            <RefreshCwIcon
+            className={`h-4 w-4 ${isResyncing ? 'animate-spin' : ''}`}
+            aria-hidden="true" />
+          
+            {isResyncing ? 'Đang đồng bộ...' : 'Đồng bộ lại'}
+          </button>
+        }
         <IconControl label="Xem trước" onClick={onPreview}>
           <EyeIcon className="h-5 w-5" aria-hidden="true" />
         </IconControl>

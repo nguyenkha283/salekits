@@ -19,7 +19,7 @@ export interface SyncedImage {
 }
 
 export function toImageUrl(fileId: string): string {
-  return `/api/drive-file/${fileId}`;
+  return `/api/drive-file?id=${fileId}`;
 }
 
 export function toSyncedImage(node: DriveNode): SyncedImage {

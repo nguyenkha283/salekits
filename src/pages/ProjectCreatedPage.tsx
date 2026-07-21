@@ -72,7 +72,7 @@ function createEmptyFloorPlanTab(index = 1): FloorPlanTab {
 function createInitialContent(project: ProjectDraft): CmsProjectContent {
   return {
     hierarchy: project.hierarchy || 'Dự án',
-    projectName: '',
+    projectName: project.name || '',
     description: '',
     overviewContent: '',
     overviewImages: [],
@@ -98,6 +98,56 @@ function createInitialContent(project: ProjectDraft): CmsProjectContent {
     customTitle: '',
     customContent: '',
     contactDescription: ''
+  };
+}
+interface SyncedContentPayload {
+  overviewContent?: string;
+  overviewImages?: HeroSlide[];
+  locationContent?: string;
+  locationImages?: HeroSlide[];
+  overviewFloorPlanPreview?: CmsProjectContent['overviewFloorPlanPreview'];
+  floorPlanTabs?: FloorPlanTab[];
+  salesSheetFolderName?: string;
+  image360?: HeroSlide[];
+  documents?: CmsProjectContent['documents'];
+  amenityImages?: AmenityImage[];
+  heroSlides?: HeroSlide[];
+  leftBanner?: HeroSlide | null;
+  rightBanner?: HeroSlide | null;
+}
+/**
+ * Merge dữ liệu đã đồng bộ từ Drive vào content hiện tại — dùng chung cho lần
+ * tải đầu (qua /api/get-project) và bấm "Đồng bộ lại" (qua /api/sync-project),
+ * vì cả 2 endpoint trả về cùng 1 shape `content`.
+ */
+function mergeSyncedOverview(
+current: CmsProjectContent,
+synced: SyncedContentPayload)
+: CmsProjectContent {
+  return {
+    ...current,
+    overviewContent: synced.overviewContent || current.overviewContent,
+    overviewImages: synced.overviewImages ?? current.overviewImages,
+    locationContent: synced.locationContent || current.locationContent,
+    locationImages: synced.locationImages ?? current.locationImages,
+    overviewFloorPlanPreview:
+    synced.overviewFloorPlanPreview ?? current.overviewFloorPlanPreview,
+    floorPlanTabs:
+    synced.floorPlanTabs && synced.floorPlanTabs.length > 0 ?
+    synced.floorPlanTabs :
+    current.floorPlanTabs,
+    salesSheetFolderName:
+    synced.salesSheetFolderName || current.salesSheetFolderName,
+    image360: synced.image360 ?? current.image360,
+    documents: synced.documents ?? current.documents,
+    amenitiesBlock:
+    synced.amenityImages && synced.amenityImages.length > 0 ?
+    {
+      id: crypto.randomUUID(),
+      type: 'carousel-grid' as AmenitiesCarouselType,
+      images: synced.amenityImages
+    } :
+    current.amenitiesBlock
   };
 }
 export function ProjectCreatedPage() {
@@ -150,6 +200,8 @@ export function ProjectCreatedPage() {
   const [textSelection, setTextSelection] = useState<Range | null>(null);
   const [notice, setNotice] = useState('');
   const [uploadError, setUploadError] = useState('');
+  const [driveFolderUrl, setDriveFolderUrl] = useState('');
+  const [isResyncing, setIsResyncing] = useState(false);
   useEffect(() => {
     if (!projectId) return;
 
@@ -167,36 +219,13 @@ export function ProjectCreatedPage() {
         }
         if (cancelled) return;
 
-        const c = data.content ?? {};
+        const c: SyncedContentPayload = data.content ?? {};
 
-        setContent((current) => ({
-          ...current,
-          overviewContent: c.overviewContent || current.overviewContent,
-          overviewImages: c.overviewImages ?? current.overviewImages,
-          locationContent: c.locationContent || current.locationContent,
-          locationImages: c.locationImages ?? current.locationImages,
-          overviewFloorPlanPreview:
-          c.overviewFloorPlanPreview ?? current.overviewFloorPlanPreview,
-          floorPlanTabs:
-          c.floorPlanTabs && c.floorPlanTabs.length > 0 ?
-          c.floorPlanTabs :
-          current.floorPlanTabs,
-          salesSheetFolderName:
-          c.salesSheetFolderName || current.salesSheetFolderName,
-          image360: c.image360 ?? current.image360,
-          documents: c.documents ?? current.documents,
-          amenitiesBlock:
-          c.amenityImages && c.amenityImages.length > 0 ?
-          {
-            id: crypto.randomUUID(),
-            type: 'carousel-grid' as AmenitiesCarouselType,
-            images: c.amenityImages
-          } :
-          current.amenitiesBlock
-        }));
+        setContent((current) => mergeSyncedOverview(current, c));
         setSlides(c.heroSlides ?? []);
         setLeftBanner(c.leftBanner ?? null);
         setRightBanner(c.rightBanner ?? null);
+        if (data.drive_folder_url) setDriveFolderUrl(data.drive_folder_url);
         setNotice('Đã tải dữ liệu dự án');
         window.setTimeout(() => setNotice(''), 2400);
       } catch (error) {
@@ -310,6 +339,38 @@ export function ProjectCreatedPage() {
   function showNotice(message: string) {
     setNotice(message);
     window.setTimeout(() => setNotice(''), 2400);
+  }
+  async function handleResync() {
+    if (!driveFolderUrl || isResyncing) return;
+    setIsResyncing(true);
+    try {
+      const response = await fetch('/api/sync-project', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          driveFolderUrl,
+          projectName: content.projectName || project.name
+        })
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error ?? 'Đồng bộ lại thất bại.');
+      }
+
+      const c: SyncedContentPayload = data.content ?? {};
+      setContent((current) => mergeSyncedOverview(current, c));
+      setSlides(c.heroSlides ?? []);
+      setLeftBanner(c.leftBanner ?? null);
+      setRightBanner(c.rightBanner ?? null);
+      showNotice('Đồng bộ lại thành công');
+    } catch (error) {
+      showNotice(
+        error instanceof Error ? error.message : 'Đồng bộ lại thất bại.'
+      );
+    } finally {
+      setIsResyncing(false);
+    }
   }
   function requestUpload() {
     uploadInputRef.current?.click();
@@ -1092,7 +1153,10 @@ export function ProjectCreatedPage() {
         onOpenConfiguration={() => setConfigurationOpen(true)}
         onPreview={openPreview}
         onSaveDraft={() => showNotice('Đã lưu bản nháp')}
-        onPublish={() => showNotice('Dự án đã được xuất bản')} />
+        onPublish={() => showNotice('Dự án đã được xuất bản')}
+        driveFolderUrl={driveFolderUrl}
+        isResyncing={isResyncing}
+        onResync={handleResync} />
       
 
       <input
