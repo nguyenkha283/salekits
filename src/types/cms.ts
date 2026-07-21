@@ -48,6 +48,27 @@ export interface FloorPlanTab {
   blocks: FloorPlanContentBlock[];
 }
 
+export interface DriveFileRef {
+  id: string;
+  name: string;
+  url: string;
+  mimeType: string;
+}
+
+export interface SalesPolicyGroup {
+  id: string;
+  label: string;
+  files: DriveFileRef[];
+}
+
+export interface DocumentsSection {
+  training: DriveFileRef[];
+  salesPolicyCoverImage: HeroSlide | null;
+  salesPolicyGroups: SalesPolicyGroup[];
+  progress: DriveFileRef[];
+  general: DriveFileRef[];
+}
+
 export interface AmenityImage {
   id: string;
   image: HeroSlide;
@@ -88,6 +109,9 @@ export interface CmsProjectContent {
   locationContentColor?: string;
   locationImages: HeroSlide[];
   overviewFloorPlanPreview: OverviewFloorPlanPreviewItem[];
+  image360: HeroSlide[];
+  salesSheetFolderName: string;
+  documents: DocumentsSection;
   featuredItems: FeaturedItem[];
   featuredProductsTitleColor?: string;
   featuredProductsDescription: string;

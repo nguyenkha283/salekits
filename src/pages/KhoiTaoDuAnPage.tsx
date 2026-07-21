@@ -43,10 +43,13 @@ export function KhoiTaoDuAnPage() {
     };
 
     try {
-      const response = await fetch('/api/sync-overview', {
+      const response = await fetch('/api/sync-project', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ driveFolderUrl: trimmedDriveLink })
+        body: JSON.stringify({
+          driveFolderUrl: trimmedDriveLink,
+          projectName: tenDuAn.trim()
+        })
       });
 
       const data = await response.json();
@@ -55,17 +58,11 @@ export function KhoiTaoDuAnPage() {
         throw new Error(data.error ?? 'Đồng bộ thất bại, vui lòng thử lại.');
       }
 
-      navigate('/hoan-tat', {
-        state: {
-          project,
-          driveFolderUrl: trimmedDriveLink,
-          // syncedOverviewContent chứa dữ liệu mục Tổng quan vừa đọc từ Drive
-          // (heroSlides, overviewContent, overviewImages, locationContent,
-          // locationImages, overviewFloorPlanPreview, amenityImages).
-          // ProjectCreatedPage/backend lưu trữ chưa đọc field này — cần bổ
-          // sung khi nối vào CmsProjectContent thật.
-          syncedOverviewContent: data
-        }
+      // Truyền projectId qua query string (không chỉ location.state) để
+      // ProjectCreatedPage tải lại được đúng dữ liệu này kể cả khi reload
+      // trang — vì location.state của React Router bị mất khi tải lại.
+      navigate(`/hoan-tat?projectId=${encodeURIComponent(data.projectId)}`, {
+        state: { project }
       });
     } catch (error) {
       setIsSyncing(false);

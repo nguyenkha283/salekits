@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { ChangeEvent } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { CmsHeader, CmsRightPanelMode } from '../components/CmsHeader';
 import { CmsRightPanel } from '../components/CmsRightPanel';
 import {
@@ -25,19 +25,8 @@ import {
   SelectedEditorBlock } from
 '../types/cms';
 import { ProjectDraft } from '../types/project';
-interface SyncedOverviewContent {
-  heroSlides: HeroSlide[];
-  overviewContent: string;
-  overviewImages: HeroSlide[];
-  locationContent: string;
-  locationImages: HeroSlide[];
-  overviewFloorPlanPreview: {id: string;label: string;image: HeroSlide;}[];
-  amenityImages: AmenityImage[];
-}
 interface ProjectEditorLocationState {
   project?: ProjectDraft;
-  driveFolderUrl?: string;
-  syncedOverviewContent?: SyncedOverviewContent;
 }
 const FALLBACK_PROJECT: ProjectDraft = {
   hierarchy: '',
@@ -83,13 +72,22 @@ function createEmptyFloorPlanTab(index = 1): FloorPlanTab {
 function createInitialContent(project: ProjectDraft): CmsProjectContent {
   return {
     hierarchy: project.hierarchy || 'Dự án',
-    projectName: project.name || '',
+    projectName: '',
     description: '',
     overviewContent: '',
     overviewImages: [],
     locationContent: '',
     locationImages: [],
     overviewFloorPlanPreview: [],
+    image360: [],
+    salesSheetFolderName: '',
+    documents: {
+      training: [],
+      salesPolicyCoverImage: null,
+      salesPolicyGroups: [],
+      progress: [],
+      general: []
+    },
     featuredItems: createEmptyFeaturedItems(),
     featuredProductsDescription: '',
     featuredProducts: [createEmptyProduct()],
@@ -102,33 +100,14 @@ function createInitialContent(project: ProjectDraft): CmsProjectContent {
     contactDescription: ''
   };
 }
-function mergeSyncedOverview(
-current: CmsProjectContent,
-synced: SyncedOverviewContent)
-: CmsProjectContent {
-  return {
-    ...current,
-    overviewContent: synced.overviewContent || current.overviewContent,
-    overviewImages: synced.overviewImages ?? current.overviewImages,
-    locationContent: synced.locationContent || current.locationContent,
-    locationImages: synced.locationImages ?? current.locationImages,
-    overviewFloorPlanPreview:
-    synced.overviewFloorPlanPreview ?? current.overviewFloorPlanPreview,
-    amenitiesBlock:
-    synced.amenityImages && synced.amenityImages.length > 0 ?
-    {
-      id: crypto.randomUUID(),
-      type: 'carousel-grid' as AmenitiesCarouselType,
-      images: synced.amenityImages
-    } :
-    current.amenitiesBlock
-  };
-}
 export function ProjectCreatedPage() {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const locationState = location.state as ProjectEditorLocationState | null;
   const project = locationState?.project ?? FALLBACK_PROJECT;
-  const syncedOverviewContent = locationState?.syncedOverviewContent;
+  const projectId = searchParams.get('projectId');
+  const [isLoadingProject, setIsLoadingProject] = useState(Boolean(projectId));
+  const [loadProjectError, setLoadProjectError] = useState('');
   const [role, setRole] = useState<CmsRole>('APM');
   const [rightPanelMode, setRightPanelMode] = useState<CmsRightPanelMode>(null);
   const [configurationOpen, setConfigurationOpen] = useState(false);
@@ -136,15 +115,11 @@ export function ProjectCreatedPage() {
   createProjectConfiguration(project)
   );
   const [selectedBlock, setSelectedBlock] = useState<SelectedEditorBlock>(null);
-  const [content, setContent] = useState<CmsProjectContent>(() => {
-    const initial = createInitialContent(project);
-    if (!syncedOverviewContent) return initial;
-    return mergeSyncedOverview(initial, syncedOverviewContent);
-  });
-  const [activeMenu, setActiveMenu] = useState('Tổng quan');
-  const [slides, setSlides] = useState<HeroSlide[]>(
-    () => syncedOverviewContent?.heroSlides ?? []
+  const [content, setContent] = useState<CmsProjectContent>(() =>
+  createInitialContent(project)
   );
+  const [activeMenu, setActiveMenu] = useState('Tổng quan');
+  const [slides, setSlides] = useState<HeroSlide[]>([]);
   const [leftBanner, setLeftBanner] = useState<HeroSlide | null>(null);
   const [rightBanner, setRightBanner] = useState<HeroSlide | null>(null);
   const [overviewBackgroundImage, setOverviewBackgroundImage] =
@@ -176,12 +151,71 @@ export function ProjectCreatedPage() {
   const [notice, setNotice] = useState('');
   const [uploadError, setUploadError] = useState('');
   useEffect(() => {
-    if (!syncedOverviewContent) return;
-    setNotice('Đã đồng bộ dữ liệu Tổng quan từ Drive');
-    const timeout = window.setTimeout(() => setNotice(''), 2400);
-    return () => window.clearTimeout(timeout);
+    if (!projectId) return;
+
+    let cancelled = false;
+
+    async function loadProject() {
+      try {
+        const response = await fetch(
+          `/api/get-project?id=${encodeURIComponent(projectId as string)}`
+        );
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error ?? 'Tải dự án thất bại.');
+        }
+        if (cancelled) return;
+
+        const c = data.content ?? {};
+
+        setContent((current) => ({
+          ...current,
+          overviewContent: c.overviewContent || current.overviewContent,
+          overviewImages: c.overviewImages ?? current.overviewImages,
+          locationContent: c.locationContent || current.locationContent,
+          locationImages: c.locationImages ?? current.locationImages,
+          overviewFloorPlanPreview:
+          c.overviewFloorPlanPreview ?? current.overviewFloorPlanPreview,
+          floorPlanTabs:
+          c.floorPlanTabs && c.floorPlanTabs.length > 0 ?
+          c.floorPlanTabs :
+          current.floorPlanTabs,
+          salesSheetFolderName:
+          c.salesSheetFolderName || current.salesSheetFolderName,
+          image360: c.image360 ?? current.image360,
+          documents: c.documents ?? current.documents,
+          amenitiesBlock:
+          c.amenityImages && c.amenityImages.length > 0 ?
+          {
+            id: crypto.randomUUID(),
+            type: 'carousel-grid' as AmenitiesCarouselType,
+            images: c.amenityImages
+          } :
+          current.amenitiesBlock
+        }));
+        setSlides(c.heroSlides ?? []);
+        setLeftBanner(c.leftBanner ?? null);
+        setRightBanner(c.rightBanner ?? null);
+        setNotice('Đã tải dữ liệu dự án');
+        window.setTimeout(() => setNotice(''), 2400);
+      } catch (error) {
+        if (!cancelled) {
+          setLoadProjectError(
+            error instanceof Error ? error.message : 'Tải dự án thất bại.'
+          );
+        }
+      } finally {
+        if (!cancelled) setIsLoadingProject(false);
+      }
+    }
+
+    loadProject();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [projectId]);
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const mediaRef = useRef<{
     slides: HeroSlide[];
@@ -276,38 +310,6 @@ export function ProjectCreatedPage() {
   function showNotice(message: string) {
     setNotice(message);
     window.setTimeout(() => setNotice(''), 2400);
-  }
-  const driveFolderUrl = locationState?.driveFolderUrl ?? '';
-  const [isResyncing, setIsResyncing] = useState(false);
-  async function handleResync() {
-    if (!driveFolderUrl || isResyncing) return;
-    setIsResyncing(true);
-    setUploadError('');
-    try {
-      const response = await fetch('/api/sync-overview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ driveFolderUrl })
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error ?? 'Đồng bộ thất bại, vui lòng thử lại.');
-      }
-      const synced = data as SyncedOverviewContent;
-      setContent((current) => mergeSyncedOverview(current, synced));
-      setSlides(synced.heroSlides ?? []);
-      setActiveSlide(0);
-      showNotice('Đã đồng bộ lại dữ liệu từ Drive');
-    } catch (error) {
-      setUploadError(
-        error instanceof Error ?
-        error.message :
-        'Đồng bộ thất bại, vui lòng thử lại.'
-      );
-      window.setTimeout(() => setUploadError(''), 4000);
-    } finally {
-      setIsResyncing(false);
-    }
   }
   function requestUpload() {
     uploadInputRef.current?.click();
@@ -1090,9 +1092,7 @@ export function ProjectCreatedPage() {
         onOpenConfiguration={() => setConfigurationOpen(true)}
         onPreview={openPreview}
         onSaveDraft={() => showNotice('Đã lưu bản nháp')}
-        onPublish={() => showNotice('Dự án đã được xuất bản')}
-        onResync={driveFolderUrl ? handleResync : undefined}
-        isResyncing={isResyncing} />
+        onPublish={() => showNotice('Dự án đã được xuất bản')} />
       
 
       <input
@@ -1152,6 +1152,24 @@ export function ProjectCreatedPage() {
         className="fixed bottom-5 left-1/2 z-40 -translate-x-1/2 rounded-md bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white shadow-lg">
         
           {notice}
+        </div>
+      }
+
+      {isLoadingProject &&
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80">
+          <div className="flex items-center gap-3 rounded-md bg-neutral-900 px-5 py-3 text-sm font-semibold text-white shadow-lg">
+            <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-neutral-500 border-t-white" />
+            Đang tải dữ liệu dự án...
+          </div>
+        </div>
+      }
+
+      {loadProjectError &&
+      <div
+        role="alert"
+        className="fixed bottom-5 left-1/2 z-40 -translate-x-1/2 rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg">
+        
+          {loadProjectError}
         </div>
       }
     </div>);

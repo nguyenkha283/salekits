@@ -21,10 +21,10 @@ interface SyncedImage {
 }
 
 function toImageUrl(fileId: string): string {
-  // Ảnh được stream qua endpoint proxy /api/drive-file?id=... vì folder chỉ
+  // Ảnh được stream qua endpoint proxy /api/drive-file/[fileId] vì folder chỉ
   // share Viewer cho service account, không public trực tiếp được cho trình
   // duyệt của người dùng cuối.
-  return `/api/drive-file?id=${encodeURIComponent(fileId)}`;
+  return `/api/drive-file/${fileId}`;
 }
 
 function toSyncedImage(node: DriveNode): SyncedImage {

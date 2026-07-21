@@ -38,9 +38,7 @@ export async function listChildren(
       q: `'${folderId}' in parents and trashed = false`,
       fields: 'nextPageToken, files(id, name, mimeType)',
       pageToken,
-      pageSize: 200,
-      supportsAllDrives: true,
-      includeItemsFromAllDrives: true
+      pageSize: 200
     });
     nodes.push(...(response.data.files ?? []).map((file) => ({
       id: file.id ?? '',
