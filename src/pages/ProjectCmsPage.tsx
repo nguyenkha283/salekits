@@ -23,10 +23,12 @@ import { Role } from '../detail/components/Header';
 import { CANVAS_TABS, ProjectCanvas, canEditTab } from '../detail/ProjectCanvas';
 import { HIERARCHY_OPTIONS, SECTIONS, findSection } from '../detail/sectionRegistry';
 import {
+  IMG,
   buildSyncedMedia,
   countMedia,
   isImageItem,
   pickItems,
+  sized,
   stripExt,
   type SyncedContent } from
 '../detail/syncedMedia';
@@ -89,6 +91,8 @@ export function ProjectCmsPage() {
   const [isResyncing, setIsResyncing] = useState(false);
   const [notice, setNotice] = useState('');
   const canvasRef = useRef<HTMLDivElement>(null);
+  const [toolbarRect, setToolbarRect] = useState<DOMRect | null>(null);
+  const focusedBlock = useRef<HTMLElement | null>(null);
 
   const project: ProjectDraft = {
     hierarchy: '',
@@ -136,6 +140,41 @@ export function ProjectCmsPage() {
   const heroName = edits.projectName ?? project.name;
   const tagline = edits.tagline ?? 'Tuyệt tác trên tầm cao.';
 
+  // Nhận thay đổi từ các khối chữ sửa trực tiếp trên trang.
+  const handleInlineChange = useCallback((field: string, value: string) => {
+    const stat = field.match(/^stat-(\d+)-(value|label)$/);
+    if (stat) {
+      const index = Number(stat[1]);
+      const key = stat[2] as 'value' | 'label';
+      setEdits((current) => {
+        const base = current.stats ?? DEFAULT_STATS;
+        return {
+          ...current,
+          stats: base.map((item, i) => i === index ? { ...item, [key]: value } : item)
+        };
+      });
+      return;
+    }
+    setEdits((current) => ({ ...current, [field]: value }));
+  }, []);
+
+  // Ghim thanh công cụ ngay trên khối chữ đang nhập.
+  const handleFocusBlock = useCallback((element: HTMLElement | null) => {
+    focusedBlock.current = element;
+    if (!element) {
+      // Trễ một nhịp để cú bấm vào nút trên thanh công cụ không bị mất.
+      window.setTimeout(() => {
+        if (!focusedBlock.current) setToolbarRect(null);
+      }, 180);
+      return;
+    }
+    if (element.dataset.cmsInline !== 'rich') {
+      setToolbarRect(null);
+      return;
+    }
+    setToolbarRect(element.getBoundingClientRect());
+  }, []);
+
   const showNotice = useCallback((message: string) => {
     setNotice(message);
     window.setTimeout(() => setNotice(''), 2800);
@@ -152,6 +191,8 @@ export function ProjectCmsPage() {
     }
     // Không chặn thao tác thật của người dùng trên các phần tử tương tác
     if (target.closest('a, button, input, select, textarea, iframe')) return;
+    // Bấm vào khối chữ thì đặt con trỏ để gõ, không chuyển sang chọn section.
+    if (target.closest('[contenteditable="true"]')) return;
     event.preventDefault();
     const id = node.dataset.cmsSection ?? null;
     setSelectedSection(id);
@@ -305,6 +346,11 @@ export function ProjectCmsPage() {
             stats={stats}
             hierarchy={hierarchy}
             tagline={tagline}
+            editing={{
+              enabled: editable,
+              onChange: handleInlineChange,
+              onFocusBlock: handleFocusBlock
+            }}
             syncedMedia={syncedMedia}
             chrome={false} />
 
@@ -338,8 +384,6 @@ export function ProjectCmsPage() {
         <SectionEditor
           section={section}
           syncedMedia={syncedMedia}
-          overviewHtml={overviewHtml}
-          locationHtml={locationHtml}
           stats={stats}
           hierarchy={hierarchy}
           heroName={heroName}
@@ -351,9 +395,6 @@ export function ProjectCmsPage() {
             setSelectedSection(null);
             setDrawerOpen(false);
           }}
-          onChangeHtml={(field, value) =>
-          setEdits((current) => ({ ...current, [field]: value }))
-          }
           onChangeStats={(next) =>
           setEdits((current) => ({ ...current, stats: next }))
           }
@@ -383,6 +424,29 @@ export function ProjectCmsPage() {
 
         }
         </aside>
+      }
+
+      {toolbarRect &&
+      <div
+        className="fixed z-50 flex gap-0.5 rounded-lg bg-[#3b2c1d] p-1 shadow-xl"
+        style={{
+          top: Math.max(8, toolbarRect.top - 44),
+          left: Math.max(8, toolbarRect.left)
+        }}>
+
+          <FloatToolButton label="Đậm" onClick={() => document.execCommand('bold')}>
+            <BoldIcon className="h-3.5 w-3.5" />
+          </FloatToolButton>
+          <FloatToolButton label="Nghiêng" onClick={() => document.execCommand('italic')}>
+            <ItalicIcon className="h-3.5 w-3.5" />
+          </FloatToolButton>
+          <FloatToolButton label="Danh sách" onClick={() => document.execCommand('insertUnorderedList')}>
+            <ListIcon className="h-3.5 w-3.5" />
+          </FloatToolButton>
+          <FloatToolButton label="Xóa định dạng" onClick={() => document.execCommand('removeFormat')}>
+            <RotateCcwIcon className="h-3.5 w-3.5" />
+          </FloatToolButton>
+        </div>
       }
 
       {notice &&
@@ -573,8 +637,6 @@ function DriveDrawer({
 interface SectionEditorProps {
   section: (typeof SECTIONS)[number];
   syncedMedia: ReturnType<typeof buildSyncedMedia>;
-  overviewHtml: string;
-  locationHtml: string;
   stats: {value: string;label: string;}[];
   hierarchy: string;
   heroName: string;
@@ -584,7 +646,6 @@ interface SectionEditorProps {
   isResyncing: boolean;
   onBack: () => void;
   onClose: () => void;
-  onChangeHtml: (field: 'overviewHtml' | 'locationHtml', value: string) => void;
   onChangeStats: (next: {value: string;label: string;}[]) => void;
   onChangeField: (field: 'hierarchy' | 'projectName' | 'tagline', value: string) => void;
   onReset: () => void;
@@ -594,8 +655,6 @@ interface SectionEditorProps {
 function SectionEditor({
   section,
   syncedMedia,
-  overviewHtml,
-  locationHtml,
   stats,
   hierarchy,
   heroName,
@@ -604,14 +663,11 @@ function SectionEditor({
   isResyncing,
   onBack,
   onClose,
-  onChangeHtml,
   onChangeStats,
   onChangeField,
   onReset,
   onResync
 }: SectionEditorProps) {
-  const field = section.id === 'location' ? 'locationHtml' : 'overviewHtml';
-  const html = section.id === 'location' ? locationHtml : overviewHtml;
   const items = section.media ?
   pickItems(syncedMedia[section.media[0]], section.media[1]) :
   [];
@@ -650,16 +706,22 @@ function SectionEditor({
           </p>
         }
 
-        {section.kind === 'text' &&
-        <RichTextField
-          key={section.id}
-          value={html || section.defaultText || ''}
-          onChange={(value) => onChangeHtml(field, value)} />
-
+        {(section.kind === 'text' || section.kind === 'stats') &&
+        <p className="flex gap-2 rounded-md border border-dashed border-[#e0d2bd] p-3 text-[12px] leading-relaxed text-stone-600">
+            <PencilIcon className="mt-px h-3.5 w-3.5 shrink-0 text-[#b08e5c]" />
+            <span>
+              Bấm thẳng vào chữ trên trang để sửa tại chỗ. Thanh Đậm / Nghiêng /
+              Danh sách hiện ngay phía trên khối đang nhập.
+            </span>
+          </p>
         }
 
         {section.kind === 'hero' &&
         <div className="space-y-3">
+            <p className="flex gap-2 rounded-md border border-dashed border-[#e0d2bd] p-3 text-[12px] leading-relaxed text-stone-600">
+              <PencilIcon className="mt-px h-3.5 w-3.5 shrink-0 text-[#b08e5c]" />
+              <span>Cấp độ, tên dự án và slogan sửa được trực tiếp trên hero.</span>
+            </p>
             <Field label="Cấp độ dự án">
               <select
               value={hierarchy}
@@ -753,7 +815,7 @@ function SectionEditor({
             isImageItem(item) ?
             <div key={item.id} className="relative overflow-hidden rounded-md border border-[#eee4d5]">
                       <img
-                src={item.url}
+                src={sized(item.url, IMG.thumb)}
                 alt={item.caption || item.name}
                 loading="lazy"
                 className="aspect-square w-full object-cover" />
@@ -815,51 +877,24 @@ function SectionEditor({
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Ô nhập văn bản có định dạng — nội dung đổi ngay trên canvas
+   Thanh công cụ nổi cho khối chữ đang nhập
    ═══════════════════════════════════════════════════════════════ */
-function RichTextField({
-  value,
-  onChange
-}: {value: string;onChange: (value: string) => void;}) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  // Chỉ nạp nội dung một lần khi đổi section, tránh nhảy con trỏ khi gõ.
-  useEffect(() => {
-    if (ref.current) ref.current.innerHTML = value || '';
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  function exec(command: string) {
-    document.execCommand(command, false);
-    if (ref.current) onChange(ref.current.innerHTML);
-    ref.current?.focus();
-  }
-
+function FloatToolButton({
+  label,
+  onClick,
+  children
+}: {label: string;onClick: () => void;children: React.ReactNode;}) {
   return (
-    <div className="overflow-hidden rounded-lg border border-[#e0d2bd]">
-      <div className="flex gap-0.5 border-b border-[#eee4d5] bg-[#faf6ef] p-1">
-        <ToolbarButton label="Đậm" onClick={() => exec('bold')}>
-          <BoldIcon className="h-3.5 w-3.5" />
-        </ToolbarButton>
-        <ToolbarButton label="Nghiêng" onClick={() => exec('italic')}>
-          <ItalicIcon className="h-3.5 w-3.5" />
-        </ToolbarButton>
-        <ToolbarButton label="Danh sách" onClick={() => exec('insertUnorderedList')}>
-          <ListIcon className="h-3.5 w-3.5" />
-        </ToolbarButton>
-        <ToolbarButton label="Xóa định dạng" onClick={() => exec('removeFormat')}>
-          <RotateCcwIcon className="h-3.5 w-3.5" />
-        </ToolbarButton>
-      </div>
-      <div
-        ref={ref}
-        contentEditable
-        suppressContentEditableWarning
-        onInput={(event) => onChange((event.target as HTMLDivElement).innerHTML)}
-        data-placeholder="Nhập nội dung…"
-        className="prose-cen min-h-[132px] max-h-[260px] overflow-y-auto bg-white px-3 py-2.5 text-[13px] leading-6 text-stone-700 outline-none" />
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      onMouseDown={(event) => event.preventDefault()}
+      onClick={onClick}
+      className="grid h-7 w-7 place-items-center rounded text-white/80 transition-colors hover:bg-white/15 hover:text-white">
 
-    </div>);
+      {children}
+    </button>);
 
 }
 
@@ -878,24 +913,5 @@ function Field({
       <span className="mt-1 block text-[11px] text-stone-500">{note}</span>
       }
     </label>);
-
-}
-
-function ToolbarButton({
-  label,
-  onClick,
-  children
-}: {label: string;onClick: () => void;children: React.ReactNode;}) {
-  return (
-    <button
-      type="button"
-      title={label}
-      aria-label={label}
-      onMouseDown={(event) => event.preventDefault()}
-      onClick={onClick}
-      className="grid h-7 w-7 place-items-center rounded text-stone-600 transition-colors hover:bg-white hover:text-[#3b2c1d]">
-
-      {children}
-    </button>);
 
 }

@@ -15,9 +15,11 @@ import { NewsContent } from './components/NewsContent';
 import { BuildingsContent } from './components/BuildingsContent';
 import { FloorPlanContent } from './components/FloorPlanContent';
 import {
+  IMG,
   fileExt,
   isImageItem,
   pickItems,
+  sized,
   stripExt,
   type SyncedMedia } from
 './syncedMedia';
@@ -51,6 +53,10 @@ export const CANVAS_TABS: CanvasTab[] = [
 { id: 'tin-tuc', label: 'Tin tức', source: 'manual' }];
 
 
+function sizedOrUndefined(url: string | undefined, width: number) {
+  return url ? sized(url, width) : undefined;
+}
+
 /** Quyền biên tập theo ma trận phân quyền mục 2.5 của SRS. */
 export function canEditTab(role: Role, tabId: string): boolean {
   if (role === 'Trưởng line') return false;
@@ -74,6 +80,12 @@ interface ProjectCanvasProps {
   hierarchy?: string;
   /** Slogan dưới tên dự án trên hero. */
   tagline?: string;
+  /** Bật sửa chữ trực tiếp trên trang khi hiển thị trong CMS. */
+  editing?: {
+    enabled: boolean;
+    onChange: (field: string, value: string) => void;
+    onFocusBlock?: (element: HTMLElement | null) => void;
+  };
   /** Ảnh và tài liệu đã đồng bộ, gom theo tab. */
   syncedMedia?: SyncedMedia;
   /** Ẩn breadcrumb và nút chia sẻ khi hiển thị bên trong CMS. */
@@ -94,6 +106,7 @@ export function ProjectCanvas({
   stats,
   hierarchy,
   tagline,
+  editing,
   syncedMedia = {},
   chrome = true
 }: ProjectCanvasProps) {
@@ -103,32 +116,32 @@ export function ProjectCanvas({
   const overviewGroups = syncedMedia['tong-quan'];
   const policyGroups = syncedMedia['chinh-sach'] ?? [];
 
-  const heroSlides = pickItems(overviewGroups, 'hero').map((item) => item.url);
-  const overviewImage = pickItems(overviewGroups, 'overview')[0]?.url;
-  const locationImage = pickItems(overviewGroups, 'location')[0]?.url;
+  const heroSlides = pickItems(overviewGroups, 'hero').map((item) => sized(item.url, IMG.hero));
+  const overviewImage = sizedOrUndefined(pickItems(overviewGroups, 'overview')[0]?.url, IMG.wide);
+  const locationImage = sizedOrUndefined(pickItems(overviewGroups, 'location')[0]?.url, IMG.wide);
   const amenities = pickItems(overviewGroups, 'amenity').map((item) => ({
-    image: item.url,
+    image: sized(item.url, IMG.card),
     title: item.caption || stripExt(item.name)
   }));
   const floorPlans = pickItems(overviewGroups, 'plan-preview').map((item) => ({
     key: item.id,
     label: item.caption || stripExt(item.name),
     title: item.caption || stripExt(item.name),
-    image: item.url
+    image: sized(item.url, IMG.wide)
   }));
 
-  const planImage = pickItems(syncedMedia['mat-bang'])[0]?.url;
+  const planImage = sizedOrUndefined(pickItems(syncedMedia['mat-bang'])[0]?.url, IMG.hero);
   const scenes360 = pickItems(syncedMedia['anh-360']).map((item) => ({
     key: item.id,
     label: stripExt(item.name),
-    image: item.url
+    image: sized(item.url, IMG.hero)
   }));
   const trainingFiles = pickItems(syncedMedia['dao-tao']).map((item) => ({
     name: item.name,
     type: fileExt(item.name),
     href: item.url
   }));
-  const policyCover = pickItems(policyGroups, 'policy-cover')[0]?.url;
+  const policyCover = sizedOrUndefined(pickItems(policyGroups, 'policy-cover')[0]?.url, IMG.wide);
   const policyFileGroups = policyGroups.
   filter((group) => group.id !== 'policy-cover').
   map((group) => ({ id: group.id, label: group.label, items: group.items }));
@@ -136,7 +149,7 @@ export function ProjectCanvas({
   filter(isImageItem).
   map((item, index) => ({
     id: item.id,
-    src: item.url,
+    src: sized(item.url, IMG.card),
     alt: `Ảnh tiến độ — ${item.caption || stripExt(item.name)} (${index + 1})`
   }));
   const documentFiles = pickItems(syncedMedia['tai-lieu']).map((item) => ({
@@ -202,7 +215,8 @@ export function ProjectCanvas({
           stats={stats}
           hierarchy={hierarchy}
           projectName={projectName}
-          tagline={tagline} />
+          tagline={tagline}
+          editing={editing} />
 
         }
 

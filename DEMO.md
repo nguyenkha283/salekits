@@ -45,12 +45,13 @@ Canvas chiếm trọn chiều rộng, không có cột phụ. Điều hướng g
 
 Trong CMS, di chuột lên trang sẽ thấy **viền cam và nhãn tên section**. Bấm vào là section được chọn (viền đậm) và ngăn kéo chuyển sang chế độ sửa:
 
+**Chữ sửa thẳng trên trang, không qua hộp thoại.** Bấm vào bất kỳ khối chữ nào là con trỏ hiện ra gõ luôn như trong Word. Với khối văn bản dài, thanh Đậm / Nghiêng / Danh sách / Xóa định dạng nổi lên ngay phía trên khối đang nhập.
+
+Sáu khối sửa được tại chỗ: cấp độ dự án (dropdown), tên dự án, slogan, mô tả tổng quan, mô tả vị trí, và ba cặp số liệu nổi bật.
+
 | Loại section | Sửa được gì |
 |---|---|
-| **Băng ảnh đầu trang** | Dropdown *Cấp độ dự án* (Đại đô thị / Khu đô thị / Dự án / Phân khu / Tiểu khu / Tòa), ô *Tên dự án* và ô *Slogan* |
-| **Nhập tay** — Tổng quan dự án, Vị trí dự án | Ô soạn thảo có Đậm / Nghiêng / Danh sách / Xóa định dạng. Gõ tới đâu trang đổi tới đó. Nạp sẵn văn bản đang hiển thị để sửa thay vì gõ lại từ đầu |
-| **Số liệu nổi bật** | Sửa trực tiếp ba cặp giá trị và nhãn |
-| **Từ Drive** — hero, tiện ích, mặt bằng, 360, tiến độ, tài liệu, chính sách | Xem ảnh đang có, tên thư mục nguồn, nút đồng bộ lại. Không sửa tay được — đúng quy định của SRS |
+| **Từ Drive** — ảnh hero, tiện ích, mặt bằng, 360, tiến độ, tài liệu, chính sách | Xem ảnh đang có, tên thư mục nguồn, nút đồng bộ lại. Không sửa tay được — đúng quy định của SRS |
 | **Đợt sau** — loại hình sản phẩm, liên hệ | Hiện ghi chú, chưa có giao diện biên tập |
 
 Nút **Trả về gốc** ở chân ngăn kéo hoàn tác mọi chỉnh sửa trong phiên.
@@ -141,7 +142,24 @@ Trang công khai `/du-an?projectId=...` dùng chung dữ liệu này, nên biên
 
 ---
 
-## 5. Cần nói trước với PO — những chỗ chưa có
+## 5. Nén ảnh tự động
+
+Mọi ảnh đi qua `/api/drive-file` giờ nhận thêm tham số bề rộng, ví dụ `?w=640`. Endpoint lấy bản **đã resize sẵn của Google** thay vì tải file gốc:
+
+| Ngữ cảnh | Bề rộng |
+|---|---|
+| Ảnh thu nhỏ trong ngăn kéo CMS | 160 px |
+| Ảnh tiện ích, ảnh tiến độ | 640 px |
+| Ảnh tổng quan, bản đồ vị trí, ảnh bìa chính sách | 1280 px |
+| Băng ảnh đầu trang, mặt bằng, ảnh 360 | 1600 px |
+
+Cách này không cần thư viện xử lý ảnh, không tốn CPU của hàm serverless, và Google đã dựng sẵn các kích thước đó cho mọi ảnh trên Drive. Bề rộng chỉ nhận bảy giá trị định sẵn để tránh phân mảnh cache. Nếu Google không trả được bản resize thì tự động rơi về file gốc.
+
+Cache nâng từ 1 giờ lên 24 giờ kèm `stale-while-revalidate` 7 ngày. Header `X-Image-Variant` cho biết đang phục vụ bản nào — tiện khi cần kiểm tra.
+
+---
+
+## 6. Cần nói trước với PO — những chỗ chưa có
 
 Nếu không nói trước, PO sẽ tưởng đã xong.
 
@@ -159,7 +177,7 @@ Với các phần này, dùng bản prototype HTML gửi kèm trước đó (`CE
 
 ---
 
-## 6. Cấu trúc thư mục
+## 7. Cấu trúc thư mục
 
 ```
 api/                          backend serverless — giữ nguyên
@@ -183,7 +201,7 @@ supabase/schema.sql
 
 ---
 
-## 7. Việc nên làm ngay sau buổi demo
+## 8. Việc nên làm ngay sau buổi demo
 
 1. Chốt một phương án hiển thị ô căn trong bốn phương án đang có.
 2. Viết endpoint lưu nội dung — đây là thứ chặn mọi việc còn lại.

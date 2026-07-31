@@ -191,3 +191,20 @@ export function pickItems(groups?: MediaGroup[], groupId?: string): MediaItem[] 
   if (!groupId) return groups.flatMap((group) => group.items);
   return groups.find((group) => group.id === groupId)?.items ?? [];
 }
+
+/**
+ * Gắn tham số bề rộng vào URL ảnh để endpoint trả về bản đã resize sẵn của
+ * Google thay vì file gốc. Chỉ áp dụng cho URL do hệ thống sinh ra.
+ */
+export function sized(url: string, width: number): string {
+  if (!url.startsWith('/api/drive-file')) return url;
+  return `${url}${url.includes('?') ? '&' : '?'}w=${width}`;
+}
+
+/** Bề rộng dùng cho từng ngữ cảnh hiển thị. */
+export const IMG = {
+  thumb: 160,
+  card: 640,
+  wide: 1280,
+  hero: 1600
+} as const;

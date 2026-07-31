@@ -11,6 +11,8 @@ import {
   TreesIcon,
   XIcon } from
 'lucide-react';
+import { InlineRichText, InlineText } from './InlineRichText';
+import { HIERARCHY_OPTIONS } from '../sectionRegistry';
 
 interface OverviewContentProps {
   tabs: React.ReactNode;
@@ -28,6 +30,12 @@ interface OverviewContentProps {
   projectName?: string;
   /** Slogan hiển thị dưới tên dự án. */
   tagline?: string;
+  /** Bật sửa chữ trực tiếp trên trang khi đang ở CMS. */
+  editing?: {
+    enabled: boolean;
+    onChange: (field: string, value: string) => void;
+    onFocusBlock?: (element: HTMLElement | null) => void;
+  };
   floorPlans?: {key: string;label: string;title: string;image: string;}[];
 }
 
@@ -92,6 +100,11 @@ const DEFAULT_AMENITIES = [
 
 const VISIBLE_AMENITIES = 7;
 
+const DEFAULT_OVERVIEW_TEXT =
+'Imperia Sky Park hướng tới một chuẩn sống cân bằng: không gian riêng tư đủ tĩnh tại, những kết nối đủ đầy và cảnh quan xanh len vào từng nhịp sống.';
+const DEFAULT_LOCATION_TEXT =
+'Tọa lạc tại Minh Khai, Imperia Sky Park đưa bạn đến gần hơn với nhịp sống trung tâm, đồng thời gìn giữ một khoảng riêng yên bình để trở về.';
+
 /** Vị trí từng ô trong lưới mosaic ở breakpoint lg (4 cột × 6 hàng). */
 const MOSAIC_POSITIONS = [
 'lg:col-start-1 lg:row-start-1 lg:row-span-6',
@@ -120,8 +133,12 @@ export function OverviewContent({
   stats,
   hierarchy = 'DỰ ÁN',
   projectName = 'Imperia Sky Park',
-  tagline = 'Tuyệt tác trên tầm cao.'
+  tagline = 'Tuyệt tác trên tầm cao.',
+  editing
 }: OverviewContentProps) {
+  const canEdit = Boolean(editing?.enabled);
+  const emit = (field: string) => (value: string) => editing?.onChange(field, value);
+  const onFocusBlock = editing?.onFocusBlock;
   // Dữ liệu Drive được ưu tiên; thiếu mục nào thì mục đó dùng dữ liệu mẫu.
   const HERO_SLIDES = useMemo(
     () => heroSlides?.length ? heroSlides : DEFAULT_HERO_SLIDES,
@@ -180,9 +197,39 @@ export function OverviewContent({
         <div className="absolute inset-0 bg-[#2e261e]/35" aria-hidden="true" />
         <div className="relative mx-auto flex min-h-[560px] w-[90vw] flex-col pb-16 pt-7 text-white sm:min-h-[680px]">
           <div className="mt-auto max-w-3xl pt-32 sm:pt-44">
+            {canEdit ?
+            <select
+              aria-label="Cấp độ dự án"
+              value={hierarchy}
+              onChange={(event) => editing?.onChange('hierarchy', event.target.value)}
+              className="cms-inline-select -ml-1 cursor-pointer appearance-none bg-transparent px-1 text-[40px] font-medium uppercase leading-none tracking-[-0.04em] text-white outline-none">
+
+                {HIERARCHY_OPTIONS.map((option) =>
+              <option key={option} value={option} className="text-black">{option}</option>
+              )}
+              </select> :
             <p className="text-[40px] font-medium uppercase leading-none tracking-[-0.04em] text-white">{hierarchy}</p>
-            <h1 className="mt-5 text-[2rem] font-semibold leading-[1.05] tracking-[-0.04em] sm:text-6xl lg:text-8xl">{projectName}</h1>
-            <p className="mt-5 max-w-xl text-sm leading-6 text-white/85 sm:text-base">{tagline}</p>
+            }
+            <h1 className="mt-5 text-[2rem] font-semibold leading-[1.05] tracking-[-0.04em] sm:text-6xl lg:text-8xl">
+              <InlineText
+              value={projectName}
+              editable={canEdit}
+              label="Tên dự án"
+              placeholder="Nhập tên dự án"
+              onChange={emit('projectName')}
+              onFocusBlock={onFocusBlock} />
+
+            </h1>
+            <p className="mt-5 max-w-xl text-sm leading-6 text-white/85 sm:text-base">
+              <InlineText
+              value={tagline}
+              editable={canEdit}
+              label="Slogan dự án"
+              placeholder="Nhập slogan dự án"
+              onChange={emit('tagline')}
+              onFocusBlock={onFocusBlock} />
+
+            </p>
           </div>
           <div className="absolute bottom-6 right-0 flex items-center gap-3">
             <button type="button" onClick={() => setActiveHero((current) => (current - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)} className="rounded-full border border-white/60 p-2 text-white transition-colors hover:bg-white hover:text-[#302922]" aria-label="Banner trước"><ChevronLeftIcon className="h-4 w-4" /></button>
@@ -197,9 +244,13 @@ export function OverviewContent({
       <section data-cms-section="overview" data-cms-label="Tổng quan dự án" id="overview" className="mx-auto grid w-[90vw] items-center gap-8 py-20 lg:grid-cols-[0.75fr_1.25fr] lg:gap-14">
         <div className="max-w-md">
           <h2 className="text-4xl font-semibold leading-tight tracking-[-0.04em] sm:text-5xl">Tổng quan dự án</h2>
-          {overviewHtml ?
-          <div className="prose-cen mt-5 text-sm leading-7 text-[#675e56] sm:text-base" dangerouslySetInnerHTML={{ __html: overviewHtml }} /> :
-          <p className="mt-5 text-sm leading-7 text-[#675e56] sm:text-base">Imperia Sky Park hướng tới một chuẩn sống cân bằng: không gian riêng tư đủ tĩnh tại, những kết nối đủ đầy và cảnh quan xanh len vào từng nhịp sống.</p>}
+          <InlineRichText
+            html={overviewHtml || DEFAULT_OVERVIEW_TEXT}
+            editable={canEdit}
+            label="Mô tả tổng quan"
+            onChange={emit('overviewHtml')}
+            onFocusBlock={onFocusBlock}
+            className="prose-cen mt-5 text-sm leading-7 text-[#675e56] sm:text-base" />
           <a href="#location" className="mt-7 inline-flex items-center gap-2 border-b border-[#302922] pb-1 text-xs font-semibold uppercase tracking-[0.1em] transition-opacity hover:opacity-60">Khám phá dự án <ArrowRightIcon className="h-4 w-4" /></a>
         </div>
         <div className="aspect-[16/10] overflow-hidden bg-stone-100">
@@ -210,10 +261,26 @@ export function OverviewContent({
       <section data-cms-section="stats" data-cms-label="Số liệu nổi bật" aria-label="Số liệu nổi bật" className="border-y border-[#ded6ca] py-16 sm:py-20">
         <div className="mx-auto w-[90vw]">
           <div className="grid grid-cols-1 gap-10 sm:grid-cols-3 sm:gap-6">
-            {FEATURED_STATS.map((stat) =>
-            <div key={stat.label} className="text-center">
-                <p className="text-4xl font-semibold tracking-[-0.04em] text-[#302922] sm:text-5xl">{stat.value}</p>
-                <p className="mt-3 text-sm leading-7 text-[#675e56] sm:text-base">{stat.label}</p>
+            {FEATURED_STATS.map((stat, index) =>
+            <div key={index} className="text-center">
+                <p className="text-4xl font-semibold tracking-[-0.04em] text-[#302922] sm:text-5xl">
+                  <InlineText
+                  value={stat.value}
+                  editable={canEdit}
+                  label={`Giá trị số liệu ${index + 1}`}
+                  onChange={emit(`stat-${index}-value`)}
+                  onFocusBlock={onFocusBlock} />
+
+                </p>
+                <p className="mt-3 text-sm leading-7 text-[#675e56] sm:text-base">
+                  <InlineText
+                  value={stat.label}
+                  editable={canEdit}
+                  label={`Nhãn số liệu ${index + 1}`}
+                  onChange={emit(`stat-${index}-label`)}
+                  onFocusBlock={onFocusBlock} />
+
+                </p>
               </div>
             )}
           </div>
@@ -236,9 +303,13 @@ export function OverviewContent({
             <div className="lg:max-w-xl">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#d0bda5]">Kết nối thuận tiện</p>
               <h2 className="mt-5 text-4xl font-semibold leading-tight tracking-[-0.04em] sm:text-5xl">Vị trí dự án</h2>
-              {locationHtml ?
-                <div className="prose-cen prose-cen-invert mt-6 text-sm leading-7 text-white/80 sm:text-base" dangerouslySetInnerHTML={{ __html: locationHtml }} /> :
-                <p className="mt-6 text-sm leading-7 text-white/80 sm:text-base">Tọa lạc tại Minh Khai, Imperia Sky Park đưa bạn đến gần hơn với nhịp sống trung tâm, đồng thời gìn giữ một khoảng riêng yên bình để trở về.</p>}
+              <InlineRichText
+                html={locationHtml || DEFAULT_LOCATION_TEXT}
+                editable={canEdit}
+                label="Mô tả vị trí"
+                onChange={emit('locationHtml')}
+                onFocusBlock={onFocusBlock}
+                className="prose-cen prose-cen-invert mt-6 text-sm leading-7 text-white/80 sm:text-base" />
 
               <div className="mt-8 grid grid-cols-2 gap-6 border-t border-white/20 pt-8 text-sm">
                 <div><NavigationIcon className="h-4 w-4 text-[#f5921f]" /><p className="mt-2 text-white/65">Kết nối nhanh</p><p className="mt-1 font-semibold">Tới trung tâm</p></div>
