@@ -24,7 +24,7 @@ function DemoNav() {
         <Link
           to="/hoan-tat"
           className="inline-flex items-center gap-1.5 rounded-md border border-[#e3c79f] bg-white px-3 py-1.5 text-xs font-semibold text-[#8a6a3f] transition-colors hover:bg-white/60">
-          <LayoutDashboardIcon className="h-3.5 w-3.5" /> 2. Biên tập CMS
+          <LayoutDashboardIcon className="h-3.5 w-3.5" /> 2. CMS biên tập
         </Link>
         <ArrowRightIcon className="h-3.5 w-3.5 text-[#c9a97a]" />
         <Link

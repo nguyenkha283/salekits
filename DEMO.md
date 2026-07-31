@@ -28,12 +28,26 @@ Nhập tên dự án, dán link thư mục Drive. Nhấn Tạo dự án.
 
 > Đối chiếu SRS: UC-02, và giả định mục 2.6 rằng nội dung đã nằm sẵn trên Drive theo quy ước thư mục.
 
-### Bước 2 — Biên tập trong CMS · `/hoan-tat` (4 phút)
-Ba thứ nên chỉ vào:
+### Bước 2 — Biên tập trong CMS · `/hoan-tat` (5 phút)
 
-- **Bộ chọn vai trò** giữa thanh trên. Đổi sang *Trưởng line* — toàn bộ vùng biên tập khóa lại. Đổi sang *Quản lý bán hàng* — chỉ mở Mặt bằng, Bảng hàng, Quỹ căn. Đây là ma trận phân quyền mục 2.5 chạy thật.
-- **Nút Đồng bộ lại** — đọc lại toàn bộ nội dung từ thư mục Drive.
-- **Cấu hình dự án** (biểu tượng bánh răng) — mã dự án, địa giới, đội ngũ, SEO, trạng thái xuất bản.
+**CMS dùng đúng template của trang công khai.** Vùng canvas giữa màn hình render cùng một component với `/du-an`, nên cái nhìn thấy khi biên tập chính là cái sẽ xuất bản.
+
+Bố cục ba cột:
+
+| Cột | Nội dung |
+|---|---|
+| Trái | 11 tab theo mục 5.4 của SRS, kèm nhãn nguồn dữ liệu **DRIVE / IMPORT / NHẬP TAY** và ổ khóa khi vai trò hiện tại không có quyền |
+| Giữa | Trang dự án thật, giống hệt trang công khai |
+| Phải | Bảng nguồn dữ liệu của tab đang chọn: thư mục Drive tương ứng, cảnh báo ghi đè, nút đồng bộ hoặc import |
+
+Bốn thứ nên chỉ vào:
+
+- **Bộ chọn vai trò** trên thanh đầu, đủ 6 vai trò theo mục 2.4. Đổi sang *Trưởng line* — toàn bộ 11 tab hiện ổ khóa, không sửa được gì, đúng với việc vai trò này chỉ duyệt. Đổi sang *Quản lý giao dịch* — chỉ Mặt bằng, Bảng hàng, Quỹ căn mở ra.
+- **Nhãn nguồn dữ liệu** ở rail trái — trả lời trực tiếp câu hỏi PO hay hỏi nhất: dữ liệu tab này ở đâu ra.
+- **Cột phải khi chọn tab Drive** — hiện cảnh báo *đồng bộ sẽ ghi đè toàn bộ hình ảnh và tài liệu của tab này*, đúng FR-22.
+- **Cấu hình dự án** (bánh răng) — mã dự án, địa giới, đội ngũ, SEO, trạng thái xuất bản.
+
+Trình biên tập cũ vẫn còn ở `/hoan-tat-cu` nếu cần đối chiếu.
 
 ### Bước 3 — Trang chi tiết dự án · `/du-an` (6 phút)
 Từ CMS bấm **Trang công khai** ở thanh trên, hoặc vào thẳng `/du-an`.
@@ -52,6 +66,10 @@ Từ CMS bấm **Trang công khai** ở thanh trên, hoặc vào thẳng `/du-an
 |---|---|
 | Đưa toàn bộ giao diện bản design vào | 18 component đặt tại `src/detail/components/`, giữ nguyên không sửa logic |
 | Thêm trang `/du-an` | `src/pages/ProjectDetailPage.tsx` — bản App của design, có nối dữ liệu CMS |
+| **CMS dùng chung template** | `src/detail/ProjectCanvas.tsx` — canvas dùng chung; `/hoan-tat` và `/du-an` render cùng một component |
+| **Trang CMS mới** | `src/pages/ProjectCmsPage.tsx` — vỏ CMS ba cột theo bảng màu bản design |
+| Rail trái 11 tab | Đúng mục 5.4, kèm nhãn nguồn dữ liệu và trạng thái khóa theo vai trò |
+| Đủ 6 vai trò | Trước đây CMS chỉ có 4; nay khớp mục 2.4 của SRS |
 | Nối CMS sang trang công khai | Nút **Trang công khai** trong `CmsHeader`, mang theo `projectId` |
 | Nội dung Drive hiển thị thật | Khi mở kèm `?projectId=`, tab Tổng quan hiện khối *Nội dung đồng bộ từ Google Drive* |
 | **Gỡ toàn bộ link ảnh ngoài** | 9 ảnh vốn hotlink từ `mikland.com.vn` đã chuyển sang ảnh cục bộ trong `public/` |
