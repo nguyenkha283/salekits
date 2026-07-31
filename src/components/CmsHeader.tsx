@@ -1,5 +1,5 @@
 import React from 'react';
-import { EyeIcon, PanelRightIcon, RefreshCwIcon, Settings2Icon } from 'lucide-react';
+import { EyeIcon, PanelRightIcon, RefreshCwIcon, Settings2Icon, ExternalLinkIcon } from 'lucide-react';
 import { CmsRole } from '../types/cms';
 export type CmsRightPanelMode = 'document' | null;
 const ROLES: CmsRole[] = ['APM', 'Trưởng line', 'Quản lý bán hàng', 'Marketing'];
@@ -114,6 +114,15 @@ export function CmsHeader({
             {isResyncing ? 'Đang đồng bộ...' : 'Đồng bộ lại'}
           </button>
         }
+        <a
+          href={`/du-an${typeof window !== 'undefined' ? window.location.search : ''}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hidden h-8 items-center gap-1.5 rounded-md border border-neutral-300 px-2.5 text-xs font-semibold text-neutral-700 transition-colors hover:bg-neutral-50 sm:flex sm:px-3 sm:text-sm">
+
+          <ExternalLinkIcon className="h-4 w-4" aria-hidden="true" />
+          Trang công khai
+        </a>
         <IconControl label="Xem trước" onClick={onPreview}>
           <EyeIcon className="h-5 w-5" aria-hidden="true" />
         </IconControl>

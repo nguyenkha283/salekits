@@ -1,0 +1,89 @@
+import React, { useRef } from 'react';
+import { LayoutDashboardIcon, GraduationCapIcon, Grid2x2Icon, Building2Icon, TableIcon, KeyRoundIcon, ScanEyeIcon, FileBadgeIcon, TrendingUpIcon, FileTextIcon, NewspaperIcon } from 'lucide-react';
+interface Tab {
+  key: string;
+  label: string;
+  icon: React.ComponentType<{
+    className?: string;
+  }>;
+  locked?: boolean;
+}
+const TABS: Tab[] = [{
+  key: 'tong-quan',
+  label: 'Tổng quan',
+  icon: LayoutDashboardIcon
+}, {
+  key: 'dao-tao',
+  label: 'Đào tạo',
+  icon: GraduationCapIcon,
+  locked: true
+}, {
+  key: 'mat-bang',
+  label: 'Mặt bằng',
+  icon: Grid2x2Icon
+}, {
+  key: 'toa-nha',
+  label: 'Tòa nhà',
+  icon: Building2Icon
+}, {
+  key: 'bang-hang',
+  label: 'Bảng hàng',
+  icon: TableIcon,
+  locked: true
+}, {
+  key: 'quy-can',
+  label: 'Quỹ căn',
+  icon: KeyRoundIcon,
+  locked: true
+}, {
+  key: 'anh-360',
+  label: 'Ảnh 360°',
+  icon: ScanEyeIcon,
+  locked: true
+}, {
+  key: 'chinh-sach',
+  label: 'CSBH',
+  icon: FileBadgeIcon,
+  locked: true
+}, {
+  key: 'tien-do',
+  label: 'Tiến độ',
+  icon: TrendingUpIcon,
+  locked: true
+}, {
+  key: 'tai-lieu',
+  label: 'Tài liệu',
+  icon: FileTextIcon,
+  locked: true
+}, {
+  key: 'tin-tuc',
+  label: 'Tin tức',
+  icon: NewspaperIcon
+}];
+interface ProjectTabsProps {
+  active: string;
+  onChange: (key: string) => void;
+}
+export function ProjectTabs({
+  active,
+  onChange
+}: ProjectTabsProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  return <div className="project-tabs-sticky border-b border-stone-200 bg-white shadow-sm">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div ref={scrollRef} className="no-scrollbar flex items-stretch gap-0 overflow-x-auto" role="tablist" aria-label="Nội dung dự án">
+          {TABS.map((tab, i) => {
+          const isActive = tab.key === active;
+          const Icon = tab.icon;
+          return <React.Fragment key={tab.key}>
+                {i !== 0 && <span className="my-3 w-px shrink-0 bg-stone-200" aria-hidden="true" />}
+                <button role="tab" aria-selected={isActive} onClick={() => onChange(tab.key)} className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-3.5 py-3 text-sm font-medium transition-colors ${isActive ? 'border-[#f5921f] text-[#f5921f]' : 'border-transparent text-stone-600 hover:text-[#f5921f]'}`}>
+                  <Icon className="h-4 w-4" />
+                  {tab.label}
+                </button>
+              </React.Fragment>;
+        })}
+        </div>
+      </div>
+    </div>;
+}

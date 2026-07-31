@@ -1,5 +1,5 @@
 /* @import url() FONT IMPORTS MUST ALWAYS BE AT THE VERY TOP OF THIS FILE, ABOVE THE TAILWIND IMPORTS — DO NOT DELETE THIS COMMENT */
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
 
 /* CRITICAL: THE FOLLOWING TAILWIND IMPORTS MUST NEVER BE DELETED OR REORDERED — DO NOT DELETE THIS COMMENT */
 @import 'tailwindcss/base';
@@ -8,6 +8,194 @@
 
 /* END TAILWIND IMPORTS — ALL OTHER CSS MUST GO BELOW THIS LINE */
 
-html {
-  font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+
+:root {
+  --cen-orange: #f5921f;
+  --cen-orange-dark: #e08315;
+  --cen-brown: #4a3728;
+  --cen-brown-deep: #2b2018;
+  --cen-cream: #faf6ef;
 }
+html, body, #root {
+  height: 100%;
+}
+body {
+  font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+  color: #35281c;
+}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.project-tabs-sticky {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  /* Sticky bị vô hiệu nếu tổ tiên có overflow hidden/auto/scroll — dùng overflow-x-clip thay thế */
+}
+.inventory-table {
+  font-size: clamp(7px, 0.76vw, 13px);
+}
+.inventory-side-column {
+  width: 9%;
+}
+.inventory-side-cell,
+.inventory-head-cell,
+.inventory-meta-cell,
+.inventory-view-cell,
+.inventory-floor-cell,
+.inventory-unit-cell {
+  border: 1px solid #1c1b1a;
+}
+.inventory-side-cell {
+  padding: 0.42em 0.25em;
+  font-size: 1em;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.inventory-head-cell {
+  padding: 0.5em 0.1em;
+  font-size: 1em;
+  font-weight: 700;
+}
+.inventory-meta-cell {
+  padding: 0.52em 0.08em;
+  font-size: 0.83em;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.inventory-view-cell {
+  padding: 0.4em;
+  font-size: 1em;
+  font-weight: 700;
+}
+.inventory-floor-cell {
+  height: clamp(28px, 3vw, 44px);
+  background: #b8b08c;
+  padding: 0.2em;
+  color: #171717;
+  font-size: 1em;
+  font-weight: 700;
+}
+.inventory-unit-cell {
+  height: clamp(28px, 3vw, 44px);
+  background: #fff;
+  padding: 0;
+}
+.inventory-unit-value {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  align-items: center;
+  justify-content: center;
+  padding: 0.1em;
+  color: #fff;
+  font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+  font-size: clamp(6px, 0.7vw, 12px);
+  font-weight: 700;
+  line-height: 1.05;
+  text-align: center;
+  word-break: break-word;
+}
+.inventory-unit-badge {
+  display: inline-flex;
+  max-width: calc(100% - 4px);
+  min-height: 1.65em;
+  align-items: center;
+  justify-content: center;
+  margin: 2px;
+  padding: 0.16em 0.28em;
+  border-radius: 3px;
+  color: #fff;
+  font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+  font-size: clamp(6px, 0.7vw, 12px);
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+  word-break: break-word;
+}
+.inventory-unit-status-value {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  align-items: center;
+  justify-content: center;
+  padding: 0.1em 0.9em 0.1em 0.2em;
+  font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+  font-size: clamp(6px, 0.7vw, 12px);
+  font-weight: 700;
+  line-height: 1.05;
+  text-align: center;
+  word-break: break-word;
+}
+.inventory-unit-status-label {
+  display: none;
+}
+.inventory-unit-status-value:hover .inventory-unit-price {
+  display: none;
+}
+.inventory-unit-status-value:hover .inventory-unit-status-label {
+  display: block;
+}
+.inventory-unit-crown {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: clamp(6px, 0.6vw, 10px);
+  height: clamp(6px, 0.6vw, 10px);
+  color: #173b7a;
+  fill: #173b7a;
+  filter: drop-shadow(0 1px 1px rgba(255, 255, 255, 0.45));
+}
+.inventory-unit-fund-fill,
+.inventory-unit-outline {
+  position: relative;
+}
+.inventory-unit-status-dot {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 0.65em;
+  height: 0.65em;
+  border: 1px solid #fff;
+  border-radius: 999px;
+}
+.inventory-unit-outline {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  align-items: center;
+  justify-content: center;
+  padding: 0.1em;
+  background: #fff;
+  font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+  font-size: clamp(6px, 0.7vw, 12px);
+  font-weight: 700;
+  line-height: 1.05;
+  text-align: center;
+  word-break: break-word;
+}
+.inventory-unit-status-chip {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 0.7em;
+  height: 0.7em;
+  border-radius: 2px;
+}
+.fund-grid {
+  grid-template-columns: minmax(160px, 1.15fr) minmax(115px, 0.95fr) minmax(125px, 1fr) minmax(150px, 1.35fr) minmax(105px, 0.9fr) minmax(60px, 0.55fr) minmax(60px, 0.55fr) minmax(135px, 1.05fr) minmax(90px, 0.75fr) minmax(125px, 1fr);
+  min-width: 1200px;
+}
+
+/* Định dạng cho HTML đồng bộ từ Google Drive (đã lọc qua sanitizeRichTextServer) */
+.prose-cen p { margin-bottom: 0.9em; }
+.prose-cen ul, .prose-cen ol { margin: 0.6em 0 0.9em 1.4em; }
+.prose-cen ul { list-style: disc; }
+.prose-cen ol { list-style: decimal; }
+.prose-cen li { margin-bottom: 0.3em; }
+.prose-cen strong, .prose-cen b { font-weight: 700; color: #3b2c1d; }

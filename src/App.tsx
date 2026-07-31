@@ -5,6 +5,7 @@ import { KhoiTaoDuAnPage } from './pages/KhoiTaoDuAnPage';
 import { ProjectCreatedPage } from './pages/ProjectCreatedPage';
 import { ProjectPreviewPage } from './pages/ProjectPreviewPage';
 import { ProductDetailPage } from './pages/ProductDetailPage';
+import { ProjectDetailPage } from './pages/ProjectDetailPage';
 export function App() {
   return (
     <BrowserRouter>
@@ -13,6 +14,7 @@ export function App() {
         <Route path="/khoi-tao-du-an" element={<KhoiTaoDuAnPage />} />
         <Route path="/hoan-tat" element={<ProjectCreatedPage />} />
         <Route path="/xem-truoc" element={<ProjectPreviewPage />} />
+        <Route path="/du-an" element={<ProjectDetailPage />} />
         <Route path="/chi-tiet-san-pham" element={<ProductDetailPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
