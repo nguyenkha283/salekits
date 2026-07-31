@@ -70,6 +70,10 @@ interface ProjectCanvasProps {
   locationHtml?: string;
   /** Số liệu nổi bật, sửa được trong CMS. */
   stats?: {value: string;label: string;}[];
+  /** Cấp độ dự án hiển thị trên hero. */
+  hierarchy?: string;
+  /** Slogan dưới tên dự án trên hero. */
+  tagline?: string;
   /** Ảnh và tài liệu đã đồng bộ, gom theo tab. */
   syncedMedia?: SyncedMedia;
   /** Ẩn breadcrumb và nút chia sẻ khi hiển thị bên trong CMS. */
@@ -88,6 +92,8 @@ export function ProjectCanvas({
   overviewHtml = '',
   locationHtml = '',
   stats,
+  hierarchy,
+  tagline,
   syncedMedia = {},
   chrome = true
 }: ProjectCanvasProps) {
@@ -193,7 +199,10 @@ export function ProjectCanvas({
           locationHtml={locationHtml}
           amenities={amenities}
           floorPlans={floorPlans}
-          stats={stats} />
+          stats={stats}
+          hierarchy={hierarchy}
+          projectName={projectName}
+          tagline={tagline} />
 
         }
 

@@ -2,7 +2,17 @@
  * Danh mục các section có thể chọn trên canvas. CMS dựa vào đây để biết
  * section vừa bấm thuộc tab nào, sửa được gì, và dữ liệu lấy từ thư mục nào.
  */
-export type SectionKind = 'text' | 'stats' | 'drive' | 'manual';
+export type SectionKind = 'hero' | 'text' | 'stats' | 'drive' | 'manual';
+
+/** Cấp độ dự án hiển thị trên hero — giữ nguyên danh sách của bản CMS cũ. */
+export const HIERARCHY_OPTIONS = [
+'Đại đô thị',
+'Khu đô thị',
+'Dự án',
+'Phân khu',
+'Tiểu khu',
+'Tòa'];
+
 
 export interface SectionMeta {
   id: string;
@@ -14,18 +24,21 @@ export interface SectionMeta {
   folder?: string;
   /** Khoá tra ảnh trong syncedMedia: [tabId, groupId]. */
   media?: [string, string?];
+  /** Văn bản mẫu, dùng làm nội dung khởi tạo cho ô soạn thảo. */
+  defaultText?: string;
   hint?: string;
 }
 
 export const SECTIONS: SectionMeta[] = [
 {
-  id: 'hero', label: 'Băng ảnh đầu trang', tab: 'tong-quan', kind: 'drive',
+  id: 'hero', label: 'Băng ảnh đầu trang', tab: 'tong-quan', kind: 'hero',
   folder: '01. Tổng quan / Ảnh hero banner', media: ['tong-quan', 'hero'],
-  hint: 'Ảnh chạy tự động 6,5 giây một lần. Thứ tự theo tên file.'
+  hint: 'Ảnh lấy từ Drive. Cấp độ, tên dự án và slogan nhập tay tại đây.'
 },
 {
   id: 'overview', label: 'Tổng quan dự án', tab: 'tong-quan', kind: 'text',
   folder: '01. Tổng quan', media: ['tong-quan', 'overview'],
+  defaultText: 'Imperia Sky Park hướng tới một chuẩn sống cân bằng: không gian riêng tư đủ tĩnh tại, những kết nối đủ đầy và cảnh quan xanh len vào từng nhịp sống.',
   hint: 'Văn bản nhập tay tại đây. Ảnh lấy từ thư mục Ảnh tổng quan.'
 },
 {
@@ -35,6 +48,7 @@ export const SECTIONS: SectionMeta[] = [
 {
   id: 'location', label: 'Vị trí dự án', tab: 'tong-quan', kind: 'text',
   folder: '01. Tổng quan / Vị trí', media: ['tong-quan', 'location'],
+  defaultText: 'Tọa lạc tại Minh Khai, Imperia Sky Park đưa bạn đến gần hơn với nhịp sống trung tâm, đồng thời gìn giữ một khoảng riêng yên bình để trở về.',
   hint: 'Văn bản nhập tay. Ảnh bản đồ lấy từ thư mục Vị trí.'
 },
 {

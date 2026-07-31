@@ -21,7 +21,7 @@ import {
 'lucide-react';
 import { Role } from '../detail/components/Header';
 import { CANVAS_TABS, ProjectCanvas, canEditTab } from '../detail/ProjectCanvas';
-import { SECTIONS, findSection } from '../detail/sectionRegistry';
+import { HIERARCHY_OPTIONS, SECTIONS, findSection } from '../detail/sectionRegistry';
 import {
   buildSyncedMedia,
   countMedia,
@@ -70,6 +70,9 @@ interface SectionEdits {
   overviewHtml?: string;
   locationHtml?: string;
   stats?: {value: string;label: string;}[];
+  hierarchy?: string;
+  projectName?: string;
+  tagline?: string;
 }
 
 export function ProjectCmsPage() {
@@ -129,6 +132,9 @@ export function ProjectCmsPage() {
   const overviewHtml = edits.overviewHtml ?? synced?.content?.overviewContent ?? '';
   const locationHtml = edits.locationHtml ?? synced?.content?.locationContent ?? '';
   const stats = edits.stats ?? DEFAULT_STATS;
+  const hierarchy = edits.hierarchy ?? 'Dự án';
+  const heroName = edits.projectName ?? project.name;
+  const tagline = edits.tagline ?? 'Tuyệt tác trên tầm cao.';
 
   const showNotice = useCallback((message: string) => {
     setNotice(message);
@@ -293,10 +299,12 @@ export function ProjectCmsPage() {
             activeTab={activeTab}
             onChangeTab={setActiveTab}
             role={role}
-            projectName={project.name}
+            projectName={heroName}
             overviewHtml={overviewHtml}
             locationHtml={locationHtml}
             stats={stats}
+            hierarchy={hierarchy}
+            tagline={tagline}
             syncedMedia={syncedMedia}
             chrome={false} />
 
@@ -333,6 +341,10 @@ export function ProjectCmsPage() {
           overviewHtml={overviewHtml}
           locationHtml={locationHtml}
           stats={stats}
+          hierarchy={hierarchy}
+          heroName={heroName}
+          tagline={tagline}
+          initialProjectName={project.name}
           isResyncing={isResyncing}
           onBack={() => setSelectedSection(null)}
           onClose={() => {
@@ -344,6 +356,9 @@ export function ProjectCmsPage() {
           }
           onChangeStats={(next) =>
           setEdits((current) => ({ ...current, stats: next }))
+          }
+          onChangeField={(field, value) =>
+          setEdits((current) => ({ ...current, [field]: value }))
           }
           onReset={() => {
             setEdits({});
@@ -561,11 +576,17 @@ interface SectionEditorProps {
   overviewHtml: string;
   locationHtml: string;
   stats: {value: string;label: string;}[];
+  hierarchy: string;
+  heroName: string;
+  tagline: string;
+  /** Tên dự án khai ở bước Khởi tạo — hiển thị để đối chiếu. */
+  initialProjectName: string;
   isResyncing: boolean;
   onBack: () => void;
   onClose: () => void;
   onChangeHtml: (field: 'overviewHtml' | 'locationHtml', value: string) => void;
   onChangeStats: (next: {value: string;label: string;}[]) => void;
+  onChangeField: (field: 'hierarchy' | 'projectName' | 'tagline', value: string) => void;
   onReset: () => void;
   onResync: () => void;
 }
@@ -576,11 +597,16 @@ function SectionEditor({
   overviewHtml,
   locationHtml,
   stats,
+  hierarchy,
+  heroName,
+  tagline,
+  initialProjectName,
   isResyncing,
   onBack,
   onClose,
   onChangeHtml,
   onChangeStats,
+  onChangeField,
   onReset,
   onResync
 }: SectionEditorProps) {
@@ -627,9 +653,45 @@ function SectionEditor({
         {section.kind === 'text' &&
         <RichTextField
           key={section.id}
-          value={html}
+          value={html || section.defaultText || ''}
           onChange={(value) => onChangeHtml(field, value)} />
 
+        }
+
+        {section.kind === 'hero' &&
+        <div className="space-y-3">
+            <Field label="Cấp độ dự án">
+              <select
+              value={hierarchy}
+              onChange={(event) => onChangeField('hierarchy', event.target.value)}
+              className="h-8 w-full rounded-md border border-[#e0d2bd] bg-white px-2 text-[13px] font-semibold text-stone-800 outline-none focus:border-[#f5921f]">
+
+                {HIERARCHY_OPTIONS.map((option) =>
+              <option key={option} value={option}>{option}</option>
+              )}
+              </select>
+            </Field>
+
+            <Field
+            label="Tên dự án"
+            note={`Khai ở bước Khởi tạo dự án: “${initialProjectName}”`}>
+
+              <input
+              value={heroName}
+              onChange={(event) => onChangeField('projectName', event.target.value)}
+              className="h-8 w-full rounded-md border border-[#e0d2bd] px-2 text-[13px] font-semibold text-stone-800 outline-none focus:border-[#f5921f]" />
+
+            </Field>
+
+            <Field label="Slogan dự án">
+              <input
+              value={tagline}
+              placeholder="Một câu ngắn đặt dưới tên dự án"
+              onChange={(event) => onChangeField('tagline', event.target.value)}
+              className="h-8 w-full rounded-md border border-[#e0d2bd] px-2 text-[13px] text-stone-700 outline-none focus:border-[#f5921f]" />
+
+            </Field>
+          </div>
         }
 
         {section.kind === 'stats' &&
@@ -798,6 +860,24 @@ function RichTextField({
         className="prose-cen min-h-[132px] max-h-[260px] overflow-y-auto bg-white px-3 py-2.5 text-[13px] leading-6 text-stone-700 outline-none" />
 
     </div>);
+
+}
+
+function Field({
+  label,
+  note,
+  children
+}: {label: string;note?: string;children: React.ReactNode;}) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-stone-400">
+        {label}
+      </span>
+      {children}
+      {note &&
+      <span className="mt-1 block text-[11px] text-stone-500">{note}</span>
+      }
+    </label>);
 
 }
 

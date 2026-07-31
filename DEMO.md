@@ -47,7 +47,8 @@ Trong CMS, di chuột lên trang sẽ thấy **viền cam và nhãn tên section
 
 | Loại section | Sửa được gì |
 |---|---|
-| **Nhập tay** — Tổng quan dự án, Vị trí dự án | Ô soạn thảo có Đậm / Nghiêng / Danh sách / Xóa định dạng. Gõ tới đâu trang đổi tới đó. |
+| **Băng ảnh đầu trang** | Dropdown *Cấp độ dự án* (Đại đô thị / Khu đô thị / Dự án / Phân khu / Tiểu khu / Tòa), ô *Tên dự án* và ô *Slogan* |
+| **Nhập tay** — Tổng quan dự án, Vị trí dự án | Ô soạn thảo có Đậm / Nghiêng / Danh sách / Xóa định dạng. Gõ tới đâu trang đổi tới đó. Nạp sẵn văn bản đang hiển thị để sửa thay vì gõ lại từ đầu |
 | **Số liệu nổi bật** | Sửa trực tiếp ba cặp giá trị và nhãn |
 | **Từ Drive** — hero, tiện ích, mặt bằng, 360, tiến độ, tài liệu, chính sách | Xem ảnh đang có, tên thư mục nguồn, nút đồng bộ lại. Không sửa tay được — đúng quy định của SRS |
 | **Đợt sau** — loại hình sản phẩm, liên hệ | Hiện ghi chú, chưa có giao diện biên tập |

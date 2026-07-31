@@ -22,6 +22,12 @@ interface OverviewContentProps {
   locationHtml?: string;
   amenities?: {image: string;title: string;}[];
   stats?: {value: string;label: string;}[];
+  /** Dòng cấp độ trên tiêu đề hero — chọn từ danh sách. */
+  hierarchy?: string;
+  /** Tên dự án, lấy từ bước Khởi tạo dự án. */
+  projectName?: string;
+  /** Slogan hiển thị dưới tên dự án. */
+  tagline?: string;
   floorPlans?: {key: string;label: string;title: string;image: string;}[];
 }
 
@@ -111,7 +117,10 @@ export function OverviewContent({
   locationHtml,
   amenities,
   floorPlans,
-  stats
+  stats,
+  hierarchy = 'DỰ ÁN',
+  projectName = 'Imperia Sky Park',
+  tagline = 'Tuyệt tác trên tầm cao.'
 }: OverviewContentProps) {
   // Dữ liệu Drive được ưu tiên; thiếu mục nào thì mục đó dùng dữ liệu mẫu.
   const HERO_SLIDES = useMemo(
@@ -171,9 +180,9 @@ export function OverviewContent({
         <div className="absolute inset-0 bg-[#2e261e]/35" aria-hidden="true" />
         <div className="relative mx-auto flex min-h-[560px] w-[90vw] flex-col pb-16 pt-7 text-white sm:min-h-[680px]">
           <div className="mt-auto max-w-3xl pt-32 sm:pt-44">
-            <p className="text-[40px] font-medium leading-none tracking-[-0.04em] text-white">DỰ ÁN</p>
-            <h1 className="mt-5 whitespace-nowrap text-[2rem] font-semibold leading-[1.05] tracking-[-0.04em] sm:text-6xl lg:text-8xl">Imperia Sky Park</h1>
-            <p className="mt-5 max-w-xl text-sm leading-6 text-white/85 sm:text-base">Tuyệt tác trên tầm cao.</p>
+            <p className="text-[40px] font-medium uppercase leading-none tracking-[-0.04em] text-white">{hierarchy}</p>
+            <h1 className="mt-5 text-[2rem] font-semibold leading-[1.05] tracking-[-0.04em] sm:text-6xl lg:text-8xl">{projectName}</h1>
+            <p className="mt-5 max-w-xl text-sm leading-6 text-white/85 sm:text-base">{tagline}</p>
           </div>
           <div className="absolute bottom-6 right-0 flex items-center gap-3">
             <button type="button" onClick={() => setActiveHero((current) => (current - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)} className="rounded-full border border-white/60 p-2 text-white transition-colors hover:bg-white hover:text-[#302922]" aria-label="Banner trước"><ChevronLeftIcon className="h-4 w-4" /></button>
