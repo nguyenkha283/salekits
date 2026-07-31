@@ -32,19 +32,19 @@ Nhập tên dự án, dán link thư mục Drive. Nhấn Tạo dự án.
 
 **CMS dùng đúng template của trang công khai.** Vùng canvas giữa màn hình render cùng một component với `/du-an`, nên cái nhìn thấy khi biên tập chính là cái sẽ xuất bản.
 
-Bố cục ba cột:
+Canvas chiếm trọn chiều rộng, không có cột phụ. Điều hướng giữa 11 tab dùng luôn thanh tab của trang công khai.
 
-| Cột | Nội dung |
-|---|---|
-| Trái | 11 tab theo mục 5.4 của SRS, kèm nhãn nguồn dữ liệu **DRIVE / IMPORT / NHẬP TAY** và ổ khóa khi vai trò hiện tại không có quyền |
-| Giữa | Trang dự án thật, giống hệt trang công khai |
-| Phải | Bảng nguồn dữ liệu của tab đang chọn: thư mục Drive tương ứng, cảnh báo ghi đè, nút đồng bộ hoặc import |
+**Nút nổi góc dưới bên phải** mở ngăn kéo *Nội dung đồng bộ từ Google Drive*:
 
-Bốn thứ nên chỉ vào:
+- Liệt kê 11 tab kèm **số ảnh và tài liệu đã đồng bộ** vào từng tab; chấm xanh là tab đã có nội dung.
+- Mở rộng tab đang chọn để xem **đúng thư mục Drive nguồn** của từng nhóm ảnh.
+- Nút **Đồng bộ lại từ Drive** kèm cảnh báo ghi đè theo FR-22, và liên kết mở thẳng thư mục Drive.
+- Huy hiệu trên nút hiển thị tổng số mục đã đồng bộ.
 
-- **Bộ chọn vai trò** trên thanh đầu, đủ 6 vai trò theo mục 2.4. Đổi sang *Trưởng line* — toàn bộ 11 tab hiện ổ khóa, không sửa được gì, đúng với việc vai trò này chỉ duyệt. Đổi sang *Quản lý giao dịch* — chỉ Mặt bằng, Bảng hàng, Quỹ căn mở ra.
-- **Nhãn nguồn dữ liệu** ở rail trái — trả lời trực tiếp câu hỏi PO hay hỏi nhất: dữ liệu tab này ở đâu ra.
-- **Cột phải khi chọn tab Drive** — hiện cảnh báo *đồng bộ sẽ ghi đè toàn bộ hình ảnh và tài liệu của tab này*, đúng FR-22.
+Ba thứ nên chỉ vào:
+
+- **Bộ chọn vai trò** trên thanh đầu, đủ 6 vai trò theo mục 2.4. Đổi sang *Trưởng line* — thanh trên báo không sửa được tab nào, đúng với việc vai trò này chỉ duyệt. Đổi sang *Quản lý giao dịch* — chỉ Mặt bằng, Bảng hàng, Quỹ căn mở ra.
+- **Nút Đồng bộ lại** — ảnh từ Drive chảy thẳng vào đúng tab, xem mục 4 bên dưới.
 - **Cấu hình dự án** (bánh răng) — mã dự án, địa giới, đội ngũ, SEO, trạng thái xuất bản.
 
 Trình biên tập cũ vẫn còn ở `/hoan-tat-cu` nếu cần đối chiếu.
@@ -68,7 +68,8 @@ Từ CMS bấm **Trang công khai** ở thanh trên, hoặc vào thẳng `/du-an
 | Thêm trang `/du-an` | `src/pages/ProjectDetailPage.tsx` — bản App của design, có nối dữ liệu CMS |
 | **CMS dùng chung template** | `src/detail/ProjectCanvas.tsx` — canvas dùng chung; `/hoan-tat` và `/du-an` render cùng một component |
 | **Trang CMS mới** | `src/pages/ProjectCmsPage.tsx` — vỏ CMS ba cột theo bảng màu bản design |
-| Rail trái 11 tab | Đúng mục 5.4, kèm nhãn nguồn dữ liệu và trạng thái khóa theo vai trò |
+| **Đồng bộ ảnh vào đúng tab** | `src/detail/syncedMedia.ts` ánh xạ thư mục Drive → tab; `SyncedGallery.tsx` hiển thị |
+| Nút nổi kiểu GitBook | Góc dưới phải, mở ngăn kéo *Nội dung đồng bộ từ Google Drive* |
 | Đủ 6 vai trò | Trước đây CMS chỉ có 4; nay khớp mục 2.4 của SRS |
 | Nối CMS sang trang công khai | Nút **Trang công khai** trong `CmsHeader`, mang theo `projectId` |
 | Nội dung Drive hiển thị thật | Khi mở kèm `?projectId=`, tab Tổng quan hiện khối *Nội dung đồng bộ từ Google Drive* |
@@ -80,7 +81,34 @@ Từ CMS bấm **Trang công khai** ở thanh trên, hoặc vào thẳng `/du-an
 
 ---
 
-## 4. Cần nói trước với PO — những chỗ chưa có
+## 4. Đồng bộ ảnh từ Drive vào các tab
+
+Bấm **Đồng bộ lại** (thanh trên hoặc trong ngăn kéo). Hệ thống đọc thư mục Drive của dự án và phân ảnh về đúng tab theo bảng sau:
+
+| Thư mục Drive | Tab nhận | Ghi chú |
+|---|---|---|
+| `01. Tổng quan / Ảnh hero banner` | Tổng quan | Ảnh đầu trang |
+| `01. Tổng quan / Ảnh tổng quan` | Tổng quan | |
+| `01. Tổng quan / Vị trí` | Tổng quan | Kèm nội dung văn bản vị trí |
+| `01. Tổng quan / Ảnh tiện ích` | Tổng quan | File `.txt` cùng tên trở thành chú thích ảnh |
+| `01. Tổng quan / Ảnh mặt bằng` | Tổng quan | Ảnh xem nhanh, tên file thành nhãn |
+| `02. Đào tạo` | Đào tạo | |
+| `03. Mặt bằng` | Mặt bằng | Lấy ảnh đầu tiên |
+| `04. Ảnh 360` | Ảnh 360 | |
+| `05. Chính sách bán hàng` | Chính sách bán hàng | Ảnh đầu là ảnh bìa, mỗi thư mục con là một nhóm |
+| `06. Tiến độ` | Tiến độ | |
+| `07. Tài liệu` | Tài liệu | |
+| `Banner dọc` | Tổng quan | `banner-trai`, `banner-phai` |
+
+Quy tắc hiển thị: **tab nào có nội dung đồng bộ thì thay hẳn nội dung mẫu** (Đào tạo, Mặt bằng, Ảnh 360, Chính sách, Tiến độ, Tài liệu). Riêng tab Tổng quan, nội dung Drive hiện phía trên phần bố cục thiết kế sẵn thay vì thay thế nó.
+
+Ảnh sắp theo tên file. Bấm ảnh để phóng to. File không phải ảnh hiện dạng thẻ mở trên Drive.
+
+Trang công khai `/du-an?projectId=...` dùng chung dữ liệu này, nên biên tập xong xem trước là thấy đúng ảnh vừa đồng bộ.
+
+---
+
+## 5. Cần nói trước với PO — những chỗ chưa có
 
 Nếu không nói trước, PO sẽ tưởng đã xong.
 
@@ -98,7 +126,7 @@ Với các phần này, dùng bản prototype HTML gửi kèm trước đó (`CE
 
 ---
 
-## 5. Cấu trúc thư mục
+## 6. Cấu trúc thư mục
 
 ```
 api/                          backend serverless — giữ nguyên
@@ -106,10 +134,13 @@ api/                          backend serverless — giữ nguyên
   {sync-project,sync-overview,get-project,drive-file}.ts
 src/
   detail/                     ← GIAO DIỆN TỪ BẢN DESIGN
-    components/               18 component, không sửa logic
+    ProjectCanvas.tsx         canvas dùng chung CMS + trang công khai
+    syncedMedia.ts            ánh xạ thư mục Drive → tab
+    components/               18 component gốc + SyncedGallery
     data/inventoryData.ts     dữ liệu bảng hàng mẫu
   pages/
-    ProjectDetailPage.tsx     ← file nối mới
+    ProjectDetailPage.tsx     trang công khai
+    ProjectCmsPage.tsx        ← trang CMS mới
     ProjectCreatedPage.tsx    CMS editor
     KhoiTaoDuAnPage.tsx       khởi tạo dự án
   components/                 khung CMS
@@ -119,7 +150,7 @@ supabase/schema.sql
 
 ---
 
-## 6. Việc nên làm ngay sau buổi demo
+## 7. Việc nên làm ngay sau buổi demo
 
 1. Chốt một phương án hiển thị ô căn trong bốn phương án đang có.
 2. Viết endpoint lưu nội dung — đây là thứ chặn mọi việc còn lại.

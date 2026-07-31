@@ -1,16 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { PencilIcon } from 'lucide-react';
 import { Header, Role } from '../detail/components/Header';
 import { Footer } from '../detail/components/Footer';
 import { ProjectCanvas } from '../detail/ProjectCanvas';
+import { buildSyncedMedia, type SyncedContent } from '../detail/syncedMedia';
 
 const DEMO_NAME = 'IMPERIA SKY PARK';
 
 interface SyncedProject {
   project_name?: string;
   updated_at?: string;
-  content?: {overviewContent?: string;};
+  content?: SyncedContent;
 }
 
 export function ProjectDetailPage() {
@@ -47,6 +48,7 @@ export function ProjectDetailPage() {
   }, [projectId]);
 
   const projectName = synced?.project_name?.trim() || DEMO_NAME;
+  const syncedMedia = useMemo(() => buildSyncedMedia(synced?.content), [synced]);
 
   return (
     <div className="flex min-h-full w-full flex-col bg-[#faf6ef]">
@@ -86,7 +88,8 @@ export function ProjectDetailPage() {
           onChangeTab={setActiveTab}
           role={role}
           projectName={projectName}
-          overviewHtml={synced?.content?.overviewContent ?? ''} />
+          overviewHtml={synced?.content?.overviewContent ?? ''}
+          syncedMedia={syncedMedia} />
 
       </main>
 

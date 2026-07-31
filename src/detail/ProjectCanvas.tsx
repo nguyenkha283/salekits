@@ -14,6 +14,8 @@ import { Panorama360Content } from './components/Panorama360Content';
 import { NewsContent } from './components/NewsContent';
 import { BuildingsContent } from './components/BuildingsContent';
 import { FloorPlanContent } from './components/FloorPlanContent';
+import { SyncedGallery } from './components/SyncedGallery';
+import type { SyncedMedia } from './syncedMedia';
 
 /**
  * Nguồn dữ liệu của từng tab theo SRS:
@@ -27,7 +29,6 @@ export interface CanvasTab {
   id: string;
   label: string;
   source: TabSource;
-  /** Thư mục Drive tương ứng, dùng cho bảng điều khiển bên phải của CMS. */
   folder?: string;
 }
 
@@ -43,6 +44,11 @@ export const CANVAS_TABS: CanvasTab[] = [
 { id: 'tien-do', label: 'Tiến độ', source: 'drive', folder: '06. Tiến độ' },
 { id: 'tai-lieu', label: 'Tài liệu', source: 'drive', folder: '07. Tài liệu' },
 { id: 'tin-tuc', label: 'Tin tức', source: 'manual' }];
+
+
+/** Các tab lấy dữ liệu hoàn toàn từ Drive — có nội dung đồng bộ thì thay hẳn nội dung mẫu. */
+const DRIVE_DRIVEN_TABS = [
+'mat-bang', 'anh-360', 'dao-tao', 'chinh-sach', 'tien-do', 'tai-lieu'];
 
 
 /** Quyền biên tập theo ma trận phân quyền mục 2.5 của SRS. */
@@ -61,6 +67,8 @@ interface ProjectCanvasProps {
   projectName: string;
   /** HTML đã đồng bộ từ Drive, hiển thị ở đầu tab Tổng quan. */
   overviewHtml?: string;
+  /** Ảnh và tài liệu đã đồng bộ, gom theo tab. */
+  syncedMedia?: SyncedMedia;
   /** Ẩn breadcrumb và nút chia sẻ khi hiển thị bên trong CMS. */
   chrome?: boolean;
 }
@@ -75,9 +83,14 @@ export function ProjectCanvas({
   role,
   projectName,
   overviewHtml = '',
+  syncedMedia = {},
   chrome = true
 }: ProjectCanvasProps) {
   const isOverview = activeTab === 'tong-quan';
+  const groups = syncedMedia[activeTab] ?? [];
+  const tab = CANVAS_TABS.find((entry) => entry.id === activeTab);
+  const replacedByDrive =
+  groups.length > 0 && DRIVE_DRIVEN_TABS.includes(activeTab);
 
   return (
     <>
@@ -117,6 +130,8 @@ export function ProjectCanvas({
 
       <div
         className={
+        replacedByDrive ?
+        'mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8' :
         isOverview || activeTab === 'mat-bang' ?
         'w-full' :
         activeTab === 'bang-hang' || activeTab === 'quy-can' ?
@@ -126,17 +141,24 @@ export function ProjectCanvas({
 
         {isOverview &&
         <>
-            {overviewHtml &&
-          <div className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8">
-                <div className="rounded-xl border border-[#e9e1d5] bg-white p-6 sm:p-8">
-                  <p className="mb-4 inline-flex items-center gap-2 rounded bg-[#fdf3e2] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-[#8a6a3f]">
-                    Nội dung đồng bộ từ Google Drive
-                  </p>
-                  <div
+            {(overviewHtml || groups.length > 0) &&
+          <div className="mx-auto max-w-7xl space-y-8 px-4 pt-8 sm:px-6 lg:px-8">
+                {overviewHtml &&
+            <div className="rounded-xl border border-[#e9e1d5] bg-white p-6 sm:p-8">
+                    <p className="mb-4 inline-flex items-center gap-2 rounded bg-[#fdf3e2] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-[#8a6a3f]">
+                      Nội dung đồng bộ từ Google Drive
+                    </p>
+                    <div
                 className="prose-cen text-[15px] leading-7 text-stone-700"
                 dangerouslySetInnerHTML={{ __html: overviewHtml }} />
 
-                </div>
+                  </div>
+            }
+                {groups.length > 0 &&
+            <div className="rounded-xl border border-[#e9e1d5] bg-white p-6 sm:p-8">
+                    <SyncedGallery groups={groups} title="Hình ảnh tổng quan" />
+                  </div>
+            }
               </div>
           }
             <OverviewContent
@@ -144,17 +166,25 @@ export function ProjectCanvas({
 
           </>
         }
-        {activeTab === 'mat-bang' && <FloorPlanContent />}
+
+        {replacedByDrive && <SyncedGallery groups={groups} title={tab?.label} />}
+
+        {!replacedByDrive &&
+        <>
+            {activeTab === 'mat-bang' && <FloorPlanContent />}
+            {activeTab === 'anh-360' && <Panorama360Content />}
+            {activeTab === 'dao-tao' && <TrainingContent />}
+            {activeTab === 'chinh-sach' && <PolicyContent />}
+            {activeTab === 'tien-do' && <ProgressContent />}
+            {activeTab === 'tai-lieu' && <DocumentsContent />}
+          </>
+        }
+
         {activeTab === 'toa-nha' && <BuildingsContent />}
         {activeTab === 'bang-hang' && <InventoryTable role={role} />}
         {activeTab === 'quy-can' && <FundInventory />}
-        {activeTab === 'tien-do' && <ProgressContent />}
-        {activeTab === 'chinh-sach' && <PolicyContent />}
-        {activeTab === 'tai-lieu' && <DocumentsContent />}
-        {activeTab === 'dao-tao' && <TrainingContent />}
-        {activeTab === 'anh-360' && <Panorama360Content />}
         {activeTab === 'tin-tuc' && <NewsContent />}
-        {!CANVAS_TABS.some((tab) => tab.id === activeTab) && <ProjectContent />}
+        {!CANVAS_TABS.some((entry) => entry.id === activeTab) && <ProjectContent />}
       </div>
     </>);
 

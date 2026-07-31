@@ -1,25 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   AlertTriangleIcon,
   CheckCircle2Icon,
+  ChevronRightIcon,
   ExternalLinkIcon,
   EyeIcon,
   FolderIcon,
-  InfoIcon,
+  ImagesIcon,
   LockIcon,
-  PanelRightIcon,
   RefreshCwIcon,
   Settings2Icon,
-  UploadIcon } from
+  XIcon } from
 'lucide-react';
 import { Role } from '../detail/components/Header';
-import {
-  CANVAS_TABS,
-  ProjectCanvas,
-  canEditTab,
-  type TabSource } from
-'../detail/ProjectCanvas';
+import { CANVAS_TABS, ProjectCanvas, canEditTab } from '../detail/ProjectCanvas';
+import { buildSyncedMedia, countMedia, type SyncedContent } from '../detail/syncedMedia';
 import {
   ProjectConfigurationDialog,
   createProjectConfiguration } from
@@ -36,18 +32,6 @@ const ROLES: Role[] = [
 'Trưởng line'];
 
 
-const SOURCE_LABEL: Record<TabSource, string> = {
-  drive: 'DRIVE',
-  import: 'IMPORT',
-  manual: 'NHẬP TAY'
-};
-
-const SOURCE_STYLE: Record<TabSource, string> = {
-  drive: 'bg-[#e6f0e8] text-[#2c6e3f]',
-  import: 'bg-[#e6edfb] text-[#2a55b8]',
-  manual: 'bg-[#efe9e1] text-[#8a6a3f]'
-};
-
 /** ProjectConfigurationDialog dùng bộ vai trò 4 giá trị cũ — quy đổi sang. */
 function toCmsRole(role: Role): CmsRole {
   if (role === 'Trưởng line') return 'Trưởng line';
@@ -60,7 +44,7 @@ interface SyncedProject {
   project_name?: string;
   drive_folder_url?: string;
   updated_at?: string;
-  content?: {overviewContent?: string;};
+  content?: SyncedContent;
 }
 
 export function ProjectCmsPage() {
@@ -69,7 +53,7 @@ export function ProjectCmsPage() {
 
   const [role, setRole] = useState<Role>('APM');
   const [activeTab, setActiveTab] = useState('tong-quan');
-  const [inspectorOpen, setInspectorOpen] = useState(true);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
   const [synced, setSynced] = useState<SyncedProject | null>(null);
   const [isResyncing, setIsResyncing] = useState(false);
@@ -109,9 +93,15 @@ export function ProjectCmsPage() {
     };
   }, [projectId]);
 
+  const syncedMedia = useMemo(
+    () => buildSyncedMedia(synced?.content),
+    [synced]
+  );
+  const totalMedia = countMedia(syncedMedia);
+
   function showNotice(message: string) {
     setNotice(message);
-    window.setTimeout(() => setNotice(''), 2600);
+    window.setTimeout(() => setNotice(''), 2800);
   }
 
   async function handleResync() {
@@ -125,26 +115,24 @@ export function ProjectCmsPage() {
       const response = await fetch('/api/sync-project', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          driveFolderUrl,
-          projectName: project.name
-        })
+        body: JSON.stringify({ driveFolderUrl, projectName: project.name })
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? 'Đồng bộ lại thất bại.');
-      setSynced((current) => ({ ...current, content: data.content }));
-      showNotice('Đồng bộ lại thành công');
+      setSynced((current) => ({
+        ...current,
+        content: data.content,
+        updated_at: new Date().toISOString()
+      }));
+      const count = countMedia(buildSyncedMedia(data.content));
+      showNotice(`Đồng bộ xong — ${count} ảnh và tài liệu đã nạp vào các tab`);
     } catch (error) {
-      showNotice(
-        error instanceof Error ? error.message : 'Đồng bộ lại thất bại.'
-      );
+      showNotice(error instanceof Error ? error.message : 'Đồng bộ lại thất bại.');
     } finally {
       setIsResyncing(false);
     }
   }
 
-  const currentTab =
-  CANVAS_TABS.find((tab) => tab.id === activeTab) ?? CANVAS_TABS[0];
   const editable = canEditTab(role, activeTab);
   const publicHref = `/du-an${projectId ? `?projectId=${encodeURIComponent(projectId)}` : ''}`;
 
@@ -168,6 +156,12 @@ export function ProjectCmsPage() {
         <span className="hidden rounded bg-[#fdf3e2] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[#8a6a3f] sm:block">
           Đang biên tập
         </span>
+        {!editable &&
+        <span className="hidden items-center gap-1 rounded bg-[#efe9e1] px-2 py-0.5 text-[11px] font-semibold text-stone-500 md:inline-flex">
+            <LockIcon className="h-3 w-3" />
+            {role} không sửa được tab này
+          </span>
+        }
 
         <div className="ml-auto flex items-center gap-2">
           <label className="sr-only" htmlFor="cms-role">Vai trò</label>
@@ -211,18 +205,6 @@ export function ProjectCmsPage() {
           </button>
           <button
             type="button"
-            onClick={() => setInspectorOpen((value) => !value)}
-            className={`grid h-8 w-8 place-items-center rounded-md border transition-colors ${
-            inspectorOpen ?
-            'border-[#f5921f] bg-[#fdf3e2] text-[#b96f12]' :
-            'border-[#e0d2bd] text-stone-600 hover:bg-[#faf6ef]'}`
-            }
-            title="Bảng nguồn dữ liệu">
-
-            <PanelRightIcon className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
             onClick={() => showNotice('Đã gửi duyệt tới Trưởng line')}
             className="h-8 rounded-md bg-[#f5921f] px-3 text-xs font-semibold text-white transition-colors hover:bg-[#db7214] sm:text-sm">
 
@@ -231,170 +213,165 @@ export function ProjectCmsPage() {
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1">
-        {/* ── Rail trái: 11 tab theo SRS ────────────────────────── */}
-        <nav className="hidden w-[212px] shrink-0 overflow-y-auto border-r border-[#e5d8c4] bg-white p-2 lg:block">
-          <p className="px-2 pb-1.5 pt-2 text-[10px] font-bold uppercase tracking-wider text-stone-400">
-            Nội dung dự án
-          </p>
-          {CANVAS_TABS.map((tab, index) => {
-            const isActive = tab.id === activeTab;
-            const locked = !canEditTab(role, tab.id);
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={`mb-0.5 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] transition-colors ${
-                isActive ?
-                'bg-[#fdf3e2] font-semibold text-[#8a5a12]' :
-                'text-stone-600 hover:bg-[#faf6ef]'}`
-                }>
+      {/* ── Canvas toàn chiều rộng: ĐÚNG template trang công khai ── */}
+      <main className="min-w-0 flex-1 overflow-y-auto bg-[#f3ece1] p-3 sm:p-5">
+        <div
+          className={`overflow-hidden rounded-xl bg-[#faf6ef] shadow-sm ring-1 ${
+          editable ? 'ring-[#f0d9b8]' : 'ring-[#e5d8c4]'}`
+          }>
 
-                <span className="w-4 shrink-0 text-[10px] font-mono text-stone-400">
-                  {String(index + 1).padStart(2, '0')}
-                </span>
-                <span className="min-w-0 flex-1 truncate">{tab.label}</span>
-                {locked ?
-                <LockIcon className="h-3 w-3 shrink-0 text-stone-300" /> :
-                <span className={`shrink-0 rounded px-1 py-px text-[8px] font-bold ${SOURCE_STYLE[tab.source]}`}>
-                    {SOURCE_LABEL[tab.source]}
-                  </span>
+          <ProjectCanvas
+            activeTab={activeTab}
+            onChangeTab={setActiveTab}
+            role={role}
+            projectName={project.name}
+            overviewHtml={synced?.content?.overviewContent ?? ''}
+            syncedMedia={syncedMedia}
+            chrome={false} />
+
+        </div>
+      </main>
+
+      {/* ── Nút nổi góc dưới phải ─────────────────────────────── */}
+      <button
+        type="button"
+        onClick={() => setDrawerOpen((value) => !value)}
+        className="fixed bottom-5 right-5 z-40 grid place-items-center rounded-full bg-[#4a3728] text-white shadow-lg transition-all hover:bg-[#33251a] hover:shadow-xl"
+        style={{ height: 52, width: 52 }}
+        aria-label="Nội dung đồng bộ từ Google Drive"
+        title="Nội dung đồng bộ từ Google Drive">
+
+        {drawerOpen ? <XIcon className="h-5 w-5" /> : <ImagesIcon className="h-5 w-5" />}
+        {!drawerOpen && totalMedia > 0 &&
+        <span className="absolute -right-0.5 -top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-[#f5921f] px-1 font-mono text-[10px] font-bold text-white ring-2 ring-[#f3ece1]">
+            {totalMedia}
+          </span>
+        }
+      </button>
+
+      {/* ── Ngăn kéo: Nội dung đồng bộ từ Google Drive ────────── */}
+      {drawerOpen &&
+      <aside className="fixed bottom-[86px] right-5 z-40 flex max-h-[72vh] w-[min(380px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/10">
+          <div className="flex items-start gap-3 border-b border-[#eee4d5] px-4 py-3">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-sm font-bold text-[#3b2c1d]">
+                Nội dung đồng bộ từ Google Drive
+              </h2>
+              <p className="mt-0.5 text-[11px] text-stone-500">
+                {totalMedia > 0 ?
+              <>{totalMedia} ảnh và tài liệu trong {Object.keys(syncedMedia).length} tab</> :
+              'Chưa có nội dung nào được đồng bộ'}
+                {synced?.updated_at &&
+              <> · {new Date(synced.updated_at).toLocaleString('vi-VN')}</>
+              }
+              </p>
+            </div>
+            <button
+            type="button"
+            onClick={() => setDrawerOpen(false)}
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-stone-400 transition-colors hover:bg-[#faf6ef] hover:text-stone-700"
+            aria-label="Đóng">
+
+              <XIcon className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
+            {CANVAS_TABS.map((tab) => {
+            const groups = syncedMedia[tab.id] ?? [];
+            const count = groups.reduce((sum, group) => sum + group.items.length, 0);
+            const isActive = tab.id === activeTab;
+
+            return (
+              <div key={tab.id} className="mb-0.5">
+                  <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    setDrawerOpen(false);
+                  }}
+                  className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors ${
+                  isActive ? 'bg-[#fdf3e2]' : 'hover:bg-[#faf6ef]'}`
+                  }>
+
+                    <span
+                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                    count > 0 ? 'bg-[#0e9f6e]' : 'bg-stone-300'}`
+                    } />
+
+                    <span
+                    className={`min-w-0 flex-1 truncate text-[13px] ${
+                    isActive ? 'font-bold text-[#8a5a12]' : 'font-medium text-stone-700'}`
+                    }>
+
+                      {tab.label}
+                    </span>
+                    {tab.source === 'import' ?
+                  <span className="shrink-0 rounded bg-[#e6edfb] px-1.5 py-px text-[9px] font-bold text-[#2a55b8]">
+                        IMPORT
+                      </span> :
+                  count > 0 ?
+                  <span className="shrink-0 font-mono text-[11px] font-bold text-stone-500">
+                        {count}
+                      </span> :
+                  <span className="shrink-0 text-[10px] text-stone-400">—</span>
+                  }
+                    <ChevronRightIcon className="h-3.5 w-3.5 shrink-0 text-stone-300" />
+                  </button>
+
+                  {isActive && groups.length > 0 &&
+                <ul className="mb-1 ml-6 space-y-1 border-l border-[#eee4d5] pl-3 pt-1">
+                      {groups.map((group) =>
+                  <li key={group.id} className="flex items-center gap-1.5 text-[11px] text-stone-500">
+                          <FolderIcon className="h-3 w-3 shrink-0 text-[#b08e5c]" />
+                          <span className="min-w-0 flex-1 truncate font-mono">
+                            {group.folder ?? group.label}
+                          </span>
+                          <span className="shrink-0 font-mono font-bold text-stone-600">
+                            {group.items.length}
+                          </span>
+                        </li>
+                  )}
+                    </ul>
                 }
-              </button>);
+                </div>);
 
           })}
-        </nav>
-
-        {/* ── Canvas: ĐÚNG template của trang xem trước ─────────── */}
-        <main className="min-w-0 flex-1 overflow-y-auto bg-[#f3ece1] p-3 sm:p-5">
-          <div className="mb-2.5 flex flex-wrap items-center gap-2 text-xs">
-            <span className="inline-flex items-center gap-1.5 rounded bg-white px-2 py-1 font-semibold text-stone-500 shadow-sm">
-              <EyeIcon className="h-3.5 w-3.5" />
-              Hiển thị đúng như trang công khai
-            </span>
-            {!editable &&
-            <span className="inline-flex items-center gap-1.5 rounded bg-[#efe9e1] px-2 py-1 font-semibold text-stone-500">
-                <LockIcon className="h-3.5 w-3.5" />
-                Vai trò {role} không sửa được tab này
-              </span>
-            }
           </div>
 
-          <div
-            className={`overflow-hidden rounded-xl bg-[#faf6ef] shadow-sm ring-1 ${
-            editable ? 'ring-[#f0d9b8]' : 'ring-[#e5d8c4]'}`
-            }>
-
-            <ProjectCanvas
-              activeTab={activeTab}
-              onChangeTab={setActiveTab}
-              role={role}
-              projectName={project.name}
-              overviewHtml={synced?.content?.overviewContent ?? ''}
-              chrome={false} />
-
-          </div>
-        </main>
-
-        {/* ── Bảng nguồn dữ liệu bên phải ───────────────────────── */}
-        {inspectorOpen &&
-        <aside className="hidden w-[290px] shrink-0 overflow-y-auto border-l border-[#e5d8c4] bg-white p-4 xl:block">
-            <h2 className="text-[11px] font-bold uppercase tracking-wider text-stone-400">
-              Nguồn dữ liệu
-            </h2>
-            <p className="mt-1.5 text-base font-bold text-[#3b2c1d]">
-              {currentTab.label}
+          <div className="space-y-2 border-t border-[#eee4d5] px-4 py-3">
+            <p className="flex gap-2 text-[11px] leading-relaxed text-stone-500">
+              <AlertTriangleIcon className="mt-px h-3.5 w-3.5 shrink-0 text-[#c97a0a]" />
+              Đồng bộ sẽ <b>ghi đè</b> toàn bộ hình ảnh và tài liệu. Nội dung nhập
+              tay trên CMS không bị ảnh hưởng.
             </p>
-            <span className={`mt-2 inline-block rounded px-1.5 py-0.5 text-[9px] font-bold ${SOURCE_STYLE[currentTab.source]}`}>
-              {SOURCE_LABEL[currentTab.source]}
-            </span>
+            {synced?.drive_folder_url &&
+          <a
+            href={synced.drive_folder_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-[11px] font-semibold text-[#8a6a3f] hover:underline">
 
-            {currentTab.folder &&
-          <div className="mt-3 flex items-start gap-2 rounded-md border border-[#eee4d5] bg-[#faf6ef] p-2.5">
-                <FolderIcon className="mt-px h-4 w-4 shrink-0 text-[#b08e5c]" />
-                <div className="min-w-0">
-                  <p className="font-mono text-[11px] font-semibold text-stone-700">
-                    {currentTab.folder}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-stone-500">
-                    Nhận diện theo folder ID, đổi tên trên Drive không ảnh hưởng.
-                  </p>
-                </div>
-              </div>
-          }
-
-            <div className="mt-4 space-y-2">
-              {currentTab.source === 'drive' &&
-            <button
-              type="button"
-              onClick={handleResync}
-              disabled={!editable || isResyncing}
-              className="flex w-full items-center justify-center gap-1.5 rounded-md bg-[#4a3728] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#33251a] disabled:cursor-not-allowed disabled:bg-stone-300">
-
-                  <RefreshCwIcon className={`h-3.5 w-3.5 ${isResyncing ? 'animate-spin' : ''}`} />
-                  Đồng bộ tab này
-                </button>
-            }
-              {currentTab.source === 'import' &&
-            <button
-              type="button"
-              onClick={() => showNotice('Luồng import 5 bước — xem prototype HTML kèm theo')}
-              disabled={!editable}
-              className="flex w-full items-center justify-center gap-1.5 rounded-md bg-[#4a3728] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#33251a] disabled:cursor-not-allowed disabled:bg-stone-300">
-
-                  <UploadIcon className="h-3.5 w-3.5" />
-                  Import bảng hàng
-                </button>
-            }
-              <a
-              href={publicHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex w-full items-center justify-center gap-1.5 rounded-md border border-[#e0d2bd] px-3 py-2 text-xs font-semibold text-stone-700 transition-colors hover:bg-[#faf6ef]">
-
-                <ExternalLinkIcon className="h-3.5 w-3.5" />
-                Mở trang công khai
+                <ExternalLinkIcon className="h-3 w-3" />
+                Mở thư mục Drive của dự án
               </a>
-            </div>
+          }
+            <button
+            type="button"
+            onClick={handleResync}
+            disabled={isResyncing}
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#4a3728] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#33251a] disabled:cursor-not-allowed disabled:bg-stone-300">
 
-            <div className="mt-4 space-y-2 border-t border-[#eee4d5] pt-4 text-[12px] leading-relaxed">
-              {currentTab.source === 'manual' &&
-            <p className="flex gap-2 text-stone-600">
-                  <InfoIcon className="mt-px h-3.5 w-3.5 shrink-0 text-[#2a55b8]" />
-                  Nội dung nhập trực tiếp trên CMS. Đồng bộ Drive không ghi đè phần văn bản.
-                </p>
-            }
-              {currentTab.source === 'drive' &&
-            <p className="flex gap-2 text-stone-600">
-                  <AlertTriangleIcon className="mt-px h-3.5 w-3.5 shrink-0 text-[#c97a0a]" />
-                  Đồng bộ sẽ <b>ghi đè</b> toàn bộ hình ảnh và tài liệu của tab này.
-                </p>
-            }
-              {currentTab.source === 'import' &&
-            <p className="flex gap-2 text-stone-600">
-                  <AlertTriangleIcon className="mt-px h-3.5 w-3.5 shrink-0 text-[#c97a0a]" />
-                  Tình trạng căn chỉ đổi được bằng import lại file, không sửa tay từng căn.
-                </p>
-            }
-              {synced?.updated_at &&
-            <p className="flex gap-2 text-stone-500">
-                  <CheckCircle2Icon className="mt-px h-3.5 w-3.5 shrink-0 text-[#0e9f6e]" />
-                  Đồng bộ gần nhất {new Date(synced.updated_at).toLocaleString('vi-VN')}
-                </p>
-            }
-            </div>
-
-            <div className="mt-4 rounded-md border border-[#eee4d5] bg-[#faf6ef] p-2.5 text-[11px] leading-relaxed text-stone-500">
-              <b className="text-stone-700">Prototype:</b> nội dung biên tập chưa
-              được lưu xuống cơ sở dữ liệu — CMS chưa có endpoint ghi.
-            </div>
-          </aside>
-        }
-      </div>
+              <RefreshCwIcon className={`h-3.5 w-3.5 ${isResyncing ? 'animate-spin' : ''}`} />
+              {isResyncing ? 'Đang đồng bộ…' : 'Đồng bộ lại từ Drive'}
+            </button>
+          </div>
+        </aside>
+      }
 
       {notice &&
-      <div className="pointer-events-none fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-md bg-[#3b2c1d] px-4 py-2.5 text-sm font-medium text-white shadow-lg">
+      <div className="pointer-events-none fixed bottom-5 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-md bg-[#3b2c1d] px-4 py-2.5 text-sm font-medium text-white shadow-lg">
+          <CheckCircle2Icon className="h-4 w-4 shrink-0 text-[#6ee7b7]" />
           {notice}
         </div>
       }
