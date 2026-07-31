@@ -68,6 +68,8 @@ interface ProjectCanvasProps {
   /** Nội dung văn bản đồng bộ từ Drive. */
   overviewHtml?: string;
   locationHtml?: string;
+  /** Số liệu nổi bật, sửa được trong CMS. */
+  stats?: {value: string;label: string;}[];
   /** Ảnh và tài liệu đã đồng bộ, gom theo tab. */
   syncedMedia?: SyncedMedia;
   /** Ẩn breadcrumb và nút chia sẻ khi hiển thị bên trong CMS. */
@@ -85,6 +87,7 @@ export function ProjectCanvas({
   projectName,
   overviewHtml = '',
   locationHtml = '',
+  stats,
   syncedMedia = {},
   chrome = true
 }: ProjectCanvasProps) {
@@ -189,7 +192,8 @@ export function ProjectCanvas({
           locationImage={locationImage}
           locationHtml={locationHtml}
           amenities={amenities}
-          floorPlans={floorPlans} />
+          floorPlans={floorPlans}
+          stats={stats} />
 
         }
 

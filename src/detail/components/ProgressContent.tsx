@@ -74,7 +74,7 @@ export function ProgressContent({ photos: syncedPhotos }: ProgressContentProps =
   }
 
   return (
-    <div className="grid grid-cols-1 gap-10 lg:grid-cols-[280px_1fr] lg:gap-12">
+    <div data-cms-section="progress" data-cms-label="Ảnh tiến độ" className="grid grid-cols-1 gap-10 lg:grid-cols-[280px_1fr] lg:gap-12">
       {/* Dòng thời gian các đợt cập nhật */}
       <aside>
         <h2 className="border-b border-stone-200 pb-4 text-center text-xl font-bold uppercase tracking-wide text-[#4a3728]">

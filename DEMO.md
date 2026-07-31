@@ -41,10 +41,28 @@ Canvas chiếm trọn chiều rộng, không có cột phụ. Điều hướng g
 - Nút **Đồng bộ lại từ Drive** kèm cảnh báo ghi đè theo FR-22, và liên kết mở thẳng thư mục Drive.
 - Huy hiệu trên nút hiển thị tổng số mục đã đồng bộ.
 
+### Bấm vào section để sửa
+
+Trong CMS, di chuột lên trang sẽ thấy **viền cam và nhãn tên section**. Bấm vào là section được chọn (viền đậm) và ngăn kéo chuyển sang chế độ sửa:
+
+| Loại section | Sửa được gì |
+|---|---|
+| **Nhập tay** — Tổng quan dự án, Vị trí dự án | Ô soạn thảo có Đậm / Nghiêng / Danh sách / Xóa định dạng. Gõ tới đâu trang đổi tới đó. |
+| **Số liệu nổi bật** | Sửa trực tiếp ba cặp giá trị và nhãn |
+| **Từ Drive** — hero, tiện ích, mặt bằng, 360, tiến độ, tài liệu, chính sách | Xem ảnh đang có, tên thư mục nguồn, nút đồng bộ lại. Không sửa tay được — đúng quy định của SRS |
+| **Đợt sau** — loại hình sản phẩm, liên hệ | Hiện ghi chú, chưa có giao diện biên tập |
+
+Nút **Trả về gốc** ở chân ngăn kéo hoàn tác mọi chỉnh sửa trong phiên.
+
+Các thành phần tương tác vẫn hoạt động bình thường khi đang biên tập — bấm mũi tên băng ảnh vẫn chuyển ảnh, bấm ô tiện ích vẫn mở lightbox. Muốn chọn section thì bấm vào vùng trống của nó.
+
+Đổi vai trò sang **Trưởng line** thì viền chuyển xám và bấm vào chỉ hiện thông báo không có quyền.
+
 Ba thứ nên chỉ vào:
 
 - **Bộ chọn vai trò** trên thanh đầu, đủ 6 vai trò theo mục 2.4. Đổi sang *Trưởng line* — thanh trên báo không sửa được tab nào, đúng với việc vai trò này chỉ duyệt. Đổi sang *Quản lý giao dịch* — chỉ Mặt bằng, Bảng hàng, Quỹ căn mở ra.
-- **Nút Đồng bộ lại** — ảnh từ Drive chảy thẳng vào đúng tab, xem mục 4 bên dưới.
+- **Bấm vào khối *Tổng quan dự án*** rồi gõ vài chữ trong ngăn kéo — chữ trên trang đổi ngay.
+- **Nút Đồng bộ lại** — ảnh từ Drive chảy thẳng vào đúng section, xem mục 4 bên dưới.
 - **Cấu hình dự án** (bánh răng) — mã dự án, địa giới, đội ngũ, SEO, trạng thái xuất bản.
 
 Trình biên tập cũ vẫn còn ở `/hoan-tat-cu` nếu cần đối chiếu.

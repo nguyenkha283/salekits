@@ -27,7 +27,7 @@ interface DocumentsContentProps {
 export function DocumentsContent({ documents }: DocumentsContentProps = {}) {
   const DOCUMENTS = documents?.length ? documents : DEFAULT_DOCUMENTS;
   return (
-    <section aria-label="Tài liệu dự án">
+    <section data-cms-section="documents" data-cms-label="Tài liệu dự án" aria-label="Tài liệu dự án">
       <header className="text-center">
         <h2 className="text-2xl font-bold uppercase tracking-wide text-[#4a3728] sm:text-3xl">Tài liệu dự án</h2>
         <span className="mx-auto mt-3 block h-1 w-24 bg-[#f5921f]" aria-hidden="true" />

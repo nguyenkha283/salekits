@@ -26,7 +26,7 @@ export function TrainingContent({ files }: TrainingContentProps = {}) {
   const TRAINING_FILES = files?.length ? files : DEFAULT_TRAINING_FILES;
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div data-cms-section="training" data-cms-label="Nội dung đào tạo" className="mx-auto max-w-4xl">
       {/* Video đào tạo */}
       <figure>
         <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-stone-900">

@@ -86,7 +86,7 @@ export function Panorama360Content({ scenes }: Panorama360ContentProps = {}) {
   const heading = (-offset / 12 % 360 + 360) % 360;
 
   return (
-    <section aria-label="Ảnh 360 độ dự án">
+    <section data-cms-section="p360" data-cms-label="Ảnh 360" aria-label="Ảnh 360 độ dự án">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Trải nghiệm thực tế</p>

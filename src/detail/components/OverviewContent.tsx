@@ -21,6 +21,7 @@ interface OverviewContentProps {
   locationImage?: string;
   locationHtml?: string;
   amenities?: {image: string;title: string;}[];
+  stats?: {value: string;label: string;}[];
   floorPlans?: {key: string;label: string;title: string;image: string;}[];
 }
 
@@ -56,7 +57,7 @@ const PRODUCTS = [
 { image: IMAGES.lakeside, title: 'Căn hộ Duplex', description: 'Hai tầng thông nhau, tôn vinh chiều cao và ánh sáng tự nhiên.' }];
 
 
-const FEATURED_STATS = [
+const DEFAULT_FEATURED_STATS = [
 { value: '150+', label: 'Căn hộ bàn giao' },
 { value: '100+', label: 'Tiện ích nội khu' },
 { value: '200+', label: 'Khách hàng hài lòng' }];
@@ -109,7 +110,8 @@ export function OverviewContent({
   locationImage,
   locationHtml,
   amenities,
-  floorPlans
+  floorPlans,
+  stats
 }: OverviewContentProps) {
   // Dữ liệu Drive được ưu tiên; thiếu mục nào thì mục đó dùng dữ liệu mẫu.
   const HERO_SLIDES = useMemo(
@@ -124,6 +126,7 @@ export function OverviewContent({
     () => floorPlans?.length ? floorPlans : DEFAULT_FLOOR_PLANS,
     [floorPlans]
   );
+  const FEATURED_STATS = stats?.length ? stats : DEFAULT_FEATURED_STATS;
   const heroImage = overviewImage || IMAGES.overview;
   const mapImage = locationImage || IMAGES.location;
 
@@ -163,7 +166,7 @@ export function OverviewContent({
 
   return (
     <div className="w-full overflow-x-clip bg-[#f5f1e8] font-['Be_Vietnam_Pro'] text-[#302922]">
-      <section className="relative min-h-[560px] overflow-hidden bg-[#4b4035] sm:min-h-[680px]" aria-label="Banner dự án Imperia Sky Park">
+      <section data-cms-section="hero" data-cms-label="Băng ảnh đầu trang" className="relative min-h-[560px] overflow-hidden bg-[#4b4035] sm:min-h-[680px]" aria-label="Banner dự án Imperia Sky Park">
         {HERO_SLIDES.map((image, index) => <img key={image} src={image} alt="Phối cảnh Imperia Sky Park" className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${index === activeHero ? 'opacity-100' : 'opacity-0'}`} />)}
         <div className="absolute inset-0 bg-[#2e261e]/35" aria-hidden="true" />
         <div className="relative mx-auto flex min-h-[560px] w-[90vw] flex-col pb-16 pt-7 text-white sm:min-h-[680px]">
@@ -182,7 +185,7 @@ export function OverviewContent({
 
       {tabs}
 
-      <section id="overview" className="mx-auto grid w-[90vw] items-center gap-8 py-20 lg:grid-cols-[0.75fr_1.25fr] lg:gap-14">
+      <section data-cms-section="overview" data-cms-label="Tổng quan dự án" id="overview" className="mx-auto grid w-[90vw] items-center gap-8 py-20 lg:grid-cols-[0.75fr_1.25fr] lg:gap-14">
         <div className="max-w-md">
           <h2 className="text-4xl font-semibold leading-tight tracking-[-0.04em] sm:text-5xl">Tổng quan dự án</h2>
           {overviewHtml ?
@@ -195,7 +198,7 @@ export function OverviewContent({
         </div>
       </section>
 
-      <section aria-label="Số liệu nổi bật" className="border-y border-[#ded6ca] py-16 sm:py-20">
+      <section data-cms-section="stats" data-cms-label="Số liệu nổi bật" aria-label="Số liệu nổi bật" className="border-y border-[#ded6ca] py-16 sm:py-20">
         <div className="mx-auto w-[90vw]">
           <div className="grid grid-cols-1 gap-10 sm:grid-cols-3 sm:gap-6">
             {FEATURED_STATS.map((stat) =>
@@ -208,7 +211,7 @@ export function OverviewContent({
         </div>
       </section>
 
-      <section id="location" className="bg-[#332920] text-[#f6f0e5]">
+      <section data-cms-section="location" data-cms-label="Vị trí dự án" id="location" className="bg-[#332920] text-[#f6f0e5]">
         <div className="grid items-stretch lg:grid-cols-2">
           {/* Cột ảnh: tràn hết chiều rộng cột và cao bằng cột text, không giới hạn trong container */}
           <div className="relative flex min-h-[320px] items-center justify-center bg-[#1c2c47] sm:min-h-[440px] lg:min-h-0">
@@ -244,7 +247,7 @@ export function OverviewContent({
         </div>
       </section>
 
-      <section id="floorplan" className="border-b border-[#ded6ca] py-20">
+      <section data-cms-section="floorplan" data-cms-label="Mặt bằng xem nhanh" id="floorplan" className="border-b border-[#ded6ca] py-20">
         <div className="mx-auto w-[90vw]">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#847768]">Thiết kế chi tiết các tầng</p>
           <h2 className="mt-4 text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Mặt bằng dự án</h2>
@@ -283,7 +286,7 @@ export function OverviewContent({
         </div>
       </section>
 
-      <section id="products" className="border-b border-[#ded6ca] py-20">
+      <section data-cms-section="products" data-cms-label="Loại hình sản phẩm" id="products" className="border-b border-[#ded6ca] py-20">
         <div className="mx-auto w-[90vw]">
           <div className="flex items-end justify-between gap-6">
             <div><h2 className="text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Sản phẩm nổi bật.</h2></div>
@@ -302,7 +305,7 @@ export function OverviewContent({
         </div>
       </section>
 
-      <section id="spaces" className="py-20">
+      <section data-cms-section="amenities" data-cms-label="Tiện ích" id="spaces" className="py-20">
         <div className="mx-auto w-[90vw]">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#847768]">Không gian sống</p>
           <h2 className="mt-4 text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Tiện ích dự án</h2>
@@ -359,7 +362,7 @@ export function OverviewContent({
         </div>}
 
 
-      <section className="bg-[#e5d8c2] py-20 text-[#302922]">
+      <section data-cms-section="contact" data-cms-label="Liên hệ tư vấn" className="bg-[#e5d8c2] py-20 text-[#302922]">
         <div className="mx-auto flex w-[90vw] flex-col gap-10 lg:flex-row lg:items-center lg:justify-between lg:gap-16">
           <div className="lg:max-w-[40rem] lg:flex-1">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8a7862]">Thông tin liên hệ</p>

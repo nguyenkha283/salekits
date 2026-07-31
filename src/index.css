@@ -201,3 +201,56 @@ body {
 .prose-cen strong, .prose-cen b { font-weight: 700; color: #3b2c1d; }
 
 .prose-cen-invert strong, .prose-cen-invert b { color: #ffffff; }
+
+/* ── Chế độ biên tập CMS: chọn section trực tiếp trên canvas ── */
+.cms-editing [data-cms-section] {
+  position: relative;
+  cursor: pointer;
+  transition: outline-color .12s;
+  outline: 2px dashed transparent;
+  outline-offset: -3px;
+}
+.cms-editing [data-cms-section]:hover {
+  outline-color: rgba(245, 146, 31, .75);
+}
+.cms-editing [data-cms-section]::before {
+  content: attr(data-cms-label);
+  position: absolute;
+  z-index: 30;
+  top: 6px;
+  left: 6px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  background: #4a3728;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-3px);
+  transition: opacity .12s, transform .12s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
+}
+.cms-editing [data-cms-section]:hover::before { opacity: 1; transform: none; }
+.cms-editing [data-cms-section][data-cms-selected="true"] {
+  outline: 2px solid #f5921f;
+  outline-offset: -3px;
+}
+.cms-editing [data-cms-section][data-cms-selected="true"]::before {
+  opacity: 1;
+  transform: none;
+  background: #f5921f;
+}
+/* Vai trò không có quyền sửa tab hiện tại */
+.cms-locked [data-cms-section] { cursor: not-allowed; }
+.cms-locked [data-cms-section]:hover { outline-color: rgba(120, 113, 108, .5); }
+.cms-locked [data-cms-section]:hover::before { background: #78716c; }
+
+/* Gợi ý khi ô nhập nội dung còn trống */
+[data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: #a8a29e;
+  pointer-events: none;
+}

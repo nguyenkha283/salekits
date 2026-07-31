@@ -16,7 +16,7 @@ export function FloorPlanContent({ planImage }: FloorPlanContentProps = {}) {
   const planUrl = planImage || STATIC_PLAN_URL;
 
   return (
-    <section className="w-full bg-[#f7f4ef]" aria-label="Mặt bằng dự án">
+    <section data-cms-section="plan" data-cms-label="Mặt bằng dự án" className="w-full bg-[#f7f4ef]" aria-label="Mặt bằng dự án">
       <div className={`relative bg-stone-200 ${mode === 'satellite' ? 'h-[100dvh] overflow-hidden' : 'min-h-[100dvh]'}`}>
         <div className="absolute left-4 top-4 z-20 flex flex-col gap-2 sm:left-6 sm:top-6">
           <MapControl active={mode === 'satellite'} label="Bản đồ vệ tinh" icon={MapIcon} onClick={() => setMode('satellite')} />

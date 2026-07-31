@@ -18,7 +18,7 @@ const DESCRIPTIONS = [
 
 export function BuildingsContent() {
   return (
-    <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8" aria-labelledby="buildings-title">
+    <section data-cms-section="products-tab" data-cms-label="Danh sách sản phẩm" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8" aria-labelledby="buildings-title">
       <div className="max-w-2xl">
         <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#9a7955]"><Building2Icon className="h-4 w-4" /> Hệ tòa căn hộ</span>
         <h1 id="buildings-title" className="mt-4 text-3xl font-bold tracking-[-0.03em] text-[#3b2c1d] sm:text-4xl">Khám phá các tòa nhà</h1>

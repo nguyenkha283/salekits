@@ -19,7 +19,7 @@ interface PolicyContentProps {
 
 export function PolicyContent({ coverImage, groups = [] }: PolicyContentProps = {}) {
   return (
-    <section aria-label="Chính sách bán hàng" className="w-full space-y-8">
+    <section data-cms-section="policy" data-cms-label="Chính sách bán hàng" aria-label="Chính sách bán hàng" className="w-full space-y-8">
       <img
         src={coverImage || POLICY_IMAGE}
         alt="Chính sách bán hàng dự án"
