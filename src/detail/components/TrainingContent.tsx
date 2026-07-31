@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { DownloadIcon, FileTextIcon, PlayIcon } from 'lucide-react';
 
 const TRAINING_VIDEO = {
-  poster: '/ecad2fff-460f-457c-8688-eff20828df9d.jpg',
+  poster: '/73dda9ab-a667-4bd9-a168-fc13267d6901.jpg',
   /** Thay bằng link nhúng video thật (YouTube/Vimeo/CDN nội bộ). */
   embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1',
   title: '[TOÀN CẢNH BĐS T04.2026] TOP 6 LÝ DO NÊN SỞ HỮU BĐS NGAY!'
@@ -11,13 +11,19 @@ const TRAINING_VIDEO = {
 const TRAINING_SUMMARY =
 'Imperia Sky Park là tổ hợp chung cư cao cấp – dịch vụ thương mại nằm tại ô HH3 Nam An Khánh, An Khánh, thành phố Hà Nội. Dự án có quy mô hơn 4ha gồm 6 toà căn hộ cao cấp, cung cấp ra thị trường khoảng hơn 3000 căn hộ thuộc phân khúc I Series của MIK Group.';
 
-const TRAINING_FILES = [
+const DEFAULT_TRAINING_FILES = [
 { name: 'Recap-Hop-Du-an-20032026.pdf', type: 'PDF', href: '#' },
 { name: 'Bo-cau-hoi-thuong-gap.pdf', type: 'PDF', href: '#' }];
 
 
-export function TrainingContent() {
+interface TrainingContentProps {
+  /** Tài liệu đào tạo đồng bộ từ thư mục "02. Đào tạo". */
+  files?: {name: string;type: string;href: string;}[];
+}
+
+export function TrainingContent({ files }: TrainingContentProps = {}) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const TRAINING_FILES = files?.length ? files : DEFAULT_TRAINING_FILES;
 
   return (
     <div className="mx-auto max-w-4xl">

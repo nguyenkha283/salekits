@@ -226,6 +226,7 @@ export function ProjectCmsPage() {
             role={role}
             projectName={project.name}
             overviewHtml={synced?.content?.overviewContent ?? ''}
+            locationHtml={synced?.content?.locationContent ?? ''}
             syncedMedia={syncedMedia}
             chrome={false} />
 

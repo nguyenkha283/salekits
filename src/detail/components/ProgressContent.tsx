@@ -4,14 +4,14 @@ import { ChevronLeftIcon, ChevronRightIcon, ChevronsLeftIcon, ChevronsRightIcon,
 const GALLERY_IMAGES = [
 '/af90a9a2-cfa1-4e06-bf16-c3467b5c5fff.jpg',
 '/622df78d-e579-4f25-aef4-6c31185313c8.jpg',
-'/8514b0c0d26dc09a06bdeb6d883e9158.jpg',
-'/0cc1c712-2cc6-4d5b-aff9-27ff4032f103.jpg',
-'/ecad2fff-460f-457c-8688-eff20828df9d.jpg',
+'/ebd3240e-6608-4c50-8739-cfe41926dd74.jpg',
+'/85bed7b1-ee07-4e5d-ae92-d9ea75fb82be.jpg',
+'/73dda9ab-a667-4bd9-a168-fc13267d6901.jpg',
 '/af1ffc9b-36a7-4608-9ff1-165cbcf660be.jpg'];
 
 
 /** Số ảnh tiến độ của từng đợt cập nhật. */
-const PROGRESS_MONTHS = [
+const DEFAULT_PROGRESS_MONTHS = [
 { key: '2026-07', label: 'Tháng 7.2026', total: 63 },
 { key: '2026-06', label: 'Tháng 6.2026', total: 41 },
 { key: '2026-05', label: 'Tháng 5.2026', total: 28 },
@@ -44,14 +44,24 @@ function buildPageList(current: number, total: number): Array<number | 'gap'> {
   return pages;
 }
 
-export function ProgressContent() {
+interface ProgressContentProps {
+  /** Ảnh tiến độ đồng bộ từ thư mục "06. Tiến độ". */
+  photos?: {id: string;src: string;alt: string;}[];
+}
+
+export function ProgressContent({ photos: syncedPhotos }: ProgressContentProps = {}) {
+  const hasSynced = Boolean(syncedPhotos && syncedPhotos.length);
+  const PROGRESS_MONTHS = hasSynced ?
+  [{ key: 'drive', label: 'Đồng bộ từ Drive', total: syncedPhotos!.length }] :
+  DEFAULT_PROGRESS_MONTHS;
+
   const [activeMonth, setActiveMonth] = useState(PROGRESS_MONTHS[0].key);
   const [showAllMonths, setShowAllMonths] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
   const month = PROGRESS_MONTHS.find((item) => item.key === activeMonth) ?? PROGRESS_MONTHS[0];
-  const photos = useMemo(() => buildPhotos(month.label, month.total), [month.label, month.total]);
+  const photos = useMemo(() => hasSynced ? syncedPhotos! : buildPhotos(month.label, month.total), [hasSynced, syncedPhotos, month.label, month.total]);
   const visibleMonths = showAllMonths ? PROGRESS_MONTHS : PROGRESS_MONTHS.slice(0, COLLAPSED_MONTHS);
 
   const totalPages = Math.max(1, Math.ceil(photos.length / pageSize));

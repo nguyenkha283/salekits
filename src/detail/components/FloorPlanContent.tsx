@@ -6,8 +6,14 @@ type MapMode = 'satellite' | 'static';
 const STATIC_PLAN_URL = '/688da3c2-8d95-4650-9f33-bb0bfb6d4692.jpg';
 const SATELLITE_MAP_URL = 'https://www.google.com/maps?q=21.010388308184133,105.72401667701425&z=18&t=k&output=embed';
 
-export function FloorPlanContent() {
+interface FloorPlanContentProps {
+  /** Ảnh mặt bằng tổng thể đồng bộ từ thư mục "03. Mặt bằng". */
+  planImage?: string;
+}
+
+export function FloorPlanContent({ planImage }: FloorPlanContentProps = {}) {
   const [mode, setMode] = useState<MapMode>('satellite');
+  const planUrl = planImage || STATIC_PLAN_URL;
 
   return (
     <section className="w-full bg-[#f7f4ef]" aria-label="Mặt bằng dự án">
@@ -26,7 +32,7 @@ export function FloorPlanContent() {
           </div> :
 
         <div className="min-h-[100dvh] w-full bg-[#131b21]">
-            <img src={STATIC_PLAN_URL} alt="Mặt bằng tổng thể dự án Imperia Sky Park" className="block h-auto w-full" />
+            <img src={planUrl} alt="Mặt bằng tổng thể dự án" className="block h-auto w-full" />
           </div>
         }
       </div>

@@ -100,9 +100,23 @@ Bấm **Đồng bộ lại** (thanh trên hoặc trong ngăn kéo). Hệ thống
 | `07. Tài liệu` | Tài liệu | |
 | `Banner dọc` | Tổng quan | `banner-trai`, `banner-phai` |
 
-Quy tắc hiển thị: **tab nào có nội dung đồng bộ thì thay hẳn nội dung mẫu** (Đào tạo, Mặt bằng, Ảnh 360, Chính sách, Tiến độ, Tài liệu). Riêng tab Tổng quan, nội dung Drive hiện phía trên phần bố cục thiết kế sẵn thay vì thay thế nó.
+**Dữ liệu Drive chảy thẳng vào đúng section đã thiết kế**, không nằm ở khối riêng. Cụ thể:
 
-Ảnh sắp theo tên file. Bấm ảnh để phóng to. File không phải ảnh hiện dạng thẻ mở trên Drive.
+| Section trên trang | Nhận dữ liệu từ |
+|---|---|
+| Băng ảnh đầu trang (hero carousel) | `Ảnh hero banner` |
+| Ảnh và mô tả khối *Tổng quan dự án* | `Ảnh tổng quan` + `Nội dung tổng quan.docx` |
+| Ảnh và mô tả khối *Vị trí dự án* | `Vị trí/` (ảnh + `Nội dung vị trí.docx`) |
+| Lưới mosaic *Tiện ích* + lightbox | `Ảnh tiện ích` (file `.txt` cùng tên thành chú thích) |
+| Tab mặt bằng xem nhanh trong Tổng quan | `Ảnh mặt bằng` (tên file thành nhãn tab) |
+| Ảnh mặt bằng tĩnh, tab Mặt bằng | `03. Mặt bằng` |
+| Danh sách cảnh trong trình xem 360 | `04. Ảnh 360` (tên file thành tên cảnh) |
+| Ảnh bìa + nhóm file, tab Chính sách | `05. Chính sách bán hàng` |
+| Thư viện ảnh có phân trang, tab Tiến độ | `06. Tiến độ` |
+| Lưới 12 ô, tab Tài liệu | `07. Tài liệu` |
+| Danh sách file, tab Đào tạo | `02. Đào tạo` |
+
+Mục nào Drive chưa có thì section đó tự động giữ dữ liệu mẫu, nên trang không bao giờ trống.
 
 Trang công khai `/du-an?projectId=...` dùng chung dữ liệu này, nên biên tập xong xem trước là thấy đúng ảnh vừa đồng bộ.
 

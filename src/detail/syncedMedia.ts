@@ -173,3 +173,21 @@ export function countMedia(media: SyncedMedia): number {
     0
   );
 }
+
+/** Bỏ phần mở rộng để lấy nhãn hiển thị từ tên file. */
+export function stripExt(name: string): string {
+  return name.replace(/\.[^.]+$/, '');
+}
+
+/** Phần mở rộng viết hoa, dùng làm nhãn loại tài liệu. */
+export function fileExt(name: string): string {
+  const match = name.match(/\.([^.]+)$/);
+  return match ? match[1].toUpperCase() : 'FILE';
+}
+
+/** Lấy các mục của một nhóm; bỏ trống id để gộp toàn bộ nhóm. */
+export function pickItems(groups?: MediaGroup[], groupId?: string): MediaItem[] {
+  if (!groups?.length) return [];
+  if (!groupId) return groups.flatMap((group) => group.items);
+  return groups.find((group) => group.id === groupId)?.items ?? [];
+}

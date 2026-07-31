@@ -89,6 +89,7 @@ export function ProjectDetailPage() {
           role={role}
           projectName={projectName}
           overviewHtml={synced?.content?.overviewContent ?? ''}
+          locationHtml={synced?.content?.locationContent ?? ''}
           syncedMedia={syncedMedia} />
 
       </main>

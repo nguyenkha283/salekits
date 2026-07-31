@@ -30,7 +30,7 @@ const ARTICLES: Article[] = [
   category: 'Chính sách',
   title: 'Cập nhật chính sách bán hàng quý III/2026',
   excerpt: 'Chiết khấu thanh toán sớm tăng lên 9%, bổ sung gói hỗ trợ lãi suất 24 tháng cho khách mua căn 3 phòng ngủ.',
-  image: '/ecad2fff-460f-457c-8688-eff20828df9d.jpg',
+  image: '/73dda9ab-a667-4bd9-a168-fc13267d6901.jpg',
   date: '12/07/2026',
   readingTime: '3 phút đọc'
 },
@@ -39,7 +39,7 @@ const ARTICLES: Article[] = [
   category: 'Thị trường',
   title: 'Nguồn cung căn hộ phía Tây Hà Nội phục hồi rõ nét',
   excerpt: 'Lượng mở bán mới trong quý II tăng 27% so với cùng kỳ, giá sơ cấp trung bình đạt 78 triệu đồng mỗi m².',
-  image: '/0cc1c712-2cc6-4d5b-aff9-27ff4032f103.jpg',
+  image: '/85bed7b1-ee07-4e5d-ae92-d9ea75fb82be.jpg',
   date: '08/07/2026',
   readingTime: '6 phút đọc'
 },
@@ -48,7 +48,7 @@ const ARTICLES: Article[] = [
   category: 'Sự kiện',
   title: 'Lễ ra quân dự án quy tụ hơn 600 chuyên viên kinh doanh',
   excerpt: 'Sự kiện công bố giỏ hàng đợt 2 và trao thưởng cho các đơn vị phân phối dẫn đầu doanh số nửa đầu năm.',
-  image: '/3bffbfac-7e48-46e0-95dd-75c393d4b74d.jpg',
+  image: '/f757d0c2-1880-4786-9ade-d83bdf5ffd51.jpg',
   date: '02/07/2026',
   readingTime: '2 phút đọc'
 },
@@ -75,7 +75,7 @@ const ARTICLES: Article[] = [
   category: 'Thị trường',
   title: 'Đại lộ Thăng Long mở rộng, rút ngắn 12 phút vào trung tâm',
   excerpt: 'Dự án mở rộng trục giao thông huyết mạch dự kiến thông xe cuối năm, tác động tích cực tới bất động sản khu vực.',
-  image: '/8514b0c0d26dc09a06bdeb6d883e9158.jpg',
+  image: '/ebd3240e-6608-4c50-8739-cfe41926dd74.jpg',
   date: '15/06/2026',
   readingTime: '5 phút đọc'
 },
@@ -84,7 +84,7 @@ const ARTICLES: Article[] = [
   category: 'Sự kiện',
   title: 'Mở cửa nhà mẫu căn 2 phòng ngủ từ ngày 20/06',
   excerpt: 'Khách hàng có thể tham quan trực tiếp nhà mẫu tại sảnh Sky 1 hoặc đặt lịch trải nghiệm ảnh 360° trực tuyến.',
-  image: '/d819fa20-f2d9-4b1a-92ce-970d9f8311d3.jpg',
+  image: '/fe21ba4f-5222-446a-beea-10c7a3640e0f.jpg',
   date: '10/06/2026',
   readingTime: '2 phút đọc'
 },

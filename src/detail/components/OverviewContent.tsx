@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowRightIcon,
   ChevronLeftIcon,
@@ -14,6 +14,14 @@ import {
 
 interface OverviewContentProps {
   tabs: React.ReactNode;
+  /** Dữ liệu đồng bộ từ Google Drive — có thì thay dữ liệu mẫu, không thì giữ nguyên. */
+  heroSlides?: string[];
+  overviewImage?: string;
+  overviewHtml?: string;
+  locationImage?: string;
+  locationHtml?: string;
+  amenities?: {image: string;title: string;}[];
+  floorPlans?: {key: string;label: string;title: string;image: string;}[];
 }
 
 const IMAGES = {
@@ -33,7 +41,7 @@ const IMAGES = {
   bbqGarden: "/af1ffc9b-36a7-4608-9ff1-165cbcf660be.jpg"
 };
 
-const HERO_SLIDES = [
+const DEFAULT_HERO_SLIDES = [
 IMAGES.hero,
 IMAGES.heroSeries,
 IMAGES.heroBanner];
@@ -55,14 +63,14 @@ const FEATURED_STATS = [
 
 
 /** Mặt bằng từng tầng — thay `image` bằng file bản vẽ thật khi có. */
-const FLOOR_PLANS = [
+const DEFAULT_FLOOR_PLANS = [
 { key: 'sky2', label: 'SKY 2', title: 'Mặt bằng tầng điển hình — Sky 2', image: '/ebd3240e-6608-4c50-8739-cfe41926dd74.jpg' },
 { key: 'sky2-t30', label: 'SKY 2 TẦNG 30', title: 'Mặt bằng tầng điển hình — Sky 2, tầng 30', image: '/85bed7b1-ee07-4e5d-ae92-d9ea75fb82be.jpg' },
 { key: 'sky2-t31', label: 'SKY 2 TẦNG 31', title: 'Mặt bằng tầng điển hình — Sky 2, tầng 31', image: '/fe21ba4f-5222-446a-beea-10c7a3640e0f.jpg' }];
 
 
 /** Tiện ích — hiển thị 7 ô đầu, phần còn lại gộp vào lớp phủ ở ô cuối. */
-const AMENITIES = [
+const DEFAULT_AMENITIES = [
 { image: IMAGES.lakeside, title: 'Không gian xanh bên hồ' },
 { image: IMAGES.communityLounge, title: 'Sảnh sinh hoạt cộng đồng' },
 { image: IMAGES.infinityPool, title: 'Bể bơi vô cực' },
@@ -93,14 +101,39 @@ function scrollCarousel(element: HTMLDivElement | null, direction: number) {
   element?.scrollBy({ left: direction * Math.min(element.clientWidth * 0.82, 420), behavior: 'smooth' });
 }
 
-export function OverviewContent({ tabs }: OverviewContentProps) {
+export function OverviewContent({
+  tabs,
+  heroSlides,
+  overviewImage,
+  overviewHtml,
+  locationImage,
+  locationHtml,
+  amenities,
+  floorPlans
+}: OverviewContentProps) {
+  // Dữ liệu Drive được ưu tiên; thiếu mục nào thì mục đó dùng dữ liệu mẫu.
+  const HERO_SLIDES = useMemo(
+    () => heroSlides?.length ? heroSlides : DEFAULT_HERO_SLIDES,
+    [heroSlides]
+  );
+  const AMENITIES = useMemo(
+    () => amenities?.length ? amenities : DEFAULT_AMENITIES,
+    [amenities]
+  );
+  const FLOOR_PLANS = useMemo(
+    () => floorPlans?.length ? floorPlans : DEFAULT_FLOOR_PLANS,
+    [floorPlans]
+  );
+  const heroImage = overviewImage || IMAGES.overview;
+  const mapImage = locationImage || IMAGES.location;
+
   const productsRef = useRef<HTMLDivElement>(null);
   const [activeHero, setActiveHero] = useState(0);
   const [activeFloor, setActiveFloor] = useState(FLOOR_PLANS[0].key);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const activePlan = FLOOR_PLANS.find((plan) => plan.key === activeFloor) ?? FLOOR_PLANS[0];
-  const hiddenAmenityCount = AMENITIES.length - VISIBLE_AMENITIES;
+  const hiddenAmenityCount = Math.max(0, AMENITIES.length - VISIBLE_AMENITIES);
 
   const closeLightbox = useCallback(() => setLightboxIndex(null), []);
   const showPrevious = useCallback(() => setLightboxIndex((current) => current === null ? current : (current - 1 + AMENITIES.length) % AMENITIES.length), []);
@@ -152,11 +185,13 @@ export function OverviewContent({ tabs }: OverviewContentProps) {
       <section id="overview" className="mx-auto grid w-[90vw] items-center gap-8 py-20 lg:grid-cols-[0.75fr_1.25fr] lg:gap-14">
         <div className="max-w-md">
           <h2 className="text-4xl font-semibold leading-tight tracking-[-0.04em] sm:text-5xl">Tổng quan dự án</h2>
-          <p className="mt-5 text-sm leading-7 text-[#675e56] sm:text-base">Imperia Sky Park hướng tới một chuẩn sống cân bằng: không gian riêng tư đủ tĩnh tại, những kết nối đủ đầy và cảnh quan xanh len vào từng nhịp sống.</p>
+          {overviewHtml ?
+          <div className="prose-cen mt-5 text-sm leading-7 text-[#675e56] sm:text-base" dangerouslySetInnerHTML={{ __html: overviewHtml }} /> :
+          <p className="mt-5 text-sm leading-7 text-[#675e56] sm:text-base">Imperia Sky Park hướng tới một chuẩn sống cân bằng: không gian riêng tư đủ tĩnh tại, những kết nối đủ đầy và cảnh quan xanh len vào từng nhịp sống.</p>}
           <a href="#location" className="mt-7 inline-flex items-center gap-2 border-b border-[#302922] pb-1 text-xs font-semibold uppercase tracking-[0.1em] transition-opacity hover:opacity-60">Khám phá dự án <ArrowRightIcon className="h-4 w-4" /></a>
         </div>
         <div className="aspect-[16/10] overflow-hidden bg-stone-100">
-          <img src={IMAGES.overview} alt="Phối cảnh Imperia Sky Park" className="h-full w-full object-cover" />
+          <img src={heroImage} alt="Phối cảnh dự án" className="h-full w-full object-cover" />
         </div>
       </section>
 
@@ -177,7 +212,7 @@ export function OverviewContent({ tabs }: OverviewContentProps) {
         <div className="grid items-stretch lg:grid-cols-2">
           {/* Cột ảnh: tràn hết chiều rộng cột và cao bằng cột text, không giới hạn trong container */}
           <div className="relative flex min-h-[320px] items-center justify-center bg-[#1c2c47] sm:min-h-[440px] lg:min-h-0">
-            <img src={IMAGES.location} alt="Vị trí dự án Imperia Sky Park tại Minh Khai, Hai Bà Trưng, Hà Nội" className="h-auto w-full object-contain" />
+            <img src={mapImage} alt="Vị trí dự án" className="h-auto w-full object-contain" />
             <span className="absolute bottom-4 left-4 inline-flex items-center gap-2 bg-[#251c16]/80 px-3 py-2 text-xs font-medium backdrop-blur-sm sm:bottom-6 sm:left-6">
               <MapPinIcon className="h-4 w-4 text-[#f5921f]" />
               Minh Khai, Hai Bà Trưng, Hà Nội
@@ -189,7 +224,9 @@ export function OverviewContent({ tabs }: OverviewContentProps) {
             <div className="lg:max-w-xl">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#d0bda5]">Kết nối thuận tiện</p>
               <h2 className="mt-5 text-4xl font-semibold leading-tight tracking-[-0.04em] sm:text-5xl">Vị trí dự án</h2>
-              <p className="mt-6 text-sm leading-7 text-white/80 sm:text-base">Tọa lạc tại Minh Khai, Imperia Sky Park đưa bạn đến gần hơn với nhịp sống trung tâm, đồng thời gìn giữ một khoảng riêng yên bình để trở về.</p>
+              {locationHtml ?
+                <div className="prose-cen prose-cen-invert mt-6 text-sm leading-7 text-white/80 sm:text-base" dangerouslySetInnerHTML={{ __html: locationHtml }} /> :
+                <p className="mt-6 text-sm leading-7 text-white/80 sm:text-base">Tọa lạc tại Minh Khai, Imperia Sky Park đưa bạn đến gần hơn với nhịp sống trung tâm, đồng thời gìn giữ một khoảng riêng yên bình để trở về.</p>}
 
               <div className="mt-8 grid grid-cols-2 gap-6 border-t border-white/20 pt-8 text-sm">
                 <div><NavigationIcon className="h-4 w-4 text-[#f5921f]" /><p className="mt-2 text-white/65">Kết nối nhanh</p><p className="mt-1 font-semibold">Tới trung tâm</p></div>

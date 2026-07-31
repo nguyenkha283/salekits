@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { CompassIcon, MaximizeIcon, PauseIcon, PlayIcon, RotateCcwIcon, ZoomInIcon, ZoomOutIcon } from 'lucide-react';
 
-const SCENES = [
+const DEFAULT_SCENES = [
 { key: 'sanh', label: 'Sảnh đón', image: '/bc3b6fbd-aac1-4c49-be3b-976b35aa7a67.jpg' },
 { key: 'canho', label: 'Căn hộ mẫu', image: '/07cbf50c-5744-4f14-b5ff-5cc571eb8411.jpg' },
 { key: 'canh-quan', label: 'Cảnh quan nội khu', image: '/af1ffc9b-36a7-4608-9ff1-165cbcf660be.jpg' },
@@ -12,7 +12,14 @@ const MIN_ZOOM = 100;
 const MAX_ZOOM = 260;
 const AUTO_ROTATE_SPEED = 0.35; // px mỗi frame
 
-export function Panorama360Content() {
+interface Panorama360ContentProps {
+  /** Ảnh 360 đồng bộ từ thư mục "04. Ảnh 360". */
+  scenes?: {key: string;label: string;image: string;}[];
+}
+
+export function Panorama360Content({ scenes }: Panorama360ContentProps = {}) {
+  const SCENES = scenes?.length ? scenes : DEFAULT_SCENES;
+
   const [sceneKey, setSceneKey] = useState(SCENES[0].key);
   const [offset, setOffset] = useState(0);
   const [zoom, setZoom] = useState(140);

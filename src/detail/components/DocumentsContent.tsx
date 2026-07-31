@@ -2,7 +2,7 @@ import React from 'react';
 import { ExternalLinkIcon, InfoIcon } from 'lucide-react';
 
 /** Thứ tự hiển thị theo cột: 1–4 cột trái, 5–8 cột giữa, 9–12 cột phải. */
-const DOCUMENTS = [
+const DEFAULT_DOCUMENTS = [
 { label: 'File đào tạo', href: '#' },
 { label: 'TMB', href: '#' },
 { label: 'Mặt bằng tầng', href: '#' },
@@ -19,7 +19,13 @@ const DOCUMENTS = [
 
 const ROWS_PER_COLUMN = 4;
 
-export function DocumentsContent() {
+interface DocumentsContentProps {
+  /** Tài liệu đồng bộ từ thư mục "07. Tài liệu". */
+  documents?: {label: string;href: string;}[];
+}
+
+export function DocumentsContent({ documents }: DocumentsContentProps = {}) {
+  const DOCUMENTS = documents?.length ? documents : DEFAULT_DOCUMENTS;
   return (
     <section aria-label="Tài liệu dự án">
       <header className="text-center">
