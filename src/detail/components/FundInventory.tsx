@@ -1,91 +1,210 @@
 import React, { useMemo, useState } from 'react';
-import { ChevronDownIcon, CheckIcon, CrownIcon } from 'lucide-react';
-import { getFundInventoryRows } from '../data/inventoryData';
+import { CheckIcon, CrownIcon, InfoIcon } from 'lucide-react';
 import type { UnitStatus } from './UnitDetailModal';
-const STATUS_OPTIONS: Array<'all' | UnitStatus> = ['all', 'Còn hàng', 'Đã bán', 'Đã lock', 'Đã cọc'];
-export function FundInventory() {
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [statusFilter, setStatusFilter] = useState<'all' | UnitStatus>('all');
-  const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
-  const rows = useMemo(() => getFundInventoryRows(), []);
-  const filteredRows = statusFilter === 'all' ? rows : rows.filter((row) => row.detail.status === statusFilter);
-  const allSelected = filteredRows.length > 0 && filteredRows.every((row) => selectedIds.has(row.id));
-  function toggleRow(id: string) {
-    setSelectedIds((current) => {
-      const next = new Set(current);
-      if (next.has(id)) next.delete(id);else next.add(id);
-      return next;
-    });
-  }
-  function toggleAll() {
-    setSelectedIds((current) => {
-      const next = new Set(current);
-      if (allSelected) filteredRows.forEach((row) => next.delete(row.id));else filteredRows.forEach((row) => next.add(row.id));
-      return next;
-    });
-  }
-  return <section className="w-full" aria-label="Danh sách quỹ căn">
-      <div className="overflow-x-auto rounded-lg border border-stone-100 bg-white">
-        <div className="fund-grid grid items-center border-b border-stone-200 bg-[#faf7f1] text-[11px] font-bold uppercase tracking-wide text-stone-400">
-          <div className="px-3 py-3">
-            <label className="flex items-center gap-2">
-              <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Chọn tất cả căn" className="h-4 w-4 rounded border-stone-300 text-[#4a3728] focus:ring-[#4a3728]" />
-              Mã căn
-            </label>
-          </div>
-          <div className="px-3 py-3">Giá niêm yết</div>
-          <div className="px-3 py-3">Loại hình</div>
-          <div className="px-3 py-3">Hướng</div>
-          <div className="px-3 py-3">Diện tích</div>
-          <div className="px-3 py-3">Tầng</div>
-          <div className="px-3 py-3">Trục</div>
-          <div className="px-3 py-3">Phân khu</div>
-          <div className="px-3 py-3">Tòa nhà</div>
-          <div className="relative px-3 py-3">
-            <button onClick={() => setIsStatusMenuOpen((current) => !current)} aria-haspopup="listbox" aria-expanded={isStatusMenuOpen} className="inline-flex items-center gap-1 rounded text-[11px] font-bold uppercase tracking-wide text-stone-400 outline-none hover:text-[#4a3728] focus-visible:ring-2 focus-visible:ring-[#4a3728]">
-              Tình trạng
-              <ChevronDownIcon className={`h-3.5 w-3.5 transition-transform ${isStatusMenuOpen ? 'rotate-180' : ''}`} />
-            </button>
-            {isStatusMenuOpen && <div role="listbox" aria-label="Lọc theo tình trạng" className="absolute right-2 top-full z-20 mt-1 w-40 overflow-hidden rounded-md border border-stone-200 bg-white py-1 text-left normal-case shadow-lg">
-                {STATUS_OPTIONS.map((status) => {
-              const isActive = statusFilter === status;
-              const label = status === 'all' ? 'Tất cả tình trạng' : status;
-              return <button key={status} role="option" aria-selected={isActive} onClick={() => {
-                setStatusFilter(status);
-                setIsStatusMenuOpen(false);
-              }} className={`flex w-full items-center justify-between px-3 py-2 text-xs font-medium transition-colors hover:bg-stone-50 ${isActive ? 'text-[#4a3728]' : 'text-[#9c8672]'}`}>
-                      {label}
-                      {isActive && <CheckIcon className="h-3.5 w-3.5" />}
-                    </button>;
-            })}
-              </div>}
-          </div>
-        </div>
+import {
+  PRICE_COLUMNS,
+  REAL_UNITS,
+  SHEET_EFFECTIVE_DATE,
+  SHEET_NAME,
+  SHEET_NOTICE,
+  shortPrice,
+  unitPrice,
+  type PriceColumnId } from
+'../data/realInventory';
 
-        {filteredRows.length > 0 ? filteredRows.map((row) => {
-        const isSelected = selectedIds.has(row.id);
-        return <div key={row.id} className={`fund-grid grid items-center border-b border-stone-100 text-sm last:border-0 ${isSelected ? 'bg-[#fdf6ec]' : 'bg-white'}`}>
-              <div className="flex items-center gap-2 px-3 py-3">
-                <input type="checkbox" checked={isSelected} onChange={() => toggleRow(row.id)} aria-label={`Chọn căn ${row.id}`} className="h-4 w-4 shrink-0 rounded border-stone-300 text-[#4a3728] focus:ring-[#4a3728]" />
-                {row.detail.fund === 'exclusive' && <CrownIcon className="h-3.5 w-3.5 shrink-0 fill-[#173b7a] text-[#173b7a]" aria-label="Quỹ độc quyền" />}
-                <span className="text-xs font-bold text-[#4a3728]">{row.id}</span>
-              </div>
-              <div className="px-3 py-3 font-bold text-[#4a3728]">{row.detail.price}</div>
-              <div className="px-3 py-3 text-[#9c8672]">{row.apartmentType}</div>
-              <div className="px-3 py-3 text-[#9c8672]">{row.direction}</div>
-              <div className="px-3 py-3 text-[#9c8672]">{row.area} m²</div>
-              <div className="px-3 py-3 text-center text-[#9c8672]">{row.floor}</div>
-              <div className="px-3 py-3 text-center text-[#9c8672]">{row.unit}</div>
-              <div className="px-3 py-3 text-[#9c8672]">Imperia Sky Park</div>
-              <div className="px-3 py-3 text-[#9c8672]">{row.buildingCode}</div>
-              <div className="flex items-center gap-2 px-3 py-3 text-xs font-medium text-[#9c8672]">
-                <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                {row.detail.status}
-              </div>
-            </div>;
-      }) : <div className="px-5 py-16 text-center text-sm font-medium text-stone-500">Không có căn thuộc trạng thái đã chọn.</div>}
+const STATUS_OPTIONS: Array<'all' | UnitStatus> = ['all', 'Còn hàng', 'Đã lock', 'Đã cọc', 'Đã bán'];
+
+const STATUS_STYLES: Record<UnitStatus, string> = {
+  'Còn hàng': 'bg-[#d1fae5] text-[#047857]',
+  'Đã lock': 'bg-amber-100 text-amber-700',
+  'Đã cọc': 'bg-orange-100 text-orange-800',
+  'Đã bán': 'bg-red-100 text-red-700'
+};
+
+export function FundInventory() {
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [statusFilter, setStatusFilter] = useState<'all' | UnitStatus>('all');
+  const [towerFilter, setTowerFilter] = useState<string>('all');
+  const [priceColumn, setPriceColumn] = useState<PriceColumnId>('base-total');
+
+  const priceIndex = PRICE_COLUMNS.findIndex((column) => column.id === priceColumn);
+  const activePriceColumn = PRICE_COLUMNS[priceIndex];
+  const towers = useMemo(() => [...new Set(REAL_UNITS.map((unit) => unit.tower))], []);
+
+  const rows = useMemo(
+    () =>
+    REAL_UNITS.filter(
+      (unit) =>
+      (statusFilter === 'all' || unit.status === statusFilter) && (
+      towerFilter === 'all' || unit.tower === towerFilter)
+    ),
+    [statusFilter, towerFilter]
+  );
+
+  const allSelected = rows.length > 0 && rows.every((row) => selectedIds.includes(row.code));
+
+  function toggleAll() {
+    setSelectedIds(allSelected ? [] : rows.map((row) => row.code));
+  }
+
+  function toggleOne(code: string) {
+    setSelectedIds((current) =>
+    current.includes(code) ? current.filter((item) => item !== code) : [...current, code]
+    );
+  }
+
+  return (
+    <section className="w-full" aria-labelledby="fund-heading">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h2 id="fund-heading" className="text-2xl font-bold text-black">Quỹ căn</h2>
+        <span className="text-[13px] text-stone-500">
+          {SHEET_NAME} · hiệu lực từ {SHEET_EFFECTIVE_DATE}
+        </span>
       </div>
 
-      {selectedIds.size > 0 && <p className="mt-3 text-xs font-semibold text-[#4a3728]">Đã chọn {selectedIds.size} căn</p>}
-    </section>;
+      <p className="mt-2 flex gap-2 rounded border border-[#f0dcb6] bg-[#fdf3e2] px-3 py-2 text-[12px] leading-relaxed text-[#92600a]">
+        <InfoIcon className="mt-px h-3.5 w-3.5 shrink-0" />
+        {SHEET_NOTICE}
+      </p>
+
+      <div className="mt-5 flex flex-wrap items-end gap-3 border border-[#e9e1d5] bg-[#faf7f1] p-4">
+        <label className="block">
+          <span className="mb-1.5 block text-[12px] font-medium text-[#4a3728]">Tòa</span>
+          <select
+            value={towerFilter}
+            onChange={(event) => setTowerFilter(event.target.value)}
+            className="h-9 rounded border border-[#d9cdb8] bg-white px-2.5 text-[13px] text-[#4a3728] outline-none focus:border-[#f5921f]">
+
+            <option value="all">Tất cả ({REAL_UNITS.length})</option>
+            {towers.map((tower) =>
+            <option key={tower} value={tower}>
+                Tòa {tower} ({REAL_UNITS.filter((unit) => unit.tower === tower).length})
+              </option>
+            )}
+          </select>
+        </label>
+
+        <label className="block">
+          <span className="mb-1.5 block text-[12px] font-medium text-[#4a3728]">Tình trạng</span>
+          <select
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value as 'all' | UnitStatus)}
+            className="h-9 rounded border border-[#d9cdb8] bg-white px-2.5 text-[13px] text-[#4a3728] outline-none focus:border-[#f5921f]">
+
+            {STATUS_OPTIONS.map((option) =>
+            <option key={option} value={option}>
+                {option === 'all' ?
+              'Tất cả' :
+              `${option} (${REAL_UNITS.filter((unit) => unit.status === option).length})`}
+              </option>
+            )}
+          </select>
+        </label>
+
+        <label className="block min-w-[260px] flex-1">
+          <span className="mb-1.5 block text-[12px] font-medium text-[#4a3728]">Giá hiển thị</span>
+          <select
+            value={priceColumn}
+            onChange={(event) => setPriceColumn(event.target.value as PriceColumnId)}
+            className="h-9 w-full rounded border border-[#d9cdb8] bg-white px-2.5 text-[13px] text-[#4a3728] outline-none focus:border-[#f5921f]">
+
+            <optgroup label="Giá tiêu chuẩn">
+              {PRICE_COLUMNS.filter((column) => column.group === 'Giá tiêu chuẩn').map((column) =>
+              <option key={column.id} value={column.id}>{column.label}</option>
+              )}
+            </optgroup>
+            <optgroup label="Chính sách ổn định lãi suất">
+              {PRICE_COLUMNS.filter((column) => column.group !== 'Giá tiêu chuẩn').map((column) =>
+              <option key={column.id} value={column.id}>{column.label}</option>
+              )}
+            </optgroup>
+          </select>
+        </label>
+
+        <p className="ml-auto text-[12px] text-[#9c8672]">
+          {rows.length} căn · đã chọn {selectedIds.length}
+        </p>
+      </div>
+
+      <div className="mt-4 overflow-x-auto border border-[#e9e1d5] bg-white">
+        <table className="w-full min-w-[880px] border-collapse text-left text-[13px]">
+          <thead>
+            <tr className="bg-[#827464] text-white">
+              <th className="w-10 px-3 py-2.5">
+                <button
+                  onClick={toggleAll}
+                  aria-label={allSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+                  className={`grid h-4 w-4 place-items-center rounded border border-white/60 ${
+                  allSelected ? 'bg-white' : ''}`
+                  }>
+
+                  {allSelected && <CheckIcon className="h-3 w-3 text-[#4a3728]" />}
+                </button>
+              </th>
+              <th className="px-3 py-2.5 font-semibold">Mã căn hộ</th>
+              <th className="px-3 py-2.5 font-semibold">Tòa</th>
+              <th className="px-3 py-2.5 font-semibold">Tầng</th>
+              <th className="px-3 py-2.5 font-semibold">Căn</th>
+              <th className="px-3 py-2.5 text-right font-semibold">DT thông thủy</th>
+              <th className="px-3 py-2.5 font-semibold">Số PN</th>
+              <th className="px-3 py-2.5 font-semibold">Bàn giao</th>
+              <th className="px-3 py-2.5 text-right font-semibold">{activePriceColumn.short}</th>
+              <th className="px-3 py-2.5 text-right font-semibold">Đơn giá</th>
+              <th className="px-3 py-2.5 font-semibold">Tình trạng</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => {
+              const isSelected = selectedIds.includes(row.code);
+              return (
+                <tr
+                  key={row.code}
+                  className={`border-b border-[#f0eae0] transition-colors ${
+                  isSelected ? 'bg-[#fdf3e2]' : 'hover:bg-[#faf7f1]'}`
+                  }>
+
+                  <td className="px-3 py-2">
+                    <button
+                      onClick={() => toggleOne(row.code)}
+                      aria-label={`Chọn căn ${row.code}`}
+                      className={`grid h-4 w-4 place-items-center rounded border ${
+                      isSelected ? 'border-[#4a3728] bg-[#4a3728]' : 'border-stone-300'}`
+                      }>
+
+                      {isSelected && <CheckIcon className="h-3 w-3 text-white" />}
+                    </button>
+                  </td>
+                  <td className="px-3 py-2 font-mono font-semibold text-[#4a3728]">
+                    <span className="inline-flex items-center gap-1.5">
+                      {row.status === 'Còn hàng' &&
+                      <CrownIcon className="h-3.5 w-3.5 fill-[#173b7a] text-[#173b7a]" aria-label="Quỹ độc quyền" />
+                      }
+                      {row.code}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2">{row.tower}</td>
+                  <td className="px-3 py-2 font-mono">{row.floor}</td>
+                  <td className="px-3 py-2 font-mono">{row.unit}</td>
+                  <td className="px-3 py-2 text-right font-mono">{row.area.toFixed(2)}</td>
+                  <td className="px-3 py-2">{row.bedrooms}</td>
+                  <td className="px-3 py-2">{row.handover}</td>
+                  <td className="px-3 py-2 text-right font-mono font-semibold">
+                    {shortPrice(row.prices[priceIndex])}
+                  </td>
+                  <td className="px-3 py-2 text-right font-mono text-stone-500">
+                    {unitPrice(row.prices[priceIndex], row.area)}
+                  </td>
+                  <td className="px-3 py-2">
+                    <span className={`rounded px-2 py-0.5 text-[11.5px] font-semibold ${STATUS_STYLES[row.status]}`}>
+                      {row.status}
+                    </span>
+                  </td>
+                </tr>);
+
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>);
+
 }

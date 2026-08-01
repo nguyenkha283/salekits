@@ -23,17 +23,14 @@ export interface ParsedSheet {
  * sau khi đọc Google Sheet hoặc file Excel đã tải lên.
  */
 const DETECTED_SHEETS: ParsedSheet[] = [
-{ name: 'Toa 1', rows: 240, kind: 'building' },
-{ name: 'Toa 2', rows: 208, kind: 'building' },
-{ name: 'Toa 3', rows: 192, kind: 'building' },
-{ name: 'Toa 4', rows: 176, kind: 'building' },
+{ name: 'Quy chung', rows: 55, kind: 'building' },
 { name: 'Quy doc quyen', rows: 48, kind: 'fund' },
 { name: 'Quy cheo', rows: 22, kind: 'fund' },
 { name: 'Ghi chu noi bo', rows: 12, kind: 'skip' }];
 
 
 const KIND_LABEL: Record<SheetKind, string> = {
-  building: 'Tòa nhà',
+  building: 'Bảng hàng',
   fund: 'Quỹ căn',
   skip: 'Bỏ qua'
 };
@@ -187,7 +184,8 @@ export function InventorySetup({ onImported, context = 'bảng hàng' }: Invento
                 </h3>
                 <p className="mt-0.5 text-[12px] text-stone-500">
                   Tìm thấy {sheets.length} sheet. Phân loại từng sheet — hệ thống
-                  không tự đoán theo tên.
+                  không tự đoán theo tên. Tòa nhà lấy từ cột trong dữ liệu, không
+                  lấy từ tên sheet.
                 </p>
               </div>
               <button
@@ -235,14 +233,14 @@ export function InventorySetup({ onImported, context = 'bảng hàng' }: Invento
               {buildingCount === 0 &&
             <p className="flex gap-2 rounded-lg border border-[#f0dcb6] bg-[#fdf3e2] p-3 text-[12px] leading-relaxed text-[#92600a]">
                   <AlertTriangleIcon className="mt-px h-4 w-4 shrink-0" />
-                  Cần ít nhất một sheet Tòa nhà để nhập bảng hàng.
+                  Cần ít nhất một sheet Bảng hàng để nhập dữ liệu.
                 </p>
             }
             </div>
 
             <div className="flex items-center gap-3 border-t border-[#eee4d5] px-5 py-3.5">
               <span className="text-[12px] text-stone-500">
-                {buildingCount} sheet Tòa nhà · {fundCount} sheet Quỹ căn
+                {buildingCount} sheet bảng hàng · {fundCount} sheet quỹ
               </span>
               <button
               type="button"

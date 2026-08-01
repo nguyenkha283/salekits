@@ -16,6 +16,13 @@ interface UnitDetailModalProps {
   detail: UnitDetail;
   fundColor: string;
   onClose: () => void;
+  /** Mã căn đọc từ file bảng hàng, không ghép lại từ tầng và trục. */
+  apartmentCode?: string;
+  /** Gói bàn giao trong file: HTCB hoặc Thô. */
+  handover?: string;
+  /** Nhãn cột giá đang hiển thị. */
+  priceLabel?: string;
+  unitPriceText?: string;
 }
 const STATUS_STYLES: Record<UnitStatus, string> = {
   'Còn hàng': 'bg-emerald-100 text-emerald-700',
@@ -25,6 +32,10 @@ const STATUS_STYLES: Record<UnitStatus, string> = {
 };
 export function UnitDetailModal({
   buildingCode,
+  apartmentCode,
+  handover,
+  priceLabel,
+  unitPriceText,
   floor,
   unit,
   apartmentType,
@@ -34,7 +45,7 @@ export function UnitDetailModal({
   fundColor,
   onClose
 }: UnitDetailModalProps) {
-  const apartmentCode = `${buildingCode}-${floor}-${unit}`;
+  const displayCode = apartmentCode ?? `${buildingCode}-${floor}-${unit}`;
   const isAvailable = detail.status === 'Còn hàng';
   return <div role="presentation" className="fixed inset-0 z-[80] flex items-center justify-center bg-[#4a3728]/45 p-3 sm:p-6" onMouseDown={onClose}>
       <section role="dialog" aria-modal="true" aria-labelledby="unit-detail-title" className="max-h-[94vh] w-full max-w-6xl overflow-y-auto rounded-xl bg-white shadow-2xl" onMouseDown={(event) => event.stopPropagation()}>
@@ -43,12 +54,13 @@ export function UnitDetailModal({
             <span className="h-3 w-3 rounded-full" style={{
             backgroundColor: fundColor
           }} aria-hidden="true" />
-            <h2 id="unit-detail-title" className="text-xl font-semibold text-[#4a3728]">{apartmentCode}</h2>
+            <h2 id="unit-detail-title" className="text-xl font-semibold text-[#4a3728]">{displayCode}</h2>
           </div>
           <div className="flex items-center gap-5">
             <div className="hidden text-right sm:block">
               <p className="text-[10px] font-medium uppercase tracking-wide text-stone-400">Giá NY</p>
               <p className="text-xl font-bold text-[#e83d4d]">{detail.price}</p>
+              {priceLabel && <p className="mt-0.5 text-[11px] text-stone-500">{priceLabel}</p>}
               <p className="text-[10px] text-stone-400">Giá trước VAT + KPBT</p>
             </div>
             <button onClick={onClose} aria-label="Đóng chi tiết căn" className="rounded p-1 text-stone-300 transition-colors hover:bg-stone-100 hover:text-[#4a3728]">
@@ -64,7 +76,7 @@ export function UnitDetailModal({
               <div className="absolute inset-x-0 top-0 bg-[#3a2b1e]/80 p-5 text-white">
                 <p className="text-[10px] font-medium tracking-[0.2em]">IMPERIA SKY PARK</p>
                 <p className="mt-3 text-xs font-semibold">TRỤC CĂN</p>
-                <p className="text-3xl font-bold tracking-wide">{apartmentCode}</p>
+                <p className="text-3xl font-bold tracking-wide">{displayCode}</p>
               </div>
               <button className="absolute right-3 top-3 rounded-full bg-white/90 p-2 text-[#4a3728] shadow-sm" aria-label="Phóng to ảnh">
                 <ExpandIcon className="h-4 w-4" />
@@ -98,16 +110,16 @@ export function UnitDetailModal({
 
           <div className="p-5 sm:p-7">
             <DetailSection title="Giá" action="Phiếu tính giá">
-              <DetailGrid items={[['Giá vay', detail.price], ['Giá TTTĐ', '4.77 tỷ'], ['Giá TTS', 'Đang cập nhật'], ['Đơn giá', '89.11 triệu/m²'], ['Ngân hàng', 'MBV']]} />
+              <DetailGrid items={[[priceLabel ?? 'Giá bán', detail.price], ['Đơn giá', unitPriceText ?? 'Đang cập nhật']]} />
             </DetailSection>
             <DetailSection title="Diện tích" action="Layout">
-              <DetailGrid items={[['DT thông thủy', `${area} m²`], ['DT tim tường', `${area} m²`]]} />
+              <DetailGrid items={[['DT thông thủy', `${area} m²`], ['DT tim tường', 'File chưa có']]} />
             </DetailSection>
             <DetailSection title="CSBH & Quà tặng" action="Chi tiết">
               <DetailGrid items={[['CSBH áp dụng', '04/07/2026']]} />
             </DetailSection>
             <DetailSection title="Thông tin bàn giao">
-              <DetailGrid items={[['Tòa nhà', buildingCode], ['Tầng', floor], ['Trục căn', unit], ['Hướng ban công', direction], ['Tiêu chuẩn bàn giao', 'Cơ Bản'], ['Quỹ căn', detail.fund === 'exclusive' ? 'Độc quyền' : 'Quỹ chéo']]} />
+              <DetailGrid items={[['Tòa nhà', `Tòa ${buildingCode}`], ['Tầng', floor], ['Trục căn', unit], ['Hướng ban công', direction], ['Tiêu chuẩn bàn giao', handover === 'HTCB' ? 'Hoàn thiện cơ bản' : handover === 'Thô' ? 'Bàn giao thô' : 'Chưa có dữ liệu'], ['Quỹ căn', detail.fund === 'exclusive' ? 'Độc quyền' : 'Quỹ chéo']]} />
             </DetailSection>
             <DetailSection title="Trạng thái">
               <div className="flex flex-wrap items-center justify-between gap-3">

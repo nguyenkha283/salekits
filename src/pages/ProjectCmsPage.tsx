@@ -457,7 +457,7 @@ export function ProjectCmsPage() {
             inventoryReady={inventoryReady}
             onImportInventory={() => {
               setInventoryReady(true);
-              showNotice('Đã nhập bảng hàng — 4 sheet tòa nhà, 2 sheet quỹ căn');
+              showNotice('Đã nhập bảng hàng — 55 căn, 4 tòa, 6 cột giá');
             }}
             editing={{
               enabled: editable,
