@@ -126,13 +126,6 @@ export function buildSyncedMedia(content?: SyncedContent | null): SyncedMedia {
     group('p360', 'Ảnh 360', '04. Ảnh 360', toItems(content.image360))]
     ),
 
-    'dao-tao': compact([
-    group('training', 'Tài liệu đào tạo', '02. Đào tạo',
-    (documents.training ?? []).map((file) => ({
-      id: file.id, name: file.name, url: file.url, mimeType: file.mimeType
-    })))]
-    ),
-
     'chinh-sach': compact([
     group('policy-cover', 'Ảnh bìa chính sách', '05. Chính sách bán hàng',
     toItems(documents.salesPolicyCoverImage ? [documents.salesPolicyCoverImage] : [])),

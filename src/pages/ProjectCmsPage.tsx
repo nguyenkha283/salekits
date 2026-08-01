@@ -11,6 +11,7 @@ import {
   FolderIcon,
   ImagesIcon,
   ItalicIcon,
+  BellIcon,
   ListIcon,
   LockIcon,
   PencilIcon,
@@ -45,7 +46,36 @@ const ROLES: Role[] = [
 'Hành chính dự án',
 'Quản lý giao dịch',
 'Marketing',
-'Trưởng line'];
+'Trưởng line',
+'User khác'];
+
+
+/** Thông báo mẫu theo UC-21 của SRS. */
+const NOTIFICATIONS = [
+{
+  id: 'n1', unread: true,
+  title: 'Trưởng line yêu cầu chỉnh sửa',
+  body: 'Ảnh tiến độ đợt 2 bị mờ, đề nghị thay ảnh gốc và bổ sung chính sách quý 3.',
+  time: 'Hôm nay · 10:22'
+},
+{
+  id: 'n2', unread: true,
+  title: 'Đồng bộ Drive hoàn tất',
+  body: '63 ảnh và tài liệu đã nạp vào 7 tab. 2 file chưa chia sẻ công khai.',
+  time: 'Hôm nay · 09:47'
+},
+{
+  id: 'n3', unread: true,
+  title: 'Bảng hàng được cập nhật',
+  body: 'Lê Minh Hoàng vừa nhập lại bảng hàng — 37 căn đổi tình trạng.',
+  time: 'Hôm qua · 16:05'
+},
+{
+  id: 'n4', unread: false,
+  title: 'Dự án được thêm vào line 2',
+  body: 'Trần Đức Thắng được gán làm người duyệt của dự án này.',
+  time: '28/07 · 14:30'
+}];
 
 
 const DEFAULT_STATS = [
@@ -86,6 +116,9 @@ export function ProjectCmsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [configOpen, setConfigOpen] = useState(false);
+  const [bellOpen, setBellOpen] = useState(false);
+  /** Prototype: dự án mới chưa có bảng hàng cho tới khi người dùng nhập. */
+  const [inventoryReady, setInventoryReady] = useState(false);
   const [synced, setSynced] = useState<SyncedProject | null>(null);
   const [edits, setEdits] = useState<SectionEdits>({});
   const [isResyncing, setIsResyncing] = useState(false);
@@ -300,6 +333,81 @@ export function ProjectCmsPage() {
             {isResyncing ? 'Đang đồng bộ…' : 'Đồng bộ lại'}
           </button>
 
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setBellOpen((value) => !value)}
+              className={`relative grid h-8 w-8 place-items-center rounded-md border transition-colors ${
+              bellOpen ?
+              'border-[#f5921f] bg-[#fdf3e2] text-[#b96f12]' :
+              'border-[#e0d2bd] text-stone-600 hover:bg-[#faf6ef]'}`
+              }
+              title="Thông báo"
+              aria-label="Thông báo"
+              aria-expanded={bellOpen}>
+
+              <BellIcon className="h-4 w-4" />
+              {NOTIFICATIONS.some((item) => item.unread) &&
+              <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[#f5921f] px-1 font-mono text-[9px] font-bold text-white ring-2 ring-white">
+                  {NOTIFICATIONS.filter((item) => item.unread).length}
+                </span>
+              }
+            </button>
+
+            {bellOpen &&
+            <>
+                <div
+                className="fixed inset-0 z-30"
+                onClick={() => setBellOpen(false)}
+                aria-hidden="true" />
+
+                <div className="absolute right-0 top-10 z-40 w-[340px] overflow-hidden rounded-xl bg-white shadow-2xl ring-1 ring-black/10">
+                  <div className="flex items-center gap-2 border-b border-[#eee4d5] px-4 py-3">
+                    <h3 className="text-sm font-bold text-[#3b2c1d]">Thông báo</h3>
+                    <span className="rounded bg-[#fdf3e2] px-1.5 py-0.5 font-mono text-[10px] font-bold text-[#8a6a3f]">
+                      {NOTIFICATIONS.filter((item) => item.unread).length} mới
+                    </span>
+                    <button
+                    type="button"
+                    onClick={() => setBellOpen(false)}
+                    className="ml-auto grid h-6 w-6 place-items-center rounded text-stone-400 transition-colors hover:bg-[#faf6ef] hover:text-stone-700"
+                    aria-label="Đóng">
+
+                      <XIcon className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <ul className="max-h-[340px] overflow-y-auto">
+                    {NOTIFICATIONS.map((item) =>
+                  <li
+                    key={item.id}
+                    className={`flex gap-2.5 border-b border-[#f5efe5] px-4 py-3 last:border-b-0 ${
+                    item.unread ? 'bg-[#fffdf9]' : ''}`
+                    }>
+
+                        <span
+                      className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${
+                      item.unread ? 'bg-[#f5921f]' : 'bg-stone-300'}`
+                      } />
+
+                        <div className="min-w-0">
+                          <p className="text-[12.5px] font-semibold text-stone-800">
+                            {item.title}
+                          </p>
+                          <p className="mt-0.5 text-[11.5px] leading-relaxed text-stone-500">
+                            {item.body}
+                          </p>
+                          <p className="mt-1 font-mono text-[10.5px] text-stone-400">
+                            {item.time}
+                          </p>
+                        </div>
+                      </li>
+                  )}
+                  </ul>
+                </div>
+              </>
+            }
+          </div>
+
           <a
             href={publicHref}
             target="_blank"
@@ -328,12 +436,12 @@ export function ProjectCmsPage() {
       </header>
 
       {/* ── Canvas ─────────────────────────────────────────────── */}
-      <main className="min-w-0 flex-1 overflow-y-auto bg-[#f3ece1] p-3 sm:p-5">
+      <main className="min-w-0 flex-1 overflow-y-auto bg-[#f3ece1]">
         <div
           ref={canvasRef}
           onClick={handleCanvasClick}
-          className={`overflow-hidden rounded-xl bg-[#faf6ef] shadow-sm ring-1 ${
-          editable ? 'cms-editing ring-[#f0d9b8]' : 'cms-editing cms-locked ring-[#e5d8c4]'}`
+          className={`min-h-full bg-[#faf6ef] ${
+          editable ? 'cms-editing' : 'cms-editing cms-locked'}`
           }>
 
           <ProjectCanvas
@@ -346,6 +454,11 @@ export function ProjectCmsPage() {
             stats={stats}
             hierarchy={hierarchy}
             tagline={tagline}
+            inventoryReady={inventoryReady}
+            onImportInventory={() => {
+              setInventoryReady(true);
+              showNotice('Đã nhập bảng hàng — 4 sheet tòa nhà, 2 sheet quỹ căn');
+            }}
             editing={{
               enabled: editable,
               onChange: handleInlineChange,

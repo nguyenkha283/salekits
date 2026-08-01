@@ -34,6 +34,8 @@ Nhập tên dự án, dán link thư mục Drive. Nhấn Tạo dự án.
 
 Canvas chiếm trọn chiều rộng, không có cột phụ. Điều hướng giữa 11 tab dùng luôn thanh tab của trang công khai.
 
+Thanh trên có **icon chuông** hiển thị thông báo theo UC-21: yêu cầu chỉnh sửa từ Trưởng line, kết quả đồng bộ Drive, cập nhật bảng hàng.
+
 **Nút nổi góc dưới bên phải** mở ngăn kéo *Nội dung đồng bộ từ Google Drive*:
 
 - Liệt kê 11 tab kèm **số ảnh và tài liệu đã đồng bộ** vào từng tab; chấm xanh là tab đã có nội dung.
@@ -134,11 +136,24 @@ Bấm **Đồng bộ lại** (thanh trên hoặc trong ngăn kéo). Hệ thống
 | Ảnh bìa + nhóm file, tab Chính sách | `05. Chính sách bán hàng` |
 | Thư viện ảnh có phân trang, tab Tiến độ | `06. Tiến độ` |
 | Lưới 12 ô, tab Tài liệu | `07. Tài liệu` |
-| Danh sách file, tab Đào tạo | `02. Đào tạo` |
 
 Mục nào Drive chưa có thì section đó tự động giữ dữ liệu mẫu, nên trang không bao giờ trống.
 
 Trang công khai `/du-an?projectId=...` dùng chung dữ liệu này, nên biên tập xong xem trước là thấy đúng ảnh vừa đồng bộ.
+
+### Nhập bảng hàng
+
+Dự án mới chưa có bảng hàng, nên ba tab **Sản phẩm**, **Bảng hàng** và **Quỹ căn** hiện màn nhập nguồn dữ liệu thay vì bảng: một ô dán liên kết Google Sheet, hoặc vùng tải file Excel.
+
+Bấm **Đọc file** → hệ thống bóc tách sheet → **popup chọn sheet** hiện ra để phân loại từng sheet thành *Tòa nhà*, *Quỹ căn* hoặc *Bỏ qua*. Hệ thống không tự đoán theo tên sheet. Xác nhận xong ba tab mới hiển thị dữ liệu đầy đủ.
+
+Đây là luồng theo mục 3.5 của SRS. Chặn xác nhận nếu chưa chọn sheet Tòa nhà nào.
+
+### Menu và vai trò
+
+Menu 11 mục: Tổng quan · **Sản phẩm** · **Mặt bằng quỹ căn** · Bảng hàng · Quỹ căn · Ảnh 360 · CSBH · Tiến độ · Tài liệu · Tin tức · **Đội ngũ**.
+
+Vai trò **User khác** không thấy mục Đội ngũ và không sửa được nội dung nào — dùng để minh hoạ người dùng nội bộ ngoài đội dự án.
 
 ---
 

@@ -9,14 +9,14 @@ import { FundInventory } from './components/FundInventory';
 import { ProgressContent } from './components/ProgressContent';
 import { PolicyContent } from './components/PolicyContent';
 import { DocumentsContent } from './components/DocumentsContent';
-import { TrainingContent } from './components/TrainingContent';
 import { Panorama360Content } from './components/Panorama360Content';
 import { NewsContent } from './components/NewsContent';
 import { BuildingsContent } from './components/BuildingsContent';
 import { FloorPlanContent } from './components/FloorPlanContent';
+import { TeamContent } from './components/TeamContent';
+import { InventorySetup } from './components/InventorySetup';
 import {
   IMG,
-  fileExt,
   isImageItem,
   pickItems,
   sized,
@@ -37,29 +37,36 @@ export interface CanvasTab {
   label: string;
   source: TabSource;
   folder?: string;
+  /** Ẩn với vai trò "User khác". */
+  restricted?: boolean;
 }
 
 export const CANVAS_TABS: CanvasTab[] = [
 { id: 'tong-quan', label: 'Tổng quan', source: 'manual', folder: '01. Tổng quan' },
-{ id: 'dao-tao', label: 'Đào tạo', source: 'drive', folder: '02. Đào tạo' },
-{ id: 'mat-bang', label: 'Mặt bằng', source: 'manual', folder: '03. Mặt bằng' },
-{ id: 'toa-nha', label: 'Sản phẩm', source: 'manual' },
+{ id: 'toa-nha', label: 'Sản phẩm', source: 'import' },
+{ id: 'mat-bang', label: 'Mặt bằng quỹ căn', source: 'manual', folder: '03. Mặt bằng' },
 { id: 'bang-hang', label: 'Bảng hàng', source: 'import' },
 { id: 'quy-can', label: 'Quỹ căn', source: 'import' },
 { id: 'anh-360', label: 'Ảnh 360', source: 'drive', folder: '04. Ảnh 360' },
 { id: 'chinh-sach', label: 'Chính sách bán hàng', source: 'drive', folder: '05. Chính sách bán hàng' },
 { id: 'tien-do', label: 'Tiến độ', source: 'drive', folder: '06. Tiến độ' },
 { id: 'tai-lieu', label: 'Tài liệu', source: 'drive', folder: '07. Tài liệu' },
-{ id: 'tin-tuc', label: 'Tin tức', source: 'manual' }];
+{ id: 'tin-tuc', label: 'Tin tức', source: 'manual' },
+{ id: 'doi-ngu', label: 'Đội ngũ', source: 'manual', restricted: true }];
 
 
 function sizedOrUndefined(url: string | undefined, width: number) {
   return url ? sized(url, width) : undefined;
 }
 
+/** Vai trò không được xem các tab hạn chế. */
+export function canViewRestricted(role: Role): boolean {
+  return role !== 'User khác';
+}
+
 /** Quyền biên tập theo ma trận phân quyền mục 2.5 của SRS. */
 export function canEditTab(role: Role, tabId: string): boolean {
-  if (role === 'Trưởng line') return false;
+  if (role === 'Trưởng line' || role === 'User khác') return false;
   if (role === 'Quản lý giao dịch')
   return ['bang-hang', 'quy-can', 'mat-bang'].includes(tabId);
   if (role === 'Marketing') return tabId === 'tin-tuc';
@@ -80,6 +87,9 @@ interface ProjectCanvasProps {
   hierarchy?: string;
   /** Slogan dưới tên dự án trên hero. */
   tagline?: string;
+  /** Đã nhập bảng hàng chưa — quyết định hiện màn nhập hay bảng dữ liệu. */
+  inventoryReady?: boolean;
+  onImportInventory?: () => void;
   /** Bật sửa chữ trực tiếp trên trang khi hiển thị trong CMS. */
   editing?: {
     enabled: boolean;
@@ -106,6 +116,8 @@ export function ProjectCanvas({
   stats,
   hierarchy,
   tagline,
+  inventoryReady = true,
+  onImportInventory,
   editing,
   syncedMedia = {},
   chrome = true
@@ -135,11 +147,6 @@ export function ProjectCanvas({
     key: item.id,
     label: stripExt(item.name),
     image: sized(item.url, IMG.hero)
-  }));
-  const trainingFiles = pickItems(syncedMedia['dao-tao']).map((item) => ({
-    name: item.name,
-    type: fileExt(item.name),
-    href: item.url
   }));
   const policyCover = sizedOrUndefined(pickItems(policyGroups, 'policy-cover')[0]?.url, IMG.wide);
   const policyFileGroups = policyGroups.
@@ -188,7 +195,7 @@ export function ProjectCanvas({
           </div>
 
           <div className="mt-6">
-            <ProjectTabs active={activeTab} onChange={onChangeTab} />
+            <ProjectTabs active={activeTab} onChange={onChangeTab} hideRestricted={!canViewRestricted(role)} />
           </div>
         </>
       }
@@ -204,7 +211,7 @@ export function ProjectCanvas({
 
         {isOverview &&
         <OverviewContent
-          tabs={<ProjectTabs active={activeTab} onChange={onChangeTab} />}
+          tabs={<ProjectTabs active={activeTab} onChange={onChangeTab} hideRestricted={!canViewRestricted(role)} />}
           heroSlides={heroSlides}
           overviewImage={overviewImage}
           overviewHtml={overviewHtml}
@@ -222,17 +229,24 @@ export function ProjectCanvas({
 
         {activeTab === 'mat-bang' && <FloorPlanContent planImage={planImage} />}
         {activeTab === 'anh-360' && <Panorama360Content scenes={scenes360} />}
-        {activeTab === 'dao-tao' && <TrainingContent files={trainingFiles} />}
         {activeTab === 'chinh-sach' &&
         <PolicyContent coverImage={policyCover} groups={policyFileGroups} />
         }
         {activeTab === 'tien-do' && <ProgressContent photos={progressPhotos} />}
         {activeTab === 'tai-lieu' && <DocumentsContent documents={documentFiles} />}
 
-        {activeTab === 'toa-nha' && <BuildingsContent />}
-        {activeTab === 'bang-hang' && <InventoryTable role={role} />}
-        {activeTab === 'quy-can' && <FundInventory />}
+        {/* Ba tab phụ thuộc bảng hàng: chưa nhập thì hiện màn nhập nguồn dữ liệu. */}
+        {['toa-nha', 'bang-hang', 'quy-can'].includes(activeTab) && !inventoryReady &&
+        <InventorySetup
+          context={activeTab === 'quy-can' ? 'quỹ căn' : activeTab === 'toa-nha' ? 'sản phẩm' : 'bảng hàng'}
+          onImported={() => onImportInventory?.()} />
+
+        }
+        {activeTab === 'toa-nha' && inventoryReady && <BuildingsContent />}
+        {activeTab === 'bang-hang' && inventoryReady && <InventoryTable role={role} />}
+        {activeTab === 'quy-can' && inventoryReady && <FundInventory />}
         {activeTab === 'tin-tuc' && <NewsContent />}
+        {activeTab === 'doi-ngu' && canViewRestricted(role) && <TeamContent />}
         {!CANVAS_TABS.some((entry) => entry.id === activeTab) && <ProjectContent />}
       </div>
     </>);

@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { LayoutDashboardIcon, GraduationCapIcon, Grid2x2Icon, Building2Icon, TableIcon, KeyRoundIcon, ScanEyeIcon, FileBadgeIcon, TrendingUpIcon, FileTextIcon, NewspaperIcon } from 'lucide-react';
+import { LayoutDashboardIcon, UsersIcon, Grid2x2Icon, Building2Icon, TableIcon, KeyRoundIcon, ScanEyeIcon, FileBadgeIcon, TrendingUpIcon, FileTextIcon, NewspaperIcon } from 'lucide-react';
 interface Tab {
   key: string;
   label: string;
@@ -7,24 +7,20 @@ interface Tab {
     className?: string;
   }>;
   locked?: boolean;
+  restricted?: boolean;
 }
 const TABS: Tab[] = [{
   key: 'tong-quan',
   label: 'Tổng quan',
   icon: LayoutDashboardIcon
 }, {
-  key: 'dao-tao',
-  label: 'Đào tạo',
-  icon: GraduationCapIcon,
-  locked: true
+  key: 'toa-nha',
+  label: 'Sản phẩm',
+  icon: Building2Icon
 }, {
   key: 'mat-bang',
-  label: 'Mặt bằng',
+  label: 'Mặt bằng quỹ căn',
   icon: Grid2x2Icon
-}, {
-  key: 'toa-nha',
-  label: 'Tòa nhà',
-  icon: Building2Icon
 }, {
   key: 'bang-hang',
   label: 'Bảng hàng',
@@ -59,20 +55,30 @@ const TABS: Tab[] = [{
   key: 'tin-tuc',
   label: 'Tin tức',
   icon: NewspaperIcon
+}, {
+  key: 'doi-ngu',
+  label: 'Đội ngũ',
+  icon: UsersIcon,
+  /** Ẩn với vai trò User khác — xem HIDDEN_TABS_BY_ROLE. */
+  restricted: true
 }];
 interface ProjectTabsProps {
   active: string;
   onChange: (key: string) => void;
+  /** Ẩn các tab hạn chế với vai trò không có quyền xem. */
+  hideRestricted?: boolean;
 }
 export function ProjectTabs({
   active,
-  onChange
+  onChange,
+  hideRestricted = false
 }: ProjectTabsProps) {
+  const TABS_VISIBLE = hideRestricted ? TABS.filter((tab) => !tab.restricted) : TABS;
   const scrollRef = useRef<HTMLDivElement>(null);
   return <div className="project-tabs-sticky border-b border-stone-200 bg-white shadow-sm">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div ref={scrollRef} className="no-scrollbar flex items-stretch gap-0 overflow-x-auto" role="tablist" aria-label="Nội dung dự án">
-          {TABS.map((tab, i) => {
+          {TABS_VISIBLE.map((tab, i) => {
           const isActive = tab.key === active;
           const Icon = tab.icon;
           return <React.Fragment key={tab.key}>

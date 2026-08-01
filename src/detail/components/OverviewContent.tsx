@@ -192,10 +192,10 @@ export function OverviewContent({
 
   return (
     <div className="w-full overflow-x-clip bg-[#f5f1e8] font-['Be_Vietnam_Pro'] text-[#302922]">
-      <section data-cms-section="hero" data-cms-label="Băng ảnh đầu trang" className="relative min-h-[560px] overflow-hidden bg-[#4b4035] sm:min-h-[680px]" aria-label="Banner dự án Imperia Sky Park">
+      <section data-cms-section="hero" data-cms-label="Băng ảnh đầu trang" className="relative min-h-[87dvh] overflow-hidden bg-[#4b4035]" aria-label="Banner dự án Imperia Sky Park">
         {HERO_SLIDES.map((image, index) => <img key={image} src={image} alt="Phối cảnh Imperia Sky Park" className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${index === activeHero ? 'opacity-100' : 'opacity-0'}`} />)}
         <div className="absolute inset-0 bg-[#2e261e]/35" aria-hidden="true" />
-        <div className="relative mx-auto flex min-h-[560px] w-[90vw] flex-col pb-16 pt-7 text-white sm:min-h-[680px]">
+        <div className="relative mx-auto flex min-h-[87dvh] w-[90vw] flex-col pb-16 pt-7 text-white">
           <div className="mt-auto max-w-3xl pt-32 sm:pt-44">
             {canEdit ?
             <select

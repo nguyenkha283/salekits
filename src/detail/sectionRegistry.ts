@@ -70,13 +70,21 @@ export const SECTIONS: SectionMeta[] = [
   hint: 'Hotline lấy từ cấu hình dự án.'
 },
 {
-  id: 'plan', label: 'Mặt bằng dự án', tab: 'mat-bang', kind: 'drive',
+  id: 'plan', label: 'Mặt bằng quỹ căn', tab: 'mat-bang', kind: 'drive',
   folder: '03. Mặt bằng', media: ['mat-bang'],
   hint: 'Lấy ảnh đầu tiên trong thư mục. Chấm pin thuộc đợt sau.'
 },
 {
   id: 'products-tab', label: 'Danh sách sản phẩm', tab: 'toa-nha', kind: 'manual',
-  hint: 'Nhập tay danh sách tòa nhà hoặc phân khu.'
+  hint: 'Sinh từ các sheet tòa nhà trong file bảng hàng.'
+},
+{
+  id: 'inventory-setup', label: 'Nguồn dữ liệu bảng hàng', tab: 'bang-hang', kind: 'manual',
+  hint: 'Dán liên kết Google Sheet hoặc tải file Excel, rồi chọn sheet cần nhập.'
+},
+{
+  id: 'team', label: 'Đội ngũ dự án', tab: 'doi-ngu', kind: 'manual',
+  hint: 'Đồng bộ từ HRM. Ẩn với vai trò User khác.'
 },
 {
   id: 'p360', label: 'Ảnh 360', tab: 'anh-360', kind: 'drive',
@@ -98,11 +106,7 @@ export const SECTIONS: SectionMeta[] = [
   folder: '07. Tài liệu', media: ['tai-lieu'],
   hint: 'File mở trực tiếp trên Google Drive.'
 },
-{
-  id: 'training', label: 'Nội dung đào tạo', tab: 'dao-tao', kind: 'drive',
-  folder: '02. Đào tạo', media: ['dao-tao'],
-  hint: 'Video nhúng cấu hình riêng, tài liệu lấy từ Drive.'
-}];
+];
 
 
 export function findSection(id: string | null): SectionMeta | undefined {
