@@ -41,8 +41,21 @@ function toSheet(name: string, grid: Grid): DetectedSheet {
  * báo lỗi rõ ràng thay vì làm hỏng màn hình.
  */
 export async function parseWorkbookFile(file: File): Promise<DetectedSheet[]> {
+  return readWorkbookBuffer(await file.arrayBuffer());
+}
+
+/** base64 → ArrayBuffer, dùng cho file .xlsx do backend xuất ra. */
+function decodeBase64(value: string): ArrayBuffer {
+  const binary = atob(value);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index++) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return bytes.buffer;
+}
+
+async function readWorkbookBuffer(buffer: ArrayBuffer): Promise<DetectedSheet[]> {
   const XLSX = await import('xlsx');
-  const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer, { type: 'array', cellDates: false });
 
   return workbook.SheetNames.map((name) => {
@@ -56,7 +69,12 @@ export async function parseWorkbookFile(file: File): Promise<DetectedSheet[]> {
   });
 }
 
-/** Đọc Google Sheet qua backend — trình duyệt không truy cập trực tiếp được. */
+/**
+ * Đọc Google Sheet qua backend — trình duyệt không truy cập trực tiếp được.
+ *
+ * Backend trả về một trong hai dạng: lưới ô đã tách sẵn (Sheets API), hoặc cả
+ * file .xlsx dạng base64 (dự phòng qua Drive export khi Sheets API chưa bật).
+ */
 export async function parseWorkbookLink(url: string): Promise<DetectedSheet[]> {
   const response = await fetch('/api/read-sheet', {
     method: 'POST',
@@ -66,6 +84,10 @@ export async function parseWorkbookLink(url: string): Promise<DetectedSheet[]> {
 
   const data = await response.json();
   if (!response.ok) throw new Error(data.error ?? 'Không đọc được Google Sheet.');
+
+  if (typeof data.workbook === 'string') {
+    return readWorkbookBuffer(decodeBase64(data.workbook));
+  }
 
   return (data.sheets as Array<{name: string;grid: Grid;}>).map((sheet) =>
   toSheet(sheet.name, sheet.grid)
