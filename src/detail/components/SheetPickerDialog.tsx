@@ -24,7 +24,7 @@ interface SheetPickerDialogProps {
   /** Tên file hoặc liên kết nguồn, hiển thị để đối chiếu. */
   sourceLabel?: string;
   onCancel: () => void;
-  onConfirm: (sheets: DetectedSheet[]) => void;
+  onConfirm: (sheets: DetectedSheet[], priceIndex: number) => void;
 }
 
 /**
@@ -38,6 +38,8 @@ export function SheetPickerDialog({
   onConfirm
 }: SheetPickerDialogProps) {
   const [sheets, setSheets] = useState(initial);
+  /** Bước 2: chọn cột giá hiển thị. -1 nghĩa là chưa sang bước này. */
+  const [priceIndex, setPriceIndex] = useState<number | null>(null);
 
   function setKind(index: number, kind: SheetKind) {
     setSheets((current) =>
@@ -47,6 +49,22 @@ export function SheetPickerDialog({
 
   const inventoryCount = sheets.filter((sheet) => sheet.kind === 'inventory').length;
   const fundCount = sheets.filter((sheet) => sheet.kind === 'fund').length;
+
+  /** Cột giá lấy từ sheet bảng hàng đầu tiên. */
+  const priceFields =
+  sheets.find((sheet) => sheet.kind === 'inventory')?.analysis.priceFields ?? [];
+  const priceGroups = [...new Set(priceFields.map((field) => field.group))];
+  const isPricingStep = priceIndex !== null;
+
+  /** Mặc định: cột cuối của nhóm đầu — thường là tổng giá trị HĐMB. */
+  function defaultPriceIndex(): number {
+    const firstGroup = priceFields[0]?.group;
+    const last = priceFields.
+    map((field, index) => ({ field, index })).
+    filter((entry) => entry.field.group === firstGroup).
+    pop();
+    return last?.index ?? 0;
+  }
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-4">
@@ -81,6 +99,47 @@ export function SheetPickerDialog({
             <XIcon className="h-4 w-4" />
           </button>
         </div>
+
+        {isPricingStep ?
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+            <p className="mb-3 text-[12px] leading-relaxed text-stone-600">
+              File có <b>{priceFields.length} cột giá</b>. Chọn cột dùng để hiển
+              thị trên bảng hàng và quỹ căn. Đổi lại được sau trong CMS.
+            </p>
+            <div className="space-y-3">
+              {priceGroups.map((group) =>
+            <div key={group}>
+                  <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wider text-stone-400">
+                    {group}
+                  </p>
+                  <div className="space-y-1">
+                    {priceFields.
+                map((field, index) => ({ field, index })).
+                filter((entry) => entry.field.group === group).
+                map((entry) =>
+                <label
+                  key={entry.index}
+                  className={`flex cursor-pointer items-center gap-2.5 rounded-lg border p-2.5 transition-colors ${
+                  priceIndex === entry.index ?
+                  'border-[#f5921f] bg-[#fdf3e2]' :
+                  'border-[#e9e1d5] hover:bg-[#faf6ef]'}`
+                  }>
+
+                          <input
+                    type="radio"
+                    name="price-column"
+                    checked={priceIndex === entry.index}
+                    onChange={() => setPriceIndex(entry.index)}
+                    className="accent-[#f5921f]" />
+
+                          <span className="text-[13px] text-stone-700">{entry.field.label}</span>
+                        </label>
+                )}
+                  </div>
+                </div>
+            )}
+            </div>
+          </div> :
 
         <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-5 py-4">
           {sheets.map((sheet, index) =>
@@ -138,27 +197,42 @@ export function SheetPickerDialog({
             </p>
           }
         </div>
+        }
 
         <div className="flex items-center gap-3 border-t border-[#eee4d5] px-5 py-3.5">
           <span className="text-[12px] text-stone-500">
-            {inventoryCount} sheet bảng hàng · {fundCount} sheet quỹ
+            {isPricingStep ?
+            'Bước 2/2 — chọn cột giá' :
+            `${inventoryCount} sheet bảng hàng · ${fundCount} sheet quỹ`}
           </span>
           <button
             type="button"
-            onClick={onCancel}
+            onClick={isPricingStep ? () => setPriceIndex(null) : onCancel}
             className="ml-auto rounded-lg border border-[#e0d2bd] px-3 py-2 text-[13px] font-semibold text-stone-700 transition-colors hover:bg-[#faf6ef]">
 
-            Hủy
+            {isPricingStep ? 'Quay lại' : 'Hủy'}
           </button>
+          {isPricingStep ?
+          <button
+            type="button"
+            onClick={() =>
+            onConfirm(sheets.filter((sheet) => sheet.kind !== 'skip'), priceIndex ?? 0)
+            }
+            className="flex items-center gap-1.5 rounded-lg bg-[#f5921f] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[#db7214]">
+
+              <CheckCircle2Icon className="h-4 w-4" />
+              Nhập vào hệ thống
+            </button> :
+
           <button
             type="button"
             disabled={inventoryCount === 0}
-            onClick={() => onConfirm(sheets.filter((sheet) => sheet.kind !== 'skip'))}
-            className="flex items-center gap-1.5 rounded-lg bg-[#f5921f] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[#db7214] disabled:cursor-not-allowed disabled:bg-stone-300">
+            onClick={() => setPriceIndex(defaultPriceIndex())}
+            className="rounded-lg bg-[#f5921f] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[#db7214] disabled:cursor-not-allowed disabled:bg-stone-300">
 
-            <CheckCircle2Icon className="h-4 w-4" />
-            Nhập vào hệ thống
-          </button>
+              Tiếp tục
+            </button>
+          }
         </div>
       </div>
     </div>);

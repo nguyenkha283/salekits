@@ -18,26 +18,16 @@ const STATUS_STYLES: Record<UnitStatusValue, string> = {
 
 interface FundInventoryProps {
   data: InventoryData;
+  /** Ghi chú pháp lý chỉ hiện ở trang xem trước và trang công khai. */
+  showNotice?: boolean;
 }
 
-export function FundInventory({ data }: FundInventoryProps) {
+export function FundInventory({ data, showNotice = false }: FundInventoryProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<'all' | UnitStatusValue>('all');
   const [towerFilter, setTowerFilter] = useState<string>('all');
-  const [priceIndex, setPriceIndex] = useState(() => {
-    const firstGroup = data.priceFields[0]?.group;
-    const last = data.priceFields.
-    map((field, index) => ({ field, index })).
-    filter((entry) => entry.field.group === firstGroup).
-    pop();
-    return last?.index ?? 0;
-  });
-
+  const priceIndex = data.priceIndex;
   const activePriceColumn = data.priceFields[priceIndex];
-  const priceGroups = useMemo(
-    () => [...new Set(data.priceFields.map((field) => field.group))],
-    [data.priceFields]
-  );
   const towers = data.towers;
 
   const rows = useMemo(
@@ -82,11 +72,13 @@ export function FundInventory({ data }: FundInventoryProps) {
         </span>
       </div>
 
+      {showNotice &&
       <p className="mt-2 flex gap-2 rounded border border-[#f0dcb6] bg-[#fdf3e2] px-3 py-2 text-[12px] leading-relaxed text-[#92600a]">
-        <InfoIcon className="mt-px h-3.5 w-3.5 shrink-0" />
-        Thông tin diện tích và giá bán là tạm tính để tham khảo. Thông tin chính
-        thức được công bố tại thời điểm ký Hợp đồng mua bán.
-      </p>
+          <InfoIcon className="mt-px h-3.5 w-3.5 shrink-0" />
+          Thông tin diện tích và giá bán là tạm tính để tham khảo. Thông tin chính
+          thức được công bố tại thời điểm ký Hợp đồng mua bán.
+        </p>
+      }
 
       <div className="mt-5 flex flex-wrap items-end gap-3 border border-[#e9e1d5] bg-[#faf7f1] p-4">
         <label className="block">
@@ -118,26 +110,6 @@ export function FundInventory({ data }: FundInventoryProps) {
               'Tất cả' :
               `${option} (${data.units.filter((unit) => unit.status === option).length})`}
               </option>
-            )}
-          </select>
-        </label>
-
-        <label className="block min-w-[260px] flex-1">
-          <span className="mb-1.5 block text-[12px] font-medium text-[#4a3728]">Giá hiển thị</span>
-          <select
-            value={priceIndex}
-            onChange={(event) => setPriceIndex(Number(event.target.value))}
-            className="h-9 w-full rounded border border-[#d9cdb8] bg-white px-2.5 text-[13px] text-[#4a3728] outline-none focus:border-[#f5921f]">
-
-            {priceGroups.map((group) =>
-            <optgroup key={group} label={group}>
-                {data.priceFields.
-              map((field, index) => ({ field, index })).
-              filter((entry) => entry.field.group === group).
-              map((entry) =>
-              <option key={entry.index} value={entry.index}>{entry.field.label}</option>
-              )}
-              </optgroup>
             )}
           </select>
         </label>

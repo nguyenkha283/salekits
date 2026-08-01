@@ -435,6 +435,8 @@ export interface FundGroup {
 export interface InventoryData {
   units: ParsedUnit[];
   priceFields: PriceField[];
+  /** Cột giá người dùng chọn khi nhập file. */
+  priceIndex: number;
   funds: FundGroup[];
   towers: string[];
   warnings: string[];
@@ -448,7 +450,8 @@ const FUND_COLORS = ['#ff0000', '#a77b00', '#2a55b8', '#0e9f6e', '#7b2d5e'];
  * Sheet loại "inventory" cung cấp căn; sheet "fund" chỉ đánh dấu căn thuộc quỹ.
  */
 export function buildInventory(
-sheets: Array<{name: string;kind: string;analysis: SheetAnalysis;}>)
+sheets: Array<{name: string;kind: string;analysis: SheetAnalysis;}>,
+priceIndex = 0)
 : InventoryData {
   const inventorySheets = sheets.filter((sheet) => sheet.kind === 'inventory');
   const fundSheets = sheets.filter((sheet) => sheet.kind === 'fund');
@@ -482,6 +485,7 @@ sheets: Array<{name: string;kind: string;analysis: SheetAnalysis;}>)
   return {
     units,
     priceFields,
+    priceIndex: Math.min(priceIndex, Math.max(priceFields.length - 1, 0)),
     funds,
     towers,
     warnings,

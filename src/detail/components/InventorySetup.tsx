@@ -14,6 +14,8 @@ export interface InventorySource {
   label: string;
   syncedAt: string;
   sheets: DetectedSheet[];
+  /** Cột giá người dùng chọn khi nhập. */
+  priceIndex: number;
 }
 
 interface InventorySetupProps {
@@ -162,13 +164,14 @@ export function InventorySetup({ onImported, context = 'bảng hàng' }: Invento
         sheets={sheets}
         sourceLabel={sourceLabel}
         onCancel={() => setSheets(null)}
-        onConfirm={(picked) => {
+        onConfirm={(picked, priceIndex) => {
           setSheets(null);
           onImported({
             kind: file ? 'file' : 'link',
             label: sourceLabel,
             syncedAt: new Date().toISOString(),
-            sheets: picked
+            sheets: picked,
+            priceIndex
           });
         }} />
 

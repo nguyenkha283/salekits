@@ -8,6 +8,8 @@ interface Tab {
   }>;
   locked?: boolean;
   restricted?: boolean;
+  /** Chỉ hiện biểu tượng, ẩn nhãn chữ. */
+  iconOnly?: boolean;
 }
 const TABS: Tab[] = [{
   key: 'tong-quan',
@@ -59,6 +61,7 @@ const TABS: Tab[] = [{
   key: 'doi-ngu',
   label: 'Đội ngũ',
   icon: UsersIcon,
+  iconOnly: true,
   /** Ẩn với vai trò User khác — xem HIDDEN_TABS_BY_ROLE. */
   restricted: true
 }];
@@ -83,9 +86,9 @@ export function ProjectTabs({
           const Icon = tab.icon;
           return <React.Fragment key={tab.key}>
                 {i !== 0 && <span className="my-3 w-px shrink-0 bg-stone-200" aria-hidden="true" />}
-                <button role="tab" aria-selected={isActive} onClick={() => onChange(tab.key)} className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-3.5 py-3 text-sm font-medium transition-colors ${isActive ? 'border-[#f5921f] text-[#f5921f]' : 'border-transparent text-stone-600 hover:text-[#f5921f]'}`}>
+                <button role="tab" aria-selected={isActive} onClick={() => onChange(tab.key)} title={tab.iconOnly ? tab.label : undefined} aria-label={tab.iconOnly ? tab.label : undefined} className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 py-3 text-sm font-medium transition-colors ${tab.iconOnly ? 'px-3' : 'px-3.5'} ${isActive ? 'border-[#f5921f] text-[#f5921f]' : 'border-transparent text-stone-600 hover:text-[#f5921f]'}`}>
                   <Icon className="h-4 w-4" />
-                  {tab.label}
+                  {!tab.iconOnly && tab.label}
                 </button>
               </React.Fragment>;
         })}

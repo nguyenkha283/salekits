@@ -312,13 +312,14 @@ export function InventorySourceBar({ source, onResynced }: InventorySourceBarPro
         sheets={sheets}
         sourceLabel={nextLabel}
         onCancel={close}
-        onConfirm={(picked) => {
+        onConfirm={(picked, priceIndex) => {
           close();
           onResynced({
             kind: file ? 'file' : 'link',
             label: nextLabel,
             syncedAt: new Date().toISOString(),
-            sheets: picked
+            sheets: picked,
+            priceIndex
           });
         }} />
 

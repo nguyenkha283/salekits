@@ -136,7 +136,10 @@ export function ProjectCanvas({
   const inventoryReady = inventorySource === undefined || Boolean(inventorySource);
   /** Gộp các sheet đã chọn thành bộ dữ liệu hiển thị. */
   const inventoryData: InventoryData | null = useMemo(
-    () => inventorySource ? buildInventory(inventorySource.sheets) : null,
+    () =>
+    inventorySource ?
+    buildInventory(inventorySource.sheets, inventorySource.priceIndex) :
+    null,
     [inventorySource]
   );
 
@@ -266,8 +269,12 @@ export function ProjectCanvas({
 
         }
         {activeTab === 'toa-nha' && inventoryData && <BuildingsContent data={inventoryData} />}
-        {activeTab === 'bang-hang' && inventoryData && <InventoryTable role={role} data={inventoryData} />}
-        {activeTab === 'quy-can' && inventoryData && <FundInventory data={inventoryData} />}
+        {activeTab === 'bang-hang' && inventoryData &&
+        <InventoryTable role={role} data={inventoryData} showNotice={chrome} />
+        }
+        {activeTab === 'quy-can' && inventoryData &&
+        <FundInventory data={inventoryData} showNotice={chrome} />
+        }
         {activeTab === 'tin-tuc' && <NewsContent />}
         {activeTab === 'doi-ngu' && canViewRestricted(role) && <TeamContent />}
         {!CANVAS_TABS.some((entry) => entry.id === activeTab) && <ProjectContent />}

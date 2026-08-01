@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { CrownIcon, HeartIcon, InfoIcon } from 'lucide-react';
 import { Role } from './Header';
 import { UnitDetailModal } from './UnitDetailModal';
@@ -17,6 +17,8 @@ interface InventoryTableProps {
   role: Role;
   /** Dữ liệu bóc từ file bảng hàng thật đã nhập. */
   data: InventoryData;
+  /** Ghi chú pháp lý chỉ hiện ở trang xem trước và trang công khai. */
+  showNotice?: boolean;
 }
 
 const STATUS_LEGENDS: Array<{label: UnitStatus;color: string;}> = [
@@ -26,17 +28,10 @@ const STATUS_LEGENDS: Array<{label: UnitStatus;color: string;}> = [
 { label: 'Đã cọc', color: 'rgba(129, 55, 4, 1)' }];
 
 
-export function InventoryTable({ role, data }: InventoryTableProps) {
+export function InventoryTable({ role, data, showNotice = false }: InventoryTableProps) {
   const [tower, setTower] = useState(data.towers[0] ?? '');
-  /** Mặc định chọn cột giá cuối của nhóm đầu — thường là tổng giá trị HĐMB. */
-  const [priceIndex, setPriceIndex] = useState(() => {
-    const firstGroup = data.priceFields[0]?.group;
-    const lastOfFirstGroup = data.priceFields.
-    map((field, index) => ({ field, index })).
-    filter((entry) => entry.field.group === firstGroup).
-    pop();
-    return lastOfFirstGroup?.index ?? 0;
-  });
+  /** Cột giá đã chọn ở bước nhập file. */
+  const priceIndex = data.priceIndex;
   const [isBasketOpen, setIsBasketOpen] = useState(false);
   const funds: FundGroup[] = data.funds;
   const [visibleFunds, setVisibleFunds] = useState<Record<string, boolean>>({});
@@ -49,7 +44,7 @@ export function InventoryTable({ role, data }: InventoryTableProps) {
   const [selectedUnit, setSelectedUnit] = useState<ParsedUnit | null>(null);
 
   /** Chỉ người quản lý mới đổi được cột giá hiển thị. */
-  const canChangePrice = role === 'Quản lý giao dịch' || role === 'APM';
+  const canEditGrid = role === 'Quản lý giao dịch' || role === 'APM';
 
   /** Lưới soạn thảo của từng tòa; dựng lần đầu từ dữ liệu đã bóc rồi giữ lại. */
   const [grids, setGrids] = useState<Record<string, GridModel>>({});
@@ -59,10 +54,6 @@ export function InventoryTable({ role, data }: InventoryTableProps) {
     setGrids((current) => ({ ...current, [tower]: next }));
   }
   const activePriceColumn = data.priceFields[priceIndex];
-  const priceGroups = useMemo(
-    () => [...new Set(data.priceFields.map((field) => field.group))],
-    [data.priceFields]
-  );
 
   const fundColors = useMemo(
     () => Object.fromEntries(funds.map((fund) => [fund.id, fund.color])),
@@ -126,22 +117,19 @@ export function InventoryTable({ role, data }: InventoryTableProps) {
         </span>
       </div>
 
-      {/* Ghi chú pháp lý — bắt buộc hiển thị kèm bảng hàng */}
+      {/* Ghi chú pháp lý — chỉ hiện ở trang xem trước và trang công khai */}
+      {showNotice &&
       <p className="mt-2 flex gap-2 rounded border border-[#f0dcb6] bg-[#fdf3e2] px-3 py-2 text-[12px] leading-relaxed text-[#92600a]">
-        <InfoIcon className="mt-px h-3.5 w-3.5 shrink-0" />
-        Thông tin diện tích và giá bán là tạm tính để tham khảo. Thông tin chính
-        thức được công bố tại thời điểm ký Hợp đồng mua bán.
-      </p>
-
-      {data.warnings.length > 0 &&
-      <ul className="mt-2 space-y-1 rounded border border-[#f0dcb6] bg-[#fffaf0] px-3 py-2 text-[12px] text-[#92600a]">
-          {data.warnings.map((warning) => <li key={warning}>• {warning}</li>)}
-        </ul>
+          <InfoIcon className="mt-px h-3.5 w-3.5 shrink-0" />
+          Thông tin diện tích và giá bán là tạm tính để tham khảo. Thông tin chính
+          thức được công bố tại thời điểm ký Hợp đồng mua bán.
+        </p>
       }
 
-      <div className="mt-5 w-full border border-[#e9e1d5] bg-[#faf7f1] p-4 sm:p-5">
-        <p className="text-[13px] font-medium text-[#4a3728]">Chọn bảng hàng:</p>
-        <div className="mt-3 flex flex-wrap gap-2" role="tablist" aria-label="Chọn tòa nhà">
+      <TransientWarnings warnings={data.warnings} />
+
+      <div className="mt-4 w-full border border-[#e9e1d5] bg-[#faf7f1] p-3 sm:p-4">
+        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Chọn tòa nhà">
           {data.towers.map((item) =>
           <button
             key={item}
@@ -157,37 +145,6 @@ export function InventoryTable({ role, data }: InventoryTableProps) {
           )}
         </div>
 
-        {/* Bộ chọn cột giá — người quản lý quyết định giá nào hiển thị */}
-        <div className="mt-4 border-t border-[#e9e1d5] pt-4">
-          <label htmlFor="price-column" className="text-[13px] font-medium text-[#4a3728]">
-            Giá hiển thị trên bảng hàng:
-          </label>
-          <div className="mt-2 flex flex-wrap items-center gap-3">
-            <select
-              id="price-column"
-              value={priceIndex}
-              disabled={!canChangePrice}
-              onChange={(event) => setPriceIndex(Number(event.target.value))}
-              className="h-9 min-w-[280px] max-w-full rounded border border-[#d9cdb8] bg-white px-2.5 text-[13px] font-medium text-[#4a3728] outline-none focus:border-[#f5921f] disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-500">
-
-              {priceGroups.map((group) =>
-              <optgroup key={group} label={group}>
-                  {data.priceFields.
-                map((field, index) => ({ field, index })).
-                filter((entry) => entry.field.group === group).
-                map((entry) =>
-                <option key={entry.index} value={entry.index}>{entry.field.label}</option>
-                )}
-                </optgroup>
-              )}
-            </select>
-            <span className="text-[11.5px] text-[#9c8672]">
-              {canChangePrice ?
-              `File có ${data.priceFields.length} cột giá. Lựa chọn này áp dụng cho cả bảng hàng và quỹ căn.` :
-              'Chỉ APM và Quản lý giao dịch đổi được cột giá.'}
-            </span>
-          </div>
-        </div>
       </div>
 
       <div className="mt-5 flex flex-col gap-4 border border-[#e9e1d5] bg-white px-4 py-3.5 lg:flex-row lg:items-center lg:justify-between">
@@ -259,7 +216,7 @@ export function InventoryTable({ role, data }: InventoryTableProps) {
           <InventoryGridEditor
             model={grid}
             onChange={updateGrid}
-            editable={canChangePrice}
+            editable={canEditGrid && showNotice === false}
             unitAt={unitAt}
             renderPrice={(unit) => shortPrice(unit.prices[priceIndex])}
             isVisible={(unit) =>
@@ -316,3 +273,27 @@ export function InventoryTable({ role, data }: InventoryTableProps) {
 }
 
 
+
+
+/* ═══════════════════════════════════════════════════════════════
+   Cảnh báo khi bóc tách — tự ẩn sau 3 giây
+   ═══════════════════════════════════════════════════════════════ */
+
+function TransientWarnings({ warnings }: {warnings: string[];}) {
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    if (!warnings.length) return;
+    setVisible(true);
+    const timer = window.setTimeout(() => setVisible(false), 3000);
+    return () => window.clearTimeout(timer);
+  }, [warnings]);
+
+  if (!warnings.length || !visible) return null;
+
+  return (
+    <ul className="mt-2 space-y-1 rounded border border-[#f0dcb6] bg-[#fffaf0] px-3 py-2 text-[12px] text-[#92600a] transition-opacity">
+      {warnings.map((warning) => <li key={warning}>• {warning}</li>)}
+    </ul>);
+
+}
