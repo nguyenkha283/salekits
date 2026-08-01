@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { AlertTriangleIcon, CheckCircle2Icon, XIcon } from 'lucide-react';
+import type { DetectedSheet, SheetKind } from '../parseWorkbook';
 
-/** Phân loại sheet theo mục 3.5 và phụ lục 7.3 / 7.5 của SRS. */
-export type SheetKind = 'inventory' | 'fund' | 'skip';
-
-export interface ParsedSheet {
-  name: string;
-  rows: number;
-  /** Số cột ở dòng dữ liệu đầu tiên — giúp người dùng nhận ra sheet ghi chú. */
-  columns: number;
-  kind: SheetKind;
-}
+const FIELD_LABELS: Record<string, string> = {
+  code: 'Mã căn',
+  tower: 'Tòa',
+  floor: 'Tầng',
+  unit: 'Căn số',
+  area: 'Diện tích',
+  bedrooms: 'Số PN',
+  handover: 'Bàn giao',
+  status: 'Tình trạng'
+};
 
 const KIND_LABEL: Record<SheetKind, string> = {
   inventory: 'Bảng hàng',
@@ -19,11 +20,11 @@ const KIND_LABEL: Record<SheetKind, string> = {
 };
 
 interface SheetPickerDialogProps {
-  sheets: ParsedSheet[];
+  sheets: DetectedSheet[];
   /** Tên file hoặc liên kết nguồn, hiển thị để đối chiếu. */
   sourceLabel?: string;
   onCancel: () => void;
-  onConfirm: (sheets: ParsedSheet[]) => void;
+  onConfirm: (sheets: DetectedSheet[]) => void;
 }
 
 /**
@@ -92,8 +93,23 @@ export function SheetPickerDialog({
                   {sheet.name}
                 </p>
                 <p className="text-[11px] text-stone-500">
-                  {sheet.rows} dòng · {sheet.columns} cột
+                  {sheet.rows} dòng · {sheet.columns} cột ·{' '}
+                  <b className="text-stone-700">{sheet.analysis.units.length} căn đọc được</b>
                 </p>
+                {sheet.analysis.units.length > 0 &&
+                <p className="mt-1 flex flex-wrap gap-1">
+                    {Object.keys(sheet.analysis.mapping).map((field) =>
+                  <span key={field} className="rounded bg-[#e6f0e8] px-1.5 py-px text-[10px] font-semibold text-[#2c6e3f]">
+                        {FIELD_LABELS[field] ?? field}
+                      </span>
+                  )}
+                    {sheet.analysis.priceFields.length > 0 &&
+                  <span className="rounded bg-[#e6edfb] px-1.5 py-px text-[10px] font-semibold text-[#2a55b8]">
+                        {sheet.analysis.priceFields.length} cột giá
+                      </span>
+                  }
+                  </p>
+                }
               </div>
               <div className="flex gap-1 rounded-lg bg-[#f3ece1] p-1">
                 {(['inventory', 'fund', 'skip'] as SheetKind[]).map((kind) =>

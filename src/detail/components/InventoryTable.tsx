@@ -1,36 +1,22 @@
-import React, { FormEvent, useMemo, useState } from 'react';
-import { CrownIcon, HeartIcon, InfoIcon, PlusIcon, XIcon } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { CrownIcon, HeartIcon, InfoIcon } from 'lucide-react';
 import { Role } from './Header';
 import { UnitDetailModal } from './UnitDetailModal';
 import type { UnitStatus } from './UnitDetailModal';
 import {
-  PRICE_COLUMNS,
-  REAL_TOWERS,
-  SHEET_EFFECTIVE_DATE,
-  SHEET_NAME,
-  SHEET_NOTICE,
   axesOf,
   shortPrice,
-  unitAt,
   unitPrice,
-  type PriceColumnId,
-  type RealUnit } from
-'../data/realInventory';
-
-interface Fund {
-  id: string;
-  name: string;
-  color: string;
-}
+  type FundGroup,
+  type InventoryData,
+  type ParsedUnit } from
+'../inventoryParser';
 
 interface InventoryTableProps {
   role: Role;
+  /** Dữ liệu bóc từ file bảng hàng thật đã nhập. */
+  data: InventoryData;
 }
-
-const INITIAL_FUNDS: Fund[] = [
-{ id: 'exclusive', name: 'Quỹ độc quyền', color: '#ff0000' },
-{ id: 'cross', name: 'Quỹ chéo', color: '#a77b00' }];
-
 
 const STATUS_STYLES: Record<UnitStatus, {color: string;background: string;}> = {
   'Còn hàng': { color: '#047857', background: '#d1fae5' },
@@ -46,49 +32,77 @@ const STATUS_LEGENDS: Array<{label: UnitStatus;color: string;}> = [
 { label: 'Đã cọc', color: 'rgba(129, 55, 4, 1)' }];
 
 
-/**
- * File bảng hàng không có cột quỹ. Tạm suy từ tình trạng để minh hoạ bộ lọc
- * quỹ — cần cột thật hoặc sheet quỹ riêng, xem câu A-01 gửi BA.
- */
-function fundOf(unit: RealUnit): 'exclusive' | 'cross' {
-  return unit.status === 'Còn hàng' ? 'exclusive' : 'cross';
-}
-
-export function InventoryTable({ role }: InventoryTableProps) {
-  const [tower, setTower] = useState(REAL_TOWERS[0]);
-  const [priceColumn, setPriceColumn] = useState<PriceColumnId>('base-total');
-  const [isBasketOpen, setIsBasketOpen] = useState(false);
-  const [funds, setFunds] = useState<Fund[]>(INITIAL_FUNDS);
-  const [visibleFunds, setVisibleFunds] = useState<Record<string, boolean>>({
-    exclusive: true,
-    cross: true
+export function InventoryTable({ role, data }: InventoryTableProps) {
+  const [tower, setTower] = useState(data.towers[0] ?? '');
+  /** Mặc định chọn cột giá cuối của nhóm đầu — thường là tổng giá trị HĐMB. */
+  const [priceIndex, setPriceIndex] = useState(() => {
+    const firstGroup = data.priceFields[0]?.group;
+    const lastOfFirstGroup = data.priceFields.
+    map((field, index) => ({ field, index })).
+    filter((entry) => entry.field.group === firstGroup).
+    pop();
+    return lastOfFirstGroup?.index ?? 0;
   });
+  const [isBasketOpen, setIsBasketOpen] = useState(false);
+  const funds: FundGroup[] = data.funds;
+  const [visibleFunds, setVisibleFunds] = useState<Record<string, boolean>>({});
   const [visibleStatuses, setVisibleStatuses] = useState<Record<UnitStatus, boolean>>({
     'Còn hàng': true,
     'Đã lock': true,
     'Đã cọc': true,
     'Đã bán': true
   });
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedUnit, setSelectedUnit] = useState<RealUnit | null>(null);
-  const [sheet, setSheet] = useState('');
-  const [color, setColor] = useState('#f5921f');
+  const [selectedUnit, setSelectedUnit] = useState<ParsedUnit | null>(null);
 
-  const canAddFund = role === 'Quản lý giao dịch';
   /** Chỉ người quản lý mới đổi được cột giá hiển thị. */
   const canChangePrice = role === 'Quản lý giao dịch' || role === 'APM';
 
-  const axes = useMemo(() => axesOf(tower), [tower]);
-  const priceIndex = PRICE_COLUMNS.findIndex((column) => column.id === priceColumn);
-  const activePriceColumn = PRICE_COLUMNS[priceIndex];
+  const axes = useMemo(() => axesOf(data.units, tower), [data.units, tower]);
+  const activePriceColumn = data.priceFields[priceIndex];
+  const priceGroups = useMemo(
+    () => [...new Set(data.priceFields.map((field) => field.group))],
+    [data.priceFields]
+  );
 
   const fundColors = useMemo(
-    () =>
-    Object.fromEntries(
-      funds.map((fund) => [fund.id, fund.id === 'exclusive' ? '#4a3728' : fund.color])
-    ),
+    () => Object.fromEntries(funds.map((fund) => [fund.id, fund.color])),
     [funds]
   );
+
+  /** Tra nhanh: mã căn → danh sách quỹ chứa nó. */
+  const fundsByCode = useMemo(() => {
+    const map = new Map<string, string[]>();
+    funds.forEach((fund) => {
+      fund.codes.forEach((code) => {
+        map.set(code, [...(map.get(code) ?? []), fund.id]);
+      });
+    });
+    return map;
+  }, [funds]);
+
+  function fundsOf(unit: ParsedUnit): string[] {
+    return fundsByCode.get(unit.code) ?? [];
+  }
+
+  /** Không khai báo quỹ nào thì mọi căn đều hiện. */
+  function passesFundFilter(unit: ParsedUnit): boolean {
+    if (!funds.length) return true;
+    const owned = fundsOf(unit);
+    if (!owned.length) return true;
+    return owned.some((id) => visibleFunds[id] !== false);
+  }
+
+  /** Tra căn theo vị trí trên lưới của tòa đang chọn. */
+  function unitAt(floor: string, column: string): ParsedUnit | undefined {
+    return data.units.find(
+      (item) => item.tower === tower && item.floor === floor && item.unit === column
+    );
+  }
+
+  /** Một căn bất kỳ trong trục — dùng cho dòng tiêu đề Số PN và Diện tích. */
+  function sampleOf(column: string): ParsedUnit | undefined {
+    return data.units.find((item) => item.tower === tower && item.unit === column);
+  }
 
   function toggleFund(fundId: string) {
     setVisibleFunds((current) => {
@@ -106,36 +120,33 @@ export function InventoryTable({ role }: InventoryTableProps) {
     setVisibleStatuses((current) => ({ ...current, [status]: !current[status] }));
   }
 
-  function submitFund(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!sheet) return;
-    const id = `${sheet}-${Date.now()}`;
-    setFunds((currentFunds) => [...currentFunds, { id, name: sheet, color }]);
-    setVisibleFunds((current) => ({ ...current, [id]: true }));
-    setSheet('');
-    setColor('#f5921f');
-    setIsDialogOpen(false);
-  }
 
   return (
     <section className="w-full" aria-labelledby="inventory-heading">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h2 id="inventory-heading" className="text-2xl font-bold text-black">Bảng hàng</h2>
         <span className="text-[13px] text-stone-500">
-          {SHEET_NAME} · hiệu lực từ {SHEET_EFFECTIVE_DATE}
+          {data.sheetNames.join(' · ')} — {data.units.length} căn
         </span>
       </div>
 
       {/* Ghi chú pháp lý — bắt buộc hiển thị kèm bảng hàng */}
       <p className="mt-2 flex gap-2 rounded border border-[#f0dcb6] bg-[#fdf3e2] px-3 py-2 text-[12px] leading-relaxed text-[#92600a]">
         <InfoIcon className="mt-px h-3.5 w-3.5 shrink-0" />
-        {SHEET_NOTICE}
+        Thông tin diện tích và giá bán là tạm tính để tham khảo. Thông tin chính
+        thức được công bố tại thời điểm ký Hợp đồng mua bán.
       </p>
+
+      {data.warnings.length > 0 &&
+      <ul className="mt-2 space-y-1 rounded border border-[#f0dcb6] bg-[#fffaf0] px-3 py-2 text-[12px] text-[#92600a]">
+          {data.warnings.map((warning) => <li key={warning}>• {warning}</li>)}
+        </ul>
+      }
 
       <div className="mt-5 w-full border border-[#e9e1d5] bg-[#faf7f1] p-4 sm:p-5">
         <p className="text-[13px] font-medium text-[#4a3728]">Chọn bảng hàng:</p>
         <div className="mt-3 flex flex-wrap gap-2" role="tablist" aria-label="Chọn tòa nhà">
-          {REAL_TOWERS.map((item) =>
+          {data.towers.map((item) =>
           <button
             key={item}
             role="tab"
@@ -145,7 +156,7 @@ export function InventoryTable({ role }: InventoryTableProps) {
             tower === item ? 'bg-[#4a3728]' : 'bg-[#8b7d6d] hover:bg-[#6f6152]'}`
             }>
 
-              Tòa {item}
+              {item}
             </button>
           )}
         </div>
@@ -158,25 +169,25 @@ export function InventoryTable({ role }: InventoryTableProps) {
           <div className="mt-2 flex flex-wrap items-center gap-3">
             <select
               id="price-column"
-              value={priceColumn}
+              value={priceIndex}
               disabled={!canChangePrice}
-              onChange={(event) => setPriceColumn(event.target.value as PriceColumnId)}
-              className="h-9 min-w-[280px] rounded border border-[#d9cdb8] bg-white px-2.5 text-[13px] font-medium text-[#4a3728] outline-none focus:border-[#f5921f] disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-500">
+              onChange={(event) => setPriceIndex(Number(event.target.value))}
+              className="h-9 min-w-[280px] max-w-full rounded border border-[#d9cdb8] bg-white px-2.5 text-[13px] font-medium text-[#4a3728] outline-none focus:border-[#f5921f] disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-500">
 
-              <optgroup label="Giá tiêu chuẩn">
-                {PRICE_COLUMNS.filter((column) => column.group === 'Giá tiêu chuẩn').map((column) =>
-                <option key={column.id} value={column.id}>{column.label}</option>
+              {priceGroups.map((group) =>
+              <optgroup key={group} label={group}>
+                  {data.priceFields.
+                map((field, index) => ({ field, index })).
+                filter((entry) => entry.field.group === group).
+                map((entry) =>
+                <option key={entry.index} value={entry.index}>{entry.field.label}</option>
                 )}
-              </optgroup>
-              <optgroup label="Chính sách ổn định lãi suất">
-                {PRICE_COLUMNS.filter((column) => column.group !== 'Giá tiêu chuẩn').map((column) =>
-                <option key={column.id} value={column.id}>{column.label}</option>
-                )}
-              </optgroup>
+                </optgroup>
+              )}
             </select>
             <span className="text-[11.5px] text-[#9c8672]">
               {canChangePrice ?
-              'File có 6 cột giá. Lựa chọn này áp dụng cho cả bảng hàng và quỹ căn.' :
+              `File có ${data.priceFields.length} cột giá. Lựa chọn này áp dụng cho cả bảng hàng và quỹ căn.` :
               'Chỉ APM và Quản lý giao dịch đổi được cột giá.'}
             </span>
           </div>
@@ -185,9 +196,13 @@ export function InventoryTable({ role }: InventoryTableProps) {
 
       <div className="mt-5 flex flex-col gap-4 border border-[#e9e1d5] bg-white px-4 py-3.5 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-2">
+          {!funds.length &&
+          <span className="text-[12px] text-[#9c8672]">
+              File chưa có sheet quỹ nào
+            </span>
+          }
           {funds.map((fund) => {
             const isVisible = visibleFunds[fund.id] !== false;
-            const isExclusive = fund.id === 'exclusive';
             return (
               <button
                 key={fund.id}
@@ -197,21 +212,13 @@ export function InventoryTable({ role }: InventoryTableProps) {
                 isVisible ? 'border-[#4a3728] bg-[#f7f2ea] text-[#4a3728]' : 'border-[#e9e1d5] text-[#9c8672]'}`
                 }>
 
-                {isExclusive && <CrownIcon className="h-3.5 w-3.5 fill-[#173b7a] text-[#173b7a]" aria-label="Quỹ độc quyền" />}
+                <CrownIcon className="h-3.5 w-3.5" style={{ color: fundColors[fund.id] }} aria-hidden="true" />
                 <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: fundColors[fund.id] }} />
                 {fund.name}
+                <span className="font-mono text-[10.5px] opacity-70">{fund.codes.length}</span>
               </button>);
 
           })}
-          {canAddFund &&
-          <button
-            onClick={() => setIsDialogOpen(true)}
-            className="inline-flex items-center gap-1 rounded border border-dashed border-[#c9b795] px-2.5 py-1.5 text-[12px] font-semibold text-[#8a6a3f] transition-colors hover:bg-[#faf6ef]">
-
-              <PlusIcon className="h-3.5 w-3.5" />
-              Thêm quỹ
-            </button>
-          }
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -243,7 +250,7 @@ export function InventoryTable({ role }: InventoryTableProps) {
           <div>
             <p className="text-[13px] font-semibold text-[#4a3728]">Tòa {tower}</p>
             <p className="mt-0.5 text-[11px] text-[#9c8672]">
-              {axes.floors.length} tầng × {axes.columns.length} trục · đang hiển thị {activePriceColumn.short}
+              {axes.floors.length} tầng × {axes.columns.length} trục · đang hiển thị {activePriceColumn?.label ?? 'Giá'}
             </p>
           </div>
           <span className="shrink-0 rounded bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
@@ -267,16 +274,16 @@ export function InventoryTable({ role }: InventoryTableProps) {
               <tr className="bg-[#dedbcc] text-[#403b35]">
                 <th className="inventory-side-cell bg-[#827464] text-white">Số PN</th>
                 {axes.columns.map((column) => {
-                  const sample = REAL_UNITS_IN(tower, column);
-                  return <th key={column} className="inventory-meta-cell">{sample?.bedrooms ?? '—'}</th>;
+                  const sample = sampleOf(column);
+                  return <th key={column} className="inventory-meta-cell">{sample?.bedrooms || '—'}</th>;
                 })}
                 <th className="inventory-side-cell bg-[#827464] text-white">Số PN</th>
               </tr>
               <tr className="bg-[#dedbcc] text-[#403b35]">
                 <th className="inventory-side-cell bg-[#827464] text-white">DT TT</th>
                 {axes.columns.map((column) => {
-                  const sample = REAL_UNITS_IN(tower, column);
-                  return <th key={column} className="inventory-meta-cell">{sample ? sample.area.toFixed(1) : '—'}</th>;
+                  const sample = sampleOf(column);
+                  return <th key={column} className="inventory-meta-cell">{sample?.area ? sample.area.toFixed(1) : '—'}</th>;
                 })}
                 <th className="inventory-side-cell bg-[#827464] text-white">DT TT</th>
               </tr>
@@ -286,11 +293,9 @@ export function InventoryTable({ role }: InventoryTableProps) {
               <tr key={floor}>
                   <th className="inventory-floor-cell">{floor}</th>
                   {axes.columns.map((column) => {
-                  const unit = unitAt(tower, floor, column);
+                  const unit = unitAt(floor, column);
                   const shouldShow =
-                  unit &&
-                  visibleFunds[fundOf(unit)] !== false &&
-                  visibleStatuses[unit.status] !== false;
+                  unit && passesFundFilter(unit) && visibleStatuses[unit.status] !== false;
                   const style = unit ? STATUS_STYLES[unit.status] : STATUS_STYLES['Còn hàng'];
 
                   return (
@@ -304,8 +309,12 @@ export function InventoryTable({ role }: InventoryTableProps) {
 
                             <span className="inventory-unit-price">{shortPrice(unit.prices[priceIndex])}</span>
                             <span className="inventory-unit-status-label">{unit.status}</span>
-                            {fundOf(unit) === 'exclusive' &&
-                        <CrownIcon className="inventory-unit-crown" aria-label="Quỹ độc quyền" />
+                            {fundsOf(unit).length > 0 &&
+                        <CrownIcon
+                          className="inventory-unit-crown"
+                          style={{ color: fundColors[fundsOf(unit)[0]] }}
+                          aria-label={funds.find((fund) => fund.id === fundsOf(unit)[0])?.name} />
+
                         }
                           </button>
                       }
@@ -336,57 +345,27 @@ export function InventoryTable({ role }: InventoryTableProps) {
         </div>
       }
 
-      {isDialogOpen &&
-      <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-lg bg-white p-6">
-            <div className="flex items-start justify-between">
-              <h3 className="text-lg font-bold text-[#4a3728]">Thêm quỹ căn</h3>
-              <button onClick={() => setIsDialogOpen(false)} aria-label="Đóng" className="text-stone-400 hover:text-stone-700">
-                <XIcon className="h-5 w-5" />
-              </button>
-            </div>
-            <form onSubmit={submitFund} className="mt-5 space-y-5">
-              <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-[#4a3728]">Chọn sheet quỹ</span>
-                <select value={sheet} onChange={(event) => setSheet(event.target.value)} className="h-10 w-full rounded border border-stone-300 px-2.5 text-sm">
-                  <option value="">— Chọn sheet —</option>
-                  <option value="Quỹ tự tạo 1">Quỹ tự tạo 1</option>
-                  <option value="Quỹ tự tạo 2">Quỹ tự tạo 2</option>
-                  <option value="Quỹ tự tạo 3">Quỹ tự tạo 3</option>
-                  <option value="Quỹ tự tạo 4">Quỹ tự tạo 4</option>
-                </select>
-              </label>
-              <div className="flex items-center justify-between gap-4">
-                <label htmlFor="fund-color" className="text-sm font-medium text-[#4a3728]">Lựa chọn màu nổi bật</label>
-                <input id="fund-color" type="color" value={color} onChange={(event) => setColor(event.target.value)} className="h-10 w-14 cursor-pointer rounded border border-stone-300 bg-white p-1" />
-              </div>
-              <div className="flex justify-end gap-3 border-t border-stone-100 pt-5">
-                <button type="button" onClick={() => setIsDialogOpen(false)} className="rounded border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-600 hover:bg-stone-50">Hủy</button>
-                <button type="submit" disabled={!sheet} className="rounded bg-[#4a3728] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#33251a] disabled:cursor-not-allowed disabled:opacity-50">Thêm quỹ</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      }
-
       {selectedUnit &&
       <UnitDetailModal
         buildingCode={selectedUnit.tower}
         floor={selectedUnit.floor}
         unit={selectedUnit.unit}
         apartmentCode={selectedUnit.code}
-        apartmentType={selectedUnit.bedrooms}
-        area={selectedUnit.area.toFixed(2)}
-        direction="Chưa có dữ liệu"
+        apartmentType={selectedUnit.bedrooms || 'Chưa có dữ liệu'}
+        area={selectedUnit.area ? selectedUnit.area.toFixed(2) : '—'}
+        direction={selectedUnit.extras['Hướng ban công'] ?? 'File chưa có'}
         handover={selectedUnit.handover}
-        priceLabel={activePriceColumn.label}
+        priceLabel={activePriceColumn?.label}
         unitPriceText={unitPrice(selectedUnit.prices[priceIndex], selectedUnit.area)}
+        extras={selectedUnit.extras}
+        fundNames={fundsOf(selectedUnit).map(
+          (id) => funds.find((fund) => fund.id === id)?.name ?? id
+        )}
         detail={{
-          fund: fundOf(selectedUnit),
           price: shortPrice(selectedUnit.prices[priceIndex]),
           status: selectedUnit.status
         }}
-        fundColor={fundColors[fundOf(selectedUnit)]}
+        fundColor={fundColors[fundsOf(selectedUnit)[0]] ?? '#4a3728'}
         onClose={() => setSelectedUnit(null)} />
 
       }
@@ -394,12 +373,4 @@ export function InventoryTable({ role }: InventoryTableProps) {
 
 }
 
-/** Lấy một căn bất kỳ trong trục để hiển thị số PN và diện tích ở tiêu đề cột. */
-function REAL_UNITS_IN(tower: string, column: string): RealUnit | undefined {
-  const axes = axesOf(tower);
-  for (const floor of axes.floors) {
-    const unit = unitAt(tower, floor, column);
-    if (unit) return unit;
-  }
-  return undefined;
-}
+

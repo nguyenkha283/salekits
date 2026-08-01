@@ -1,5 +1,5 @@
 import { google } from 'googleapis';
-import type { drive_v3 } from 'googleapis';
+import type { drive_v3, sheets_v4 } from 'googleapis';
 
 let cachedAuth: InstanceType<typeof google.auth.GoogleAuth> | null = null;
 
@@ -27,7 +27,10 @@ export function getGoogleAuth() {
 
   cachedAuth = new google.auth.GoogleAuth({
     credentials,
-    scopes: ['https://www.googleapis.com/auth/drive.readonly']
+    scopes: [
+    'https://www.googleapis.com/auth/drive.readonly',
+    // Cần cho /api/read-sheet — đọc bảng hàng từ Google Sheet.
+    'https://www.googleapis.com/auth/spreadsheets.readonly']
   });
 
   return cachedAuth;
@@ -35,4 +38,8 @@ export function getGoogleAuth() {
 
 export function getDriveClient(): drive_v3.Drive {
   return google.drive({ version: 'v3', auth: getGoogleAuth() as any });
+}
+
+export function getSheetsClient(): sheets_v4.Sheets {
+  return google.sheets({ version: 'v4', auth: getGoogleAuth() as any });
 }

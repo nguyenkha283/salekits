@@ -460,11 +460,19 @@ export function ProjectCmsPage() {
             onImportInventory={(source) => {
               const isFirst = !inventorySource;
               setInventorySource(source);
-              const count = source.sheets.filter((sheet) => sheet.kind === 'inventory').length;
+              try {
+                // Cho trang xem trước dùng lại đúng dữ liệu vừa nhập.
+                window.sessionStorage.setItem('cms:inventory', JSON.stringify(source));
+              } catch {
+                // Vượt hạn mức lưu trữ thì bỏ qua, không chặn luồng nhập.
+              }
+              const picked = source.sheets.filter((sheet) => sheet.kind === 'inventory');
+              const units = picked.reduce((total, sheet) => total + sheet.analysis.units.length, 0);
+              const priceColumns = picked[0]?.analysis.priceFields.length ?? 0;
               showNotice(
                 isFirst ?
-                `Đã nhập bảng hàng từ ${count} sheet — 55 căn, 4 tòa, 6 cột giá` :
-                `Đã đồng bộ lại bảng hàng từ ${count} sheet`
+                `Đã nhập ${units} căn từ ${picked.length} sheet · ${priceColumns} cột giá` :
+                `Đã đồng bộ lại — ${units} căn từ ${picked.length} sheet`
               );
             }}
             editing={{

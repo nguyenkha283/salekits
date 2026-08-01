@@ -147,7 +147,27 @@ Dự án mới chưa có bảng hàng, nên ba tab **Sản phẩm**, **Bảng h�
 
 Bấm **Đọc file** → hệ thống bóc tách sheet → **popup chọn sheet** hiện ra để phân loại từng sheet thành *Bảng hàng*, *Quỹ căn* hoặc *Bỏ qua*. Xác nhận xong ba tab mới hiển thị dữ liệu đầy đủ.
 
-**Tải file .xlsx thật lên thì danh sách sheet là thật** — hệ thống đọc trực tiếp bằng SheetJS, hiện đúng tên sheet, số dòng và số cột của file bạn chọn, kèm phân loại đoán sẵn theo tên (sửa lại được). Nhập bằng liên kết Google Sheet thì dùng cấu trúc mẫu, vì trình duyệt không đọc trực tiếp được — bản chính thức đọc ở backend.
+**Toàn bộ dữ liệu bảng hàng đến từ file bạn nhập — không còn dữ liệu mẫu nào.**
+
+- **Tải file .xlsx** — đọc trực tiếp trong trình duyệt bằng SheetJS
+- **Dán liên kết Google Sheet** — đọc qua `/api/read-sheet` bằng service account
+
+Bộ phân tích tự dò, không giả định vị trí cột hay dòng:
+
+| Việc | Cách làm |
+|---|---|
+| Dòng tiêu đề | Chấm điểm 20 dòng đầu, chọn dòng khớp nhiều tên cột nhất; tiêu đề trải 1–3 dòng đều nhận được |
+| Tên cột | So khớp bỏ dấu, không phân biệt hoa thường — `Mã căn hộ`, `TRỤC / Tòa`, `Diện tích thông thủy (m2)`… |
+| Cột giá | Nhận theo từ khoá (`TGT`, `Tổng giá trị`, `VNĐ`…), **số cột tùy file** |
+| Nhóm giá | Lấy từ dòng banner gộp ô phía trên, ví dụ *Chính sách ổn định lãi suất* |
+| Số tiền | `5,432,422,100` và `5.432.422.100` đều đúng; `65.27` hiểu là thập phân |
+| Tình trạng | Ô trống → Còn hàng; `LOCK`, `ĐẶT CỌC`, `Giữ chỗ`, `Đã ký HĐMB`… đều quy đổi |
+| Dòng rác | Bỏ dòng trống, dòng tiêu đề lặp giữa file, dòng trùng mã căn |
+| Cột lạ | Giữ nguyên, hiện trong popup chi tiết căn ở mục *Cột khác trong file* |
+
+Popup chọn sheet hiện **kết quả nhận diện của từng sheet**: số căn đọc được, các trường đã ánh xạ, số cột giá. Nhìn là biết ngay sheet nào đọc đúng.
+
+Bộ chọn loại giá sinh động theo số cột giá thật trong file, gom theo đúng nhóm của file.
 
 Chặn xác nhận nếu chưa chọn sheet Bảng hàng nào.
 

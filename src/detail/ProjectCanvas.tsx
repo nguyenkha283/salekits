@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ChevronRightIcon, Share2Icon } from 'lucide-react';
 import { Role } from './components/Header';
 import { ProjectTabs } from './components/ProjectTabs';
@@ -15,6 +15,7 @@ import { BuildingsContent } from './components/BuildingsContent';
 import { FloorPlanContent } from './components/FloorPlanContent';
 import { TeamContent } from './components/TeamContent';
 import { InventorySetup, type InventorySource } from './components/InventorySetup';
+import { buildInventory, type InventoryData } from './inventoryParser';
 import { InventorySourceBar } from './components/InventorySourceBar';
 import {
   IMG,
@@ -133,6 +134,11 @@ export function ProjectCanvas({
   const isOverview = activeTab === 'tong-quan';
   const isInventoryTab = ['toa-nha', 'bang-hang', 'quy-can'].includes(activeTab);
   const inventoryReady = inventorySource === undefined || Boolean(inventorySource);
+  /** Gộp các sheet đã chọn thành bộ dữ liệu hiển thị. */
+  const inventoryData: InventoryData | null = useMemo(
+    () => inventorySource ? buildInventory(inventorySource.sheets) : null,
+    [inventorySource]
+  );
 
   // Rót dữ liệu Drive vào đúng section của từng component thiết kế sẵn.
   const overviewGroups = syncedMedia['tong-quan'];
@@ -259,9 +265,9 @@ export function ProjectCanvas({
           onResynced={(source) => onImportInventory?.(source)} />
 
         }
-        {activeTab === 'toa-nha' && inventoryReady && <BuildingsContent />}
-        {activeTab === 'bang-hang' && inventoryReady && <InventoryTable role={role} />}
-        {activeTab === 'quy-can' && inventoryReady && <FundInventory />}
+        {activeTab === 'toa-nha' && inventoryData && <BuildingsContent data={inventoryData} />}
+        {activeTab === 'bang-hang' && inventoryData && <InventoryTable role={role} data={inventoryData} />}
+        {activeTab === 'quy-can' && inventoryData && <FundInventory data={inventoryData} />}
         {activeTab === 'tin-tuc' && <NewsContent />}
         {activeTab === 'doi-ngu' && canViewRestricted(role) && <TeamContent />}
         {!CANVAS_TABS.some((entry) => entry.id === activeTab) && <ProjectContent />}

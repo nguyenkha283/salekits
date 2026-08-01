@@ -1,18 +1,19 @@
 import React, { useState } from 'react';
 import {
+  AlertTriangleIcon,
   FileSpreadsheetIcon,
   LinkIcon,
   Loader2Icon,
   UploadIcon } from
 'lucide-react';
-import { SheetPickerDialog, type ParsedSheet } from './SheetPickerDialog';
-import { parseWorkbook, sampleWorkbook } from '../parseWorkbook';
+import { SheetPickerDialog } from './SheetPickerDialog';
+import { parseWorkbookFile, parseWorkbookLink, type DetectedSheet } from '../parseWorkbook';
 
 export interface InventorySource {
   kind: 'link' | 'file';
   label: string;
   syncedAt: string;
-  sheets: ParsedSheet[];
+  sheets: DetectedSheet[];
 }
 
 interface InventorySetupProps {
@@ -31,7 +32,8 @@ export function InventorySetup({ onImported, context = 'bảng hàng' }: Invento
   const [link, setLink] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
-  const [sheets, setSheets] = useState<ParsedSheet[] | null>(null);
+  const [error, setError] = useState('');
+  const [sheets, setSheets] = useState<DetectedSheet[] | null>(null);
 
   const sourceLabel = file ? file.name : link.trim();
   const hasSource = sourceLabel.length > 0;
@@ -39,8 +41,17 @@ export function InventorySetup({ onImported, context = 'bảng hàng' }: Invento
   async function handleParse() {
     if (!hasSource || isParsing) return;
     setIsParsing(true);
+    setError('');
     try {
-      setSheets(file ? await parseWorkbook(file) : sampleWorkbook());
+      const detected = file ?
+      await parseWorkbookFile(file) :
+      await parseWorkbookLink(link.trim());
+      if (!detected.length) throw new Error('File không có sheet nào đọc được.');
+      setSheets(detected);
+    } catch (parseError) {
+      setError(
+        parseError instanceof Error ? parseError.message : 'Không đọc được file.'
+      );
     } finally {
       setIsParsing(false);
     }
@@ -119,6 +130,13 @@ export function InventorySetup({ onImported, context = 'bảng hàng' }: Invento
 
             </label>
           </div>
+
+          {error &&
+          <p className="mt-4 flex gap-2 rounded-lg border border-[#efcfca] bg-[#fbedeb] p-3 text-[12px] leading-relaxed text-[#992d22]">
+              <AlertTriangleIcon className="mt-px h-3.5 w-3.5 shrink-0" />
+              {error}
+            </p>
+          }
 
           <button
             type="button"

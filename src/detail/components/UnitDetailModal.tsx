@@ -2,7 +2,6 @@ import React from 'react';
 import { BedDoubleIcon, CheckSquareIcon, ChevronRightIcon, ExpandIcon, HeartIcon, MessageCircleIcon, RulerIcon, Share2Icon, XIcon } from 'lucide-react';
 export type UnitStatus = 'Còn hàng' | 'Đã bán' | 'Đã lock' | 'Đã cọc';
 export interface UnitDetail {
-  fund: 'exclusive' | 'cross';
   price: string;
   status: UnitStatus;
 }
@@ -23,6 +22,10 @@ interface UnitDetailModalProps {
   /** Nhãn cột giá đang hiển thị. */
   priceLabel?: string;
   unitPriceText?: string;
+  /** Cột trong file không nhận diện được — hiển thị nguyên trạng. */
+  extras?: Record<string, string>;
+  /** Tên các quỹ chứa căn này. */
+  fundNames?: string[];
 }
 const STATUS_STYLES: Record<UnitStatus, string> = {
   'Còn hàng': 'bg-emerald-100 text-emerald-700',
@@ -36,6 +39,8 @@ export function UnitDetailModal({
   handover,
   priceLabel,
   unitPriceText,
+  extras,
+  fundNames,
   floor,
   unit,
   apartmentType,
@@ -114,12 +119,20 @@ export function UnitDetailModal({
             </DetailSection>
             <DetailSection title="Diện tích" action="Layout">
               <DetailGrid items={[['DT thông thủy', `${area} m²`], ['DT tim tường', 'File chưa có']]} />
+              {extras && Object.keys(extras).length > 0 &&
+              <div className="mt-4">
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-stone-400">
+                    Cột khác trong file
+                  </p>
+                  <DetailGrid items={Object.entries(extras)} />
+                </div>
+              }
             </DetailSection>
             <DetailSection title="CSBH & Quà tặng" action="Chi tiết">
               <DetailGrid items={[['CSBH áp dụng', '04/07/2026']]} />
             </DetailSection>
             <DetailSection title="Thông tin bàn giao">
-              <DetailGrid items={[['Tòa nhà', `Tòa ${buildingCode}`], ['Tầng', floor], ['Trục căn', unit], ['Hướng ban công', direction], ['Tiêu chuẩn bàn giao', handover === 'HTCB' ? 'Hoàn thiện cơ bản' : handover === 'Thô' ? 'Bàn giao thô' : 'Chưa có dữ liệu'], ['Quỹ căn', detail.fund === 'exclusive' ? 'Độc quyền' : 'Quỹ chéo']]} />
+              <DetailGrid items={[['Tòa nhà', `Tòa ${buildingCode}`], ['Tầng', floor], ['Trục căn', unit], ['Hướng ban công', direction], ['Tiêu chuẩn bàn giao', handover || 'Chưa có dữ liệu'], ['Quỹ căn', fundNames?.length ? fundNames.join(', ') : 'Không thuộc quỹ nào']]} />
             </DetailSection>
             <DetailSection title="Trạng thái">
               <div className="flex flex-wrap items-center justify-between gap-3">

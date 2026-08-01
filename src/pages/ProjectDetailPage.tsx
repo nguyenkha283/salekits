@@ -5,6 +5,7 @@ import { Header, Role } from '../detail/components/Header';
 import { Footer } from '../detail/components/Footer';
 import { ProjectCanvas } from '../detail/ProjectCanvas';
 import { buildSyncedMedia, type SyncedContent } from '../detail/syncedMedia';
+import type { InventorySource } from '../detail/components/InventorySetup';
 
 const DEMO_NAME = 'IMPERIA SKY PARK';
 
@@ -21,6 +22,15 @@ export function ProjectDetailPage() {
   const [role, setRole] = useState<Role>('Quản lý giao dịch');
   const [activeTab, setActiveTab] = useState('tong-quan');
   const [synced, setSynced] = useState<SyncedProject | null>(null);
+  /** Bảng hàng vừa nhập trong CMS, dùng cho trang xem trước cùng phiên. */
+  const [inventorySource] = useState<InventorySource | undefined>(() => {
+    try {
+      const raw = window.sessionStorage.getItem('cms:inventory');
+      return raw ? (JSON.parse(raw) as InventorySource) : undefined;
+    } catch {
+      return undefined;
+    }
+  });
   const [isLoading, setIsLoading] = useState(Boolean(projectId));
 
   useEffect(() => {
@@ -90,7 +100,8 @@ export function ProjectDetailPage() {
           projectName={projectName}
           overviewHtml={synced?.content?.overviewContent ?? ''}
           locationHtml={synced?.content?.locationContent ?? ''}
-          syncedMedia={syncedMedia} />
+          syncedMedia={syncedMedia}
+          inventorySource={inventorySource} />
 
       </main>
 

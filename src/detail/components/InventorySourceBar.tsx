@@ -9,8 +9,8 @@ import {
   UploadIcon,
   XIcon } from
 'lucide-react';
-import { SheetPickerDialog, type ParsedSheet } from './SheetPickerDialog';
-import { parseWorkbook, sampleWorkbook } from '../parseWorkbook';
+import { SheetPickerDialog } from './SheetPickerDialog';
+import { parseWorkbookFile, parseWorkbookLink, type DetectedSheet } from '../parseWorkbook';
 import type { InventorySource } from './InventorySetup';
 
 interface InventorySourceBarProps {
@@ -31,7 +31,8 @@ export function InventorySourceBar({ source, onResynced }: InventorySourceBarPro
   const [link, setLink] = useState(source.kind === 'link' ? source.label : '');
   const [file, setFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
-  const [sheets, setSheets] = useState<ParsedSheet[] | null>(null);
+  const [error, setError] = useState('');
+  const [sheets, setSheets] = useState<DetectedSheet[] | null>(null);
 
   const nextLabel = file ? file.name : link.trim();
   const inventorySheets = source.sheets.filter((sheet) => sheet.kind === 'inventory').length;
@@ -40,9 +41,18 @@ export function InventorySourceBar({ source, onResynced }: InventorySourceBarPro
   async function handleParse() {
     if (!nextLabel || isParsing) return;
     setIsParsing(true);
+    setError('');
     try {
-      setSheets(file ? await parseWorkbook(file) : sampleWorkbook());
+      const detected = file ?
+      await parseWorkbookFile(file) :
+      await parseWorkbookLink(link.trim());
+      if (!detected.length) throw new Error('File không có sheet nào đọc được.');
+      setSheets(detected);
       setStage('picking');
+    } catch (parseError) {
+      setError(
+        parseError instanceof Error ? parseError.message : 'Không đọc được file.'
+      );
     } finally {
       setIsParsing(false);
     }
@@ -261,6 +271,13 @@ export function InventorySourceBar({ source, onResynced }: InventorySourceBarPro
 
               </label>
             </div>
+
+            {error &&
+            <p className="mx-5 mb-3 flex gap-2 rounded-lg border border-[#efcfca] bg-[#fbedeb] p-3 text-[12px] leading-relaxed text-[#992d22]">
+                <AlertTriangleIcon className="mt-px h-3.5 w-3.5 shrink-0" />
+                {error}
+              </p>
+            }
 
             <div className="flex items-center gap-3 border-t border-[#eee4d5] px-5 py-3.5">
               <button
