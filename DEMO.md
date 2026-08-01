@@ -145,9 +145,21 @@ Trang công khai `/du-an?projectId=...` dùng chung dữ liệu này, nên biên
 
 Dự án mới chưa có bảng hàng, nên ba tab **Sản phẩm**, **Bảng hàng** và **Quỹ căn** hiện màn nhập nguồn dữ liệu thay vì bảng: một ô dán liên kết Google Sheet, hoặc vùng tải file Excel.
 
-Bấm **Đọc file** → hệ thống bóc tách sheet → **popup chọn sheet** hiện ra để phân loại từng sheet thành *Tòa nhà*, *Quỹ căn* hoặc *Bỏ qua*. Hệ thống không tự đoán theo tên sheet. Xác nhận xong ba tab mới hiển thị dữ liệu đầy đủ.
+Bấm **Đọc file** → hệ thống bóc tách sheet → **popup chọn sheet** hiện ra để phân loại từng sheet thành *Bảng hàng*, *Quỹ căn* hoặc *Bỏ qua*. Xác nhận xong ba tab mới hiển thị dữ liệu đầy đủ.
 
-Đây là luồng theo mục 3.5 của SRS. Chặn xác nhận nếu chưa chọn sheet Tòa nhà nào.
+**Tải file .xlsx thật lên thì danh sách sheet là thật** — hệ thống đọc trực tiếp bằng SheetJS, hiện đúng tên sheet, số dòng và số cột của file bạn chọn, kèm phân loại đoán sẵn theo tên (sửa lại được). Nhập bằng liên kết Google Sheet thì dùng cấu trúc mẫu, vì trình duyệt không đọc trực tiếp được — bản chính thức đọc ở backend.
+
+Chặn xác nhận nếu chưa chọn sheet Bảng hàng nào.
+
+### Đồng bộ lại bảng hàng
+
+Bảng hàng **không nằm trong thư mục Drive chung của dự án**, nên nó có nút đồng bộ riêng thay vì dùng nút *Đồng bộ lại* trên thanh đầu.
+
+Trong CMS, ba tab bảng hàng có **thanh nguồn dữ liệu** ở đầu trang: loại nguồn, đường dẫn, số sheet đã nhập, thời điểm đồng bộ gần nhất, liên kết mở file gốc, và nút **Đồng bộ lại bảng hàng**.
+
+Bấm nút này đi qua ba bước: **cảnh báo ghi đè** (nêu rõ dữ liệu bị thay thế, căn không còn trong file mới sẽ bị gỡ, thay đổi thủ công không được giữ, file cũ vẫn lưu để khôi phục) → **chọn nguồn mới** → **chọn lại sheet**. Không thể bỏ qua bước cảnh báo.
+
+Thanh nguồn chỉ hiện với vai trò có quyền sửa; trang công khai không thấy.
 
 ### Menu và vai trò
 

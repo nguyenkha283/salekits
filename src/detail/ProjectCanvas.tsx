@@ -14,7 +14,8 @@ import { NewsContent } from './components/NewsContent';
 import { BuildingsContent } from './components/BuildingsContent';
 import { FloorPlanContent } from './components/FloorPlanContent';
 import { TeamContent } from './components/TeamContent';
-import { InventorySetup } from './components/InventorySetup';
+import { InventorySetup, type InventorySource } from './components/InventorySetup';
+import { InventorySourceBar } from './components/InventorySourceBar';
 import {
   IMG,
   isImageItem,
@@ -87,9 +88,15 @@ interface ProjectCanvasProps {
   hierarchy?: string;
   /** Slogan dưới tên dự án trên hero. */
   tagline?: string;
-  /** Đã nhập bảng hàng chưa — quyết định hiện màn nhập hay bảng dữ liệu. */
-  inventoryReady?: boolean;
-  onImportInventory?: () => void;
+  /**
+   * Nguồn bảng hàng đã nhập.
+   *  undefined — trang công khai, dữ liệu đã xuất bản, luôn hiển thị bảng
+   *  null      — trong CMS nhưng chưa nhập, hiện màn nhập nguồn dữ liệu
+   */
+  inventorySource?: InventorySource | null;
+  onImportInventory?: (source: InventorySource) => void;
+  /** Hiện thanh nguồn kèm nút đồng bộ riêng — chỉ bật trong CMS. */
+  showInventoryBar?: boolean;
   /** Bật sửa chữ trực tiếp trên trang khi hiển thị trong CMS. */
   editing?: {
     enabled: boolean;
@@ -116,13 +123,16 @@ export function ProjectCanvas({
   stats,
   hierarchy,
   tagline,
-  inventoryReady = true,
+  inventorySource,
   onImportInventory,
+  showInventoryBar = false,
   editing,
   syncedMedia = {},
   chrome = true
 }: ProjectCanvasProps) {
   const isOverview = activeTab === 'tong-quan';
+  const isInventoryTab = ['toa-nha', 'bang-hang', 'quy-can'].includes(activeTab);
+  const inventoryReady = inventorySource === undefined || Boolean(inventorySource);
 
   // Rót dữ liệu Drive vào đúng section của từng component thiết kế sẵn.
   const overviewGroups = syncedMedia['tong-quan'];
@@ -236,10 +246,17 @@ export function ProjectCanvas({
         {activeTab === 'tai-lieu' && <DocumentsContent documents={documentFiles} />}
 
         {/* Ba tab phụ thuộc bảng hàng: chưa nhập thì hiện màn nhập nguồn dữ liệu. */}
-        {['toa-nha', 'bang-hang', 'quy-can'].includes(activeTab) && !inventoryReady &&
+        {isInventoryTab && !inventoryReady &&
         <InventorySetup
           context={activeTab === 'quy-can' ? 'quỹ căn' : activeTab === 'toa-nha' ? 'sản phẩm' : 'bảng hàng'}
-          onImported={() => onImportInventory?.()} />
+          onImported={(source) => onImportInventory?.(source)} />
+
+        }
+        {/* Bảng hàng có nguồn riêng ngoài Drive nên cần nút đồng bộ riêng. */}
+        {isInventoryTab && inventoryReady && showInventoryBar && inventorySource &&
+        <InventorySourceBar
+          source={inventorySource}
+          onResynced={(source) => onImportInventory?.(source)} />
 
         }
         {activeTab === 'toa-nha' && inventoryReady && <BuildingsContent />}

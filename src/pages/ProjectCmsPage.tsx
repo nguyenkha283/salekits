@@ -22,6 +22,7 @@ import {
 'lucide-react';
 import { Role } from '../detail/components/Header';
 import { CANVAS_TABS, ProjectCanvas, canEditTab } from '../detail/ProjectCanvas';
+import type { InventorySource } from '../detail/components/InventorySetup';
 import { HIERARCHY_OPTIONS, SECTIONS, findSection } from '../detail/sectionRegistry';
 import {
   IMG,
@@ -118,7 +119,7 @@ export function ProjectCmsPage() {
   const [configOpen, setConfigOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   /** Prototype: dự án mới chưa có bảng hàng cho tới khi người dùng nhập. */
-  const [inventoryReady, setInventoryReady] = useState(false);
+  const [inventorySource, setInventorySource] = useState<InventorySource | null>(null);
   const [synced, setSynced] = useState<SyncedProject | null>(null);
   const [edits, setEdits] = useState<SectionEdits>({});
   const [isResyncing, setIsResyncing] = useState(false);
@@ -454,10 +455,17 @@ export function ProjectCmsPage() {
             stats={stats}
             hierarchy={hierarchy}
             tagline={tagline}
-            inventoryReady={inventoryReady}
-            onImportInventory={() => {
-              setInventoryReady(true);
-              showNotice('Đã nhập bảng hàng — 55 căn, 4 tòa, 6 cột giá');
+            inventorySource={inventorySource}
+            showInventoryBar={editable}
+            onImportInventory={(source) => {
+              const isFirst = !inventorySource;
+              setInventorySource(source);
+              const count = source.sheets.filter((sheet) => sheet.kind === 'inventory').length;
+              showNotice(
+                isFirst ?
+                `Đã nhập bảng hàng từ ${count} sheet — 55 căn, 4 tòa, 6 cột giá` :
+                `Đã đồng bộ lại bảng hàng từ ${count} sheet`
+              );
             }}
             editing={{
               enabled: editable,
