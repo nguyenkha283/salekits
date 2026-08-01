@@ -86,6 +86,7 @@ export async function parseWorkbookLink(url: string): Promise<DetectedSheet[]> {
   if (!response.ok) throw new Error(data.error ?? 'Không đọc được Google Sheet.');
 
   if (typeof data.workbook === 'string') {
+    // CSV không có nhiều sheet; SheetJS vẫn đọc được qua cùng một đường.
     return readWorkbookBuffer(decodeBase64(data.workbook));
   }
 

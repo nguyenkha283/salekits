@@ -230,7 +230,7 @@ export function InventorySourceBar({ source, onResynced }: InventorySourceBarPro
             <div className="space-y-3 px-5 py-4">
               <label className="block">
                 <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-stone-400">
-                  Liên kết Google Sheet
+                  Liên kết Google Sheet hoặc file trên Drive
                 </span>
                 <div className="flex items-center gap-2 rounded-lg border border-[#e0d2bd] px-3 focus-within:border-[#f5921f]">
                   <LinkIcon className="h-4 w-4 shrink-0 text-stone-400" />

@@ -83,7 +83,7 @@ export function InventorySetup({ onImported, context = 'bảng hàng' }: Invento
           <div className="mt-6 space-y-3">
             <label className="block">
               <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-stone-400">
-                Liên kết Google Sheet
+                Liên kết Google Sheet hoặc file trên Drive
               </span>
               <div className="flex items-center gap-2 rounded-lg border border-[#e0d2bd] px-3 focus-within:border-[#f5921f]">
                 <LinkIcon className="h-4 w-4 shrink-0 text-stone-400" />
@@ -98,7 +98,8 @@ export function InventorySetup({ onImported, context = 'bảng hàng' }: Invento
 
               </div>
               <span className="mt-1.5 block text-[11px] text-stone-500">
-                File cần đặt chế độ chia sẻ để hệ thống đọc được.
+                Nhận Google Sheet gốc và cả file .xlsx, .xls, .csv tải lên Drive.
+                File cần được chia sẻ để hệ thống đọc được.
               </span>
             </label>
 
