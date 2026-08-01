@@ -4,26 +4,20 @@ import { Role } from './Header';
 import { UnitDetailModal } from './UnitDetailModal';
 import type { UnitStatus } from './UnitDetailModal';
 import {
-  axesOf,
   shortPrice,
   unitPrice,
   type FundGroup,
   type InventoryData,
   type ParsedUnit } from
 '../inventoryParser';
+import { InventoryGridEditor } from './InventoryGridEditor';
+import { buildGrid, type GridModel } from '../gridModel';
 
 interface InventoryTableProps {
   role: Role;
   /** Dữ liệu bóc từ file bảng hàng thật đã nhập. */
   data: InventoryData;
 }
-
-const STATUS_STYLES: Record<UnitStatus, {color: string;background: string;}> = {
-  'Còn hàng': { color: '#047857', background: '#d1fae5' },
-  'Đã lock': { color: 'rgba(245, 187, 39, 1)', background: 'rgba(245, 187, 39, 0.2)' },
-  'Đã cọc': { color: 'rgba(129, 55, 4, 1)', background: 'rgba(129, 55, 4, 0.2)' },
-  'Đã bán': { color: '#ff0000', background: 'rgba(255, 0, 0, 0.2)' }
-};
 
 const STATUS_LEGENDS: Array<{label: UnitStatus;color: string;}> = [
 { label: 'Còn hàng', color: '#047857' },
@@ -57,7 +51,13 @@ export function InventoryTable({ role, data }: InventoryTableProps) {
   /** Chỉ người quản lý mới đổi được cột giá hiển thị. */
   const canChangePrice = role === 'Quản lý giao dịch' || role === 'APM';
 
-  const axes = useMemo(() => axesOf(data.units, tower), [data.units, tower]);
+  /** Lưới soạn thảo của từng tòa; dựng lần đầu từ dữ liệu đã bóc rồi giữ lại. */
+  const [grids, setGrids] = useState<Record<string, GridModel>>({});
+  const grid = grids[tower] ?? buildGrid(data, tower);
+
+  function updateGrid(next: GridModel) {
+    setGrids((current) => ({ ...current, [tower]: next }));
+  }
   const activePriceColumn = data.priceFields[priceIndex];
   const priceGroups = useMemo(
     () => [...new Set(data.priceFields.map((field) => field.group))],
@@ -99,10 +99,6 @@ export function InventoryTable({ role, data }: InventoryTableProps) {
     );
   }
 
-  /** Một căn bất kỳ trong trục — dùng cho dòng tiêu đề Số PN và Diện tích. */
-  function sampleOf(column: string): ParsedUnit | undefined {
-    return data.units.find((item) => item.tower === tower && item.unit === column);
-  }
 
   function toggleFund(fundId: string) {
     setVisibleFunds((current) => {
@@ -248,9 +244,10 @@ export function InventoryTable({ role, data }: InventoryTableProps) {
       <div className="mt-5 overflow-hidden border border-[#e9e1d5] bg-white">
         <div className="flex flex-wrap items-center justify-between gap-3 bg-[#faf7f1] px-4 py-[13px] sm:px-8">
           <div>
-            <p className="text-[13px] font-semibold text-[#4a3728]">Tòa {tower}</p>
+            <p className="text-[13px] font-semibold text-[#4a3728]">{tower}</p>
             <p className="mt-0.5 text-[11px] text-[#9c8672]">
-              {axes.floors.length} tầng × {axes.columns.length} trục · đang hiển thị {activePriceColumn?.label ?? 'Giá'}
+              {grid.blocks.length} khối · {grid.blocks.reduce((total, block) => total + block.floors.length, 0)} tầng
+              · đang hiển thị {activePriceColumn?.label ?? 'Giá'}
             </p>
           </div>
           <span className="shrink-0 rounded bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
@@ -258,78 +255,23 @@ export function InventoryTable({ role, data }: InventoryTableProps) {
           </span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="inventory-table w-full table-fixed border-collapse text-center font-serif" aria-label={`Bảng hàng tòa ${tower}`}>
-            <colgroup>
-              <col className="inventory-side-column" />
-              {axes.columns.map((column) => <col key={column} />)}
-              <col className="inventory-side-column" />
-            </colgroup>
-            <thead>
-              <tr className="bg-[#827464] text-white">
-                <th className="inventory-side-cell">TẦNG/CĂN</th>
-                {axes.columns.map((column) => <th key={column} className="inventory-head-cell">{column}</th>)}
-                <th className="inventory-side-cell">TẦNG/CĂN</th>
-              </tr>
-              <tr className="bg-[#dedbcc] text-[#403b35]">
-                <th className="inventory-side-cell bg-[#827464] text-white">Số PN</th>
-                {axes.columns.map((column) => {
-                  const sample = sampleOf(column);
-                  return <th key={column} className="inventory-meta-cell">{sample?.bedrooms || '—'}</th>;
-                })}
-                <th className="inventory-side-cell bg-[#827464] text-white">Số PN</th>
-              </tr>
-              <tr className="bg-[#dedbcc] text-[#403b35]">
-                <th className="inventory-side-cell bg-[#827464] text-white">DT TT</th>
-                {axes.columns.map((column) => {
-                  const sample = sampleOf(column);
-                  return <th key={column} className="inventory-meta-cell">{sample?.area ? sample.area.toFixed(1) : '—'}</th>;
-                })}
-                <th className="inventory-side-cell bg-[#827464] text-white">DT TT</th>
-              </tr>
-            </thead>
-            <tbody>
-              {axes.floors.map((floor) =>
-              <tr key={floor}>
-                  <th className="inventory-floor-cell">{floor}</th>
-                  {axes.columns.map((column) => {
-                  const unit = unitAt(floor, column);
-                  const shouldShow =
-                  unit && passesFundFilter(unit) && visibleStatuses[unit.status] !== false;
-                  const style = unit ? STATUS_STYLES[unit.status] : STATUS_STYLES['Còn hàng'];
+        <div className="p-3 sm:p-4">
+          <InventoryGridEditor
+            model={grid}
+            onChange={updateGrid}
+            editable={canChangePrice}
+            unitAt={unitAt}
+            renderPrice={(unit) => shortPrice(unit.prices[priceIndex])}
+            isVisible={(unit) =>
+            passesFundFilter(unit) && visibleStatuses[unit.status] !== false
+            }
+            onSelectUnit={setSelectedUnit} />
 
-                  return (
-                    <td key={column} className="inventory-unit-cell">
-                        {shouldShow && unit &&
-                      <button
-                        onClick={() => setSelectedUnit(unit)}
-                        className="inventory-unit-status-value cursor-pointer transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#4a3728]"
-                        style={{ backgroundColor: style.background, color: style.color }}
-                        aria-label={`Xem chi tiết căn ${unit.code}, ${shortPrice(unit.prices[priceIndex])}, trạng thái ${unit.status}`}>
-
-                            <span className="inventory-unit-price">{shortPrice(unit.prices[priceIndex])}</span>
-                            <span className="inventory-unit-status-label">{unit.status}</span>
-                            {fundsOf(unit).length > 0 &&
-                        <CrownIcon
-                          className="inventory-unit-crown"
-                          style={{ color: fundColors[fundsOf(unit)[0]] }}
-                          aria-label={funds.find((fund) => fund.id === fundsOf(unit)[0])?.name} />
-
-                        }
-                          </button>
-                      }
-                      </td>);
-
-                })}
-                  <th className="inventory-floor-cell">{floor}</th>
-                </tr>
-              )}
-            </tbody>
-          </table>
         </div>
 
         <p className="border-t border-[#e9e1d5] bg-[#faf7f1] px-4 py-2.5 text-[11.5px] text-[#9c8672] sm:px-8">
-          Ô trống là căn không thuộc quỹ này. Sheet hiện tại phủ khoảng 20% số ô của lưới.
+          Ô trống là căn không có trong file. Dòng tiêu đề nào file không có dữ
+          liệu thì để trống — bấm vào để tự điền.
         </p>
       </div>
 

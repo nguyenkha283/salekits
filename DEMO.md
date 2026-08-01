@@ -169,6 +169,24 @@ Popup chọn sheet hiện **kết quả nhận diện của từng sheet**: số
 
 Bộ chọn loại giá sinh động theo số cột giá thật trong file, gom theo đúng nhóm của file.
 
+### Soạn thảo lưới bảng hàng
+
+Bảng hàng luôn có đủ **sáu dòng tiêu đề**: TẦNG/CĂN, LOẠI HÌNH, HƯỚNG, DT THÔNG THỦY, DT TIM TƯỜNG, VIEW. Dòng nào file không có dữ liệu thì để trống — bấm vào ô là điền được ngay.
+
+| Thao tác | Cách làm |
+|---|---|
+| Sửa ô tiêu đề | Bấm vào ô, gõ trực tiếp |
+| **Gộp ô** | Bấm ô đầu, giữ `Shift` bấm ô cuối, rồi bấm **Gộp ô**. Dùng cho VIEW chung nhiều trục, ví dụ *View Đường Nguyễn Trãi* phủ trục 01–08A |
+| Tách ô | Chọn ô đã gộp, bấm **Tách ô** |
+| Thêm trục căn | Nút `+` ở cuối dòng trục |
+| Xóa trục | Biểu tượng thùng rác cạnh tên trục |
+| Thêm tầng | Nút **Thêm tầng** cuối mỗi khối |
+| **Thêm khối** | Nút cuối bảng — dựng khối mới có đủ sáu dòng tiêu đề và cấu trúc trục riêng, dùng cho **penthouse** (thông tầng) và **duplex** (thông căn) ở các tầng trên cùng |
+
+Gộp ô xử lý đúng cả khi vùng chọn chồng lên ô đã gộp sẵn — hệ thống tự nới ra hết ranh giới thay vì cắt đôi. Thêm hoặc xóa trục ở giữa vùng gộp cũng tự điều chỉnh độ phủ.
+
+Trang công khai hiển thị cùng lưới đó ở chế độ chỉ xem.
+
 Chặn xác nhận nếu chưa chọn sheet Bảng hàng nào.
 
 ### Đồng bộ lại bảng hàng
