@@ -176,12 +176,15 @@ Bảng hàng luôn có đủ **sáu dòng tiêu đề**: TẦNG/CĂN, LOẠI HÌ
 | Thao tác | Cách làm |
 |---|---|
 | Sửa ô tiêu đề | Bấm vào ô, gõ trực tiếp |
-| **Gộp ô** | Bấm ô đầu, giữ `Shift` bấm ô cuối, rồi bấm **Gộp ô**. Dùng cho VIEW chung nhiều trục, ví dụ *View Đường Nguyễn Trãi* phủ trục 01–08A |
-| Tách ô | Chọn ô đã gộp, bấm **Tách ô** |
+| **Gộp ô** | Bôi đen các ô rồi bấm **chuột phải** → *Gộp ô*. Dùng cho VIEW chung nhiều trục |
+| Tách ô | Chuột phải lên ô đã gộp → *Tách ô* |
+| Không có chuột | Chạm giữ 0,5 giây trên máy cảm ứng; hoặc `Shift`+mũi tên rồi `Ctrl`+`M`; hoặc hai nút trên thanh công cụ |
 | Thêm trục căn | Nút `+` ở cuối dòng trục |
 | Xóa trục | Biểu tượng thùng rác cạnh tên trục |
 | Thêm tầng | Nút **Thêm tầng** cuối mỗi khối |
 | **Thêm khối** | Nút cuối bảng — dựng khối mới có đủ sáu dòng tiêu đề và cấu trúc trục riêng, dùng cho **penthouse** (thông tầng) và **duplex** (thông căn) ở các tầng trên cùng |
+
+Thang tầng và thang căn sinh **đầy đủ từ 1 tới giá trị lớn nhất** trong file, xếp tăng dần. Tầng đặc biệt như `8A`, `06A`, `12A` giữ đúng vị trí ngay sau tầng cùng số. Số căn suy được từ mã căn khi file không có cột riêng.
 
 Gộp ô xử lý đúng cả khi vùng chọn chồng lên ô đã gộp sẵn — hệ thống tự nới ra hết ranh giới thay vì cắt đôi. Thêm hoặc xóa trục ở giữa vùng gộp cũng tự điều chỉnh độ phủ.
 

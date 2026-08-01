@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   CombineIcon,
+  EraserIcon,
   LayersIcon,
   PlusIcon,
   SplitIcon,
@@ -63,6 +64,36 @@ export function InventoryGridEditor({
   onSelectUnit
 }: InventoryGridEditorProps) {
   const [selection, setSelection] = useState<Selection | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [menu, setMenu] = useState<{x: number;y: number;} | null>(null);
+  const longPress = useRef<number | null>(null);
+
+  // Thả chuột ở bất kỳ đâu đều kết thúc thao tác bôi đen.
+  useEffect(() => {
+    if (!isDragging) return;
+    const stop = () => setIsDragging(false);
+    window.addEventListener('mouseup', stop);
+    window.addEventListener('touchend', stop);
+    return () => {
+      window.removeEventListener('mouseup', stop);
+      window.removeEventListener('touchend', stop);
+    };
+  }, [isDragging]);
+
+  // Đóng menu khi bấm ra ngoài hoặc nhấn Escape.
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenu(null);
+    };
+    window.addEventListener('mousedown', close);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('mousedown', close);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [menu]);
 
   function updateBlock(blockId: string, patch: (block: GridBlock) => GridBlock) {
     onChange({
@@ -70,19 +101,96 @@ export function InventoryGridEditor({
     });
   }
 
-  function handleCellClick(
+  /** Bắt đầu bôi đen: bấm giữ rồi rê sang các ô kế bên. */
+  function startSelect(
+  event: React.MouseEvent,
+  blockId: string,
+  rowId: HeaderRowId,
+  index: number)
+  {
+    if (!editable || event.button === 2) return;
+
+    if (event.shiftKey && selection?.blockId === blockId && selection.rowId === rowId) {
+      setSelection({ ...selection, end: index });
+      return;
+    }
+    setSelection({ blockId, rowId, start: index, end: index });
+    setIsDragging(true);
+  }
+
+  /** Rê qua ô khác cùng dòng thì mở rộng vùng chọn. */
+  function extendSelect(blockId: string, rowId: HeaderRowId, index: number) {
+    if (!isDragging || !selection) return;
+    if (selection.blockId !== blockId || selection.rowId !== rowId) return;
+    setSelection({ ...selection, end: index });
+  }
+
+  /** Chuột phải mở menu; nếu bấm ngoài vùng đang chọn thì chọn lại ô đó. */
+  function openMenu(
   event: React.MouseEvent,
   blockId: string,
   rowId: HeaderRowId,
   index: number)
   {
     if (!editable) return;
-    // Shift-click để chọn vùng rồi gộp.
-    if (event.shiftKey && selection && selection.blockId === blockId && selection.rowId === rowId) {
-      setSelection({ ...selection, end: index });
+    event.preventDefault();
+
+    const inside =
+    selection?.blockId === blockId &&
+    selection.rowId === rowId &&
+    index >= Math.min(selection.start, selection.end) &&
+    index <= Math.max(selection.start, selection.end);
+
+    if (!inside) setSelection({ blockId, rowId, start: index, end: index });
+    setMenu({ x: event.clientX, y: event.clientY });
+  }
+
+  /** Cảm ứng: chạm giữ 500 ms mở đúng menu đó. */
+  function startLongPress(
+  event: React.TouchEvent,
+  blockId: string,
+  rowId: HeaderRowId,
+  index: number)
+  {
+    if (!editable) return;
+    const touch = event.touches[0];
+    longPress.current = window.setTimeout(() => {
+      const inside =
+      selection?.blockId === blockId &&
+      selection.rowId === rowId &&
+      index >= Math.min(selection.start, selection.end) &&
+      index <= Math.max(selection.start, selection.end);
+      if (!inside) setSelection({ blockId, rowId, start: index, end: index });
+      setMenu({ x: touch.clientX, y: touch.clientY });
+    }, 500);
+  }
+
+  function cancelLongPress() {
+    if (longPress.current) {
+      window.clearTimeout(longPress.current);
+      longPress.current = null;
+    }
+  }
+
+  /** Bàn phím: Shift + mũi tên mở rộng vùng, Ctrl/Cmd + M gộp. */
+  function handleKeyDown(event: React.KeyboardEvent) {
+    if (!editable || !selection || !activeBlock) return;
+
+    if (event.shiftKey && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+      event.preventDefault();
+      const step = event.key === 'ArrowRight' ? 1 : -1;
+      const next = Math.min(
+        Math.max(selection.end + step, 0),
+        activeBlock.columns.length - 1
+      );
+      setSelection({ ...selection, end: next });
       return;
     }
-    setSelection({ blockId, rowId, start: index, end: index });
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'm') {
+      event.preventDefault();
+      if (event.shiftKey) doSplit();else
+      doMerge();
+    }
   }
 
   const activeBlock = model.blocks.find((block) => block.id === selection?.blockId);
@@ -121,11 +229,12 @@ export function InventoryGridEditor({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5" onKeyDown={handleKeyDown}>
       {editable &&
       <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[#e0d2bd] bg-[#faf7f1] px-3 py-2">
           <span className="text-[12px] text-[#6b5d4d]">
-            Bấm ô tiêu đề để sửa · giữ <kbd className="rounded border border-[#d9cdb8] bg-white px-1 font-mono text-[10px]">Shift</kbd> và bấm ô khác để chọn vùng
+            Bôi đen các ô rồi <b>bấm chuột phải</b> · trên máy cảm ứng thì{' '}
+            <b>chạm giữ</b> · hoặc dùng hai nút bên phải
           </span>
           <div className="ml-auto flex gap-2">
             <button
@@ -157,7 +266,11 @@ export function InventoryGridEditor({
         blockIndex={blockIndex}
         editable={editable}
         selection={selection && selection.blockId === block.id ? selection : null}
-        onCellClick={handleCellClick}
+        onStartSelect={startSelect}
+        onExtendSelect={extendSelect}
+        onOpenMenu={openMenu}
+        onLongPressStart={startLongPress}
+        onLongPressCancel={cancelLongPress}
         onChangeBlock={(patch) => updateBlock(block.id, patch)}
         onRemoveBlock={
         model.blocks.length > 1 ?
@@ -171,6 +284,57 @@ export function InventoryGridEditor({
         onSelectUnit={onSelectUnit} />
 
       )}
+
+      {menu &&
+      <div
+        role="menu"
+        className="fixed z-[90] min-w-[190px] overflow-hidden rounded-lg bg-white py-1 shadow-2xl ring-1 ring-black/10"
+        style={{ top: menu.y, left: menu.x }}
+        onMouseDown={(event) => event.stopPropagation()}>
+
+          <MenuItem
+          icon={<CombineIcon className="h-3.5 w-3.5" />}
+          label="Gộp ô"
+          hint="Ctrl+M"
+          disabled={!canMerge}
+          onClick={() => {
+            doMerge();
+            setMenu(null);
+          }} />
+
+          <MenuItem
+          icon={<SplitIcon className="h-3.5 w-3.5" />}
+          label="Tách ô"
+          hint="Ctrl+Shift+M"
+          disabled={!canSplit}
+          onClick={() => {
+            doSplit();
+            setMenu(null);
+          }} />
+
+          <div className="my-1 h-px bg-[#eee4d5]" />
+          <MenuItem
+          icon={<EraserIcon className="h-3.5 w-3.5" />}
+          label="Xóa nội dung ô"
+          onClick={() => {
+            if (selection) {
+              updateBlock(selection.blockId, (block) => ({
+                ...block,
+                headers: {
+                  ...block.headers,
+                  [selection.rowId]: setCellValue(
+                    block.headers[selection.rowId],
+                    selection.start,
+                    ''
+                  )
+                }
+              }));
+            }
+            setMenu(null);
+          }} />
+
+        </div>
+      }
 
       {editable &&
       <button
@@ -199,12 +363,11 @@ interface BlockTableProps {
   blockIndex: number;
   editable: boolean;
   selection: Selection | null;
-  onCellClick: (
-  event: React.MouseEvent,
-  blockId: string,
-  rowId: HeaderRowId,
-  index: number)
-  => void;
+  onStartSelect: (event: React.MouseEvent, blockId: string, rowId: HeaderRowId, index: number) => void;
+  onExtendSelect: (blockId: string, rowId: HeaderRowId, index: number) => void;
+  onOpenMenu: (event: React.MouseEvent, blockId: string, rowId: HeaderRowId, index: number) => void;
+  onLongPressStart: (event: React.TouchEvent, blockId: string, rowId: HeaderRowId, index: number) => void;
+  onLongPressCancel: () => void;
   onChangeBlock: (patch: (block: GridBlock) => GridBlock) => void;
   onRemoveBlock?: () => void;
   unitAt: (floor: string, column: string) => ParsedUnit | undefined;
@@ -218,7 +381,11 @@ function BlockTable({
   blockIndex,
   editable,
   selection,
-  onCellClick,
+  onStartSelect,
+  onExtendSelect,
+  onOpenMenu,
+  onLongPressStart,
+  onLongPressCancel,
   onChangeBlock,
   onRemoveBlock,
   unitAt,
@@ -337,11 +504,18 @@ function BlockTable({
                       <td
                         key={index}
                         colSpan={cell.span}
-                        onClick={(event) => onCellClick(event, block.id, row.id, index)}
-                        className={`border border-white px-1 py-1 ${
+                        onMouseDown={(event) => onStartSelect(event, block.id, row.id, index)}
+                        onMouseEnter={() => onExtendSelect(block.id, row.id, index)}
+                        onContextMenu={(event) => onOpenMenu(event, block.id, row.id, index)}
+                        onTouchStart={(event) => onLongPressStart(event, block.id, row.id, index)}
+                        onTouchEnd={onLongPressCancel}
+                        onTouchMove={onLongPressCancel}
+                        className={`select-none border border-white px-1 py-1 ${
                         isView ? 'bg-[#fbdede]' : 'bg-[#d9f0dc]'} ${
                         editable ? 'cursor-pointer' : ''} ${
-                        inSelection ? 'outline outline-2 -outline-offset-2 outline-[#f5921f]' : ''}`
+                        inSelection ?
+                        'bg-[#ffe9cf]/90 outline outline-2 -outline-offset-2 outline-[#f5921f]' :
+                        ''}`
                         }>
 
                         {editable ?
@@ -469,5 +643,39 @@ function BlockTable({
         </table>
       </div>
     </div>);
+
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Mục trong menu ngữ cảnh
+   ═══════════════════════════════════════════════════════════════ */
+
+function MenuItem({
+  icon,
+  label,
+  hint,
+  disabled,
+  onClick
+}: {
+  icon: React.ReactNode;
+  label: string;
+  hint?: string;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      disabled={disabled}
+      onClick={onClick}
+      className="flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[13px] text-stone-700 transition-colors hover:bg-[#faf6ef] disabled:cursor-not-allowed disabled:text-stone-300">
+
+      <span className="shrink-0 text-[#b08e5c]">{icon}</span>
+      <span className="flex-1">{label}</span>
+      {hint &&
+      <kbd className="shrink-0 font-mono text-[10px] text-stone-400">{hint}</kbd>
+      }
+    </button>);
 
 }

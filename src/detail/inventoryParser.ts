@@ -6,6 +6,13 @@
  * dòng bất kỳ và thường trải trên nhiều dòng.
  */
 
+import {
+  buildLadder,
+  buildUnitLadder,
+  compareLabels,
+  splitUnitCode } from
+'./unitCode';
+
 export type Cell = string | number | null | undefined;
 export type Grid = Cell[][];
 
@@ -22,6 +29,10 @@ export interface ParsedUnit {
   tower: string;
   floor: string;
   unit: string;
+  /** Ký hiệu tòa lấy từ mã căn, ví dụ "A1" của "A1-22.07". */
+  towerCode?: string;
+  /** Trường nào được suy ra từ mã căn thay vì đọc thẳng từ cột. */
+  derived?: Array<'tower' | 'floor' | 'unit'>;
   area: number | null;
   bedrooms: string;
   handover: string;
@@ -327,6 +338,58 @@ export function analyzeSheet(grid: Grid, sheetName: string): SheetAnalysis {
     });
   }
 
+  // ── Suy tòa / tầng / căn từ mã căn cho những dòng thiếu ──────────────
+  const towerCodes = [
+  ...new Set(
+    units.
+    map((item) => splitUnitCode(item.code).towerCode).
+    filter(Boolean)
+  )];
+
+
+  let derivedUnits = 0;
+  let derivedFloors = 0;
+  let failedSplits = 0;
+
+  units.forEach((item) => {
+    const split = splitUnitCode(item.code, {
+      floorHint: item.floor,
+      towerCodes
+    });
+
+    if (split.method === 'failed') {
+      if (!item.unit) failedSplits += 1;
+      return;
+    }
+
+    const derived: Array<'tower' | 'floor' | 'unit'> = [];
+    item.towerCode = split.towerCode;
+
+    if (!item.unit && split.unit) {
+      item.unit = split.unit;
+      derived.push('unit');
+      derivedUnits += 1;
+    }
+    if (!item.floor && split.floor) {
+      item.floor = split.floor;
+      derived.push('floor');
+      derivedFloors += 1;
+    }
+    if ((!item.tower || item.tower === '—') && split.towerCode) {
+      item.tower = split.towerCode;
+      derived.push('tower');
+    }
+    if (derived.length) item.derived = derived;
+  });
+
+  if (derivedUnits) warnings.push(`Đã suy số căn từ mã căn cho ${derivedUnits} dòng.`);
+  if (derivedFloors) warnings.push(`Đã suy số tầng từ mã căn cho ${derivedFloors} dòng.`);
+  if (failedSplits) {
+    warnings.push(
+      `${failedSplits} mã căn không tách được thành tầng và căn — cần khai quy ước mã căn.`
+    );
+  }
+
   if (unknownStatuses.size) {
     warnings.push(
       `Tình trạng chưa có trong danh mục ánh xạ: ${[...unknownStatuses].join(', ')} — tạm coi là Còn hàng.`
@@ -413,7 +476,7 @@ sheets: Array<{name: string;kind: string;analysis: SheetAnalysis;}>)
     };
   });
 
-  const towers = [...new Set(units.map((unit) => unit.tower))].sort();
+  const towers = [...new Set(units.map((unit) => unit.tower))].filter(Boolean).sort();
   const priceFields = inventorySheets[0]?.analysis.priceFields ?? [];
 
   return {
@@ -430,25 +493,20 @@ sheets: Array<{name: string;kind: string;analysis: SheetAnalysis;}>)
    Trục lưới và định dạng
    ───────────────────────────────────────────────────────────── */
 
-/** Tầng có dạng 05A, 12A nên không sort số được. */
-function labelRank(value: string): [number, string] {
-  const match = value.match(/^(\d+)\s*([A-Za-z]*)$/);
-  return match ? [Number(match[1]), match[2].toUpperCase()] : [Number.MAX_SAFE_INTEGER, value];
-}
+export { compareLabels as compareLabel };
 
-export function compareLabel(a: string, b: string): number {
-  const [na, sa] = labelRank(a);
-  const [nb, sb] = labelRank(b);
-  return na - nb || sa.localeCompare(sb);
-}
-
+/**
+ * Trục của lưới một tòa.
+ *
+ * Thang tầng và thang căn được sinh ĐẦY ĐỦ từ 1 tới giá trị lớn nhất quan sát
+ * được, kèm các tầng đặc biệt (8A, 06A) đặt đúng vị trí. Nhờ vậy bảng hàng
+ * hiện đủ lưới kể cả khi file chỉ liệt kê vài chục căn rải rác.
+ */
 export function axesOf(units: ParsedUnit[], tower: string) {
   const inTower = units.filter((unit) => unit.tower === tower);
   return {
-    floors: [...new Set(inTower.map((unit) => unit.floor).filter(Boolean))].
-    sort(compareLabel).
-    reverse(),
-    columns: [...new Set(inTower.map((unit) => unit.unit).filter(Boolean))].sort(compareLabel)
+    floors: buildLadder([...new Set(inTower.map((unit) => unit.floor).filter(Boolean))]),
+    columns: buildUnitLadder([...new Set(inTower.map((unit) => unit.unit).filter(Boolean))])
   };
 }
 
