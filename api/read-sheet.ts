@@ -133,6 +133,13 @@ async function downloadBinary(fileId: string): Promise<string> {
   return Buffer.from(response.data as ArrayBuffer).toString('base64');
 }
 
+/** Trích link bật API từ thông báo lỗi của Google, nếu có. */
+function enableUrl(error: unknown): string | null {
+  const message = error instanceof Error ? error.message : String(error);
+  const match = message.match(/https:\/\/console\.developers\.google\.com\S+/);
+  return match ? match[0].replace(/[.,)]+$/, '') : null;
+}
+
 function isApiDisabled(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
   return /has not been used in project|SERVICE_DISABLED|accessNotConfigured/i.test(
@@ -215,6 +222,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Bước 3: Google Sheet gốc — Sheets API là đường chính.
+  let sheetsError: unknown = null;
   try {
     res.status(200).json({
       source: 'sheets-api',
@@ -227,7 +235,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res.status(502).json({ error: describe(error) });
       return;
     }
-    // Sheets API chưa bật — rơi xuống đường xuất file, mất thông tin ô gộp.
+    // Sheets API chưa bật — thử xuất file, nhưng đường này mất ô gộp và
+    // sẽ hỏng nếu chủ đầu tư chặn tải xuống.
+    sheetsError = error;
   }
 
   try {
@@ -238,6 +248,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       workbook: await exportGoogleSheet(fileId)
     });
   } catch (error) {
-    res.status(502).json({ error: describe(error) });
+    // Cả hai đường đều hỏng. Nguyên nhân gốc là Sheets API chưa bật, không
+    // phải lỗi xuất file — nên báo đúng nguyên nhân đó thay vì lỗi phái sinh.
+    const cannotExport = /cannot be exported|exportSizeLimitExceeded/i.test(
+      error instanceof Error ? error.message : String(error)
+    );
+
+    if (sheetsError && cannotExport) {
+      const link = enableUrl(sheetsError);
+      res.status(502).json({
+        error:
+        `File "${fileName}" bị chặn tải xuống nên không xuất được. ` +
+        'Cách duy nhất để đọc file này là bật Google Sheets API cho project' +
+        (link ? `: ${link}` : '.') +
+        ' Sau khi bật, đợi 1–2 phút rồi thử lại.',
+        needsSheetsApi: true,
+        enableUrl: link
+      });
+      return;
+    }
+
+    res.status(502).json({ error: describe(sheetsError ?? error) });
   }
 }
