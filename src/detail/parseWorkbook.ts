@@ -30,6 +30,8 @@ export interface WorkbookResult {
   source: 'sheets-api' | 'drive-export' | 'drive-download' | 'file';
   /** Lời nhắc khi đường đọc không lấy được đủ thông tin. */
   degraded?: string;
+  /** Thời điểm chủ đầu tư sửa file lần cuối. */
+  modifiedTime?: string;
 }
 
 /** Đoán phân loại ban đầu từ tên sheet — người dùng vẫn sửa lại được. */
@@ -165,7 +167,8 @@ export async function parseWorkbookLink(url: string): Promise<WorkbookResult> {
     return {
       sheets: await readWorkbookBuffer(decodeBase64(data.workbook)),
       source: data.source ?? 'drive-export',
-      degraded: data.degraded
+      degraded: data.degraded,
+      modifiedTime: data.modifiedTime
     };
   }
 
@@ -179,5 +182,27 @@ export async function parseWorkbookLink(url: string): Promise<WorkbookResult> {
   toSheet(sheet.name, sheet.grid, sheet.merges, sheet.hiddenRows, sheet.hidden)
   );
 
-  return { sheets, source: 'sheets-api' };
+  return { sheets, source: 'sheets-api', modifiedTime: data.modifiedTime };
+}
+
+export interface SheetStatus {
+  fileName: string;
+  modifiedTime: string;
+  modifiedBy: string;
+  unavailable?: boolean;
+}
+
+/**
+ * Hỏi Drive xem chủ đầu tư đã sửa file chưa. Chỉ đọc metadata nên đủ nhẹ để
+ * gọi định kỳ mà không ảnh hưởng quota.
+ */
+export async function checkSheetStatus(url: string): Promise<SheetStatus | null> {
+  try {
+    const response = await fetch(`/api/check-sheet?url=${encodeURIComponent(url)}`);
+    const data = await response.json();
+    if (!response.ok || data.unavailable) return null;
+    return data as SheetStatus;
+  } catch {
+    return null;
+  }
 }

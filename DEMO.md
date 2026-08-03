@@ -203,6 +203,18 @@ Trang công khai hiển thị cùng lưới đó ở chế độ chỉ xem.
 
 Chặn xác nhận nếu chưa chọn sheet Bảng hàng nào.
 
+### Theo dõi thay đổi từ chủ đầu tư
+
+Khi nguồn bảng hàng là link Google Sheet, hệ thống **tự kiểm tra mỗi 5 phút** xem chủ đầu tư đã sửa file chưa — chỉ đọc metadata nên rất nhẹ. Chạy ở cấp trang nên nhận được thông báo kể cả khi đang ở tab khác.
+
+Phát hiện thay đổi thì: đẩy thông báo vào **chuông** trên thanh đầu, hiện huy hiệu cam trên thanh nguồn, và nút Đồng bộ lại chuyển sang màu cam.
+
+Bấm đồng bộ lại sẽ hiện **màn so khác biệt** trước khi ghi đè: căn mới bổ sung, căn bị gỡ, và từng căn đổi thông tin với giá trị cũ gạch ngang. Hai nút *Để sau* hoặc *Áp dụng thay đổi* — không có đường nào tự ghi đè.
+
+**Ngưỡng an toàn:** nếu hơn 30% số căn bị ảnh hưởng (và tổng trên 20 căn), hệ thống chặn áp dụng và cảnh báo — mức đó thường do chủ đầu tư đổi cấu trúc file khiến ánh xạ cột lệch, chứ hiếm khi là thay đổi kinh doanh thật. Muốn áp vẫn được, nhưng phải tích ô xác nhận.
+
+**Mất quyền truy cập:** ba lần kiểm tra thất bại liên tiếp thì báo *"Mất quyền đọc file nguồn"* — tránh để đồng bộ hỏng âm thầm hàng tuần.
+
 ### Đồng bộ lại bảng hàng
 
 Bảng hàng **không nằm trong thư mục Drive chung của dự án**, nên nó có nút đồng bộ riêng thay vì dùng nút *Đồng bộ lại* trên thanh đầu.

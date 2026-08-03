@@ -16,7 +16,10 @@ import { FloorPlanContent } from './components/FloorPlanContent';
 import { TeamContent } from './components/TeamContent';
 import { InventorySetup, type InventorySource } from './components/InventorySetup';
 import { buildInventory, type InventoryData } from './inventoryParser';
-import { InventorySourceBar } from './components/InventorySourceBar';
+import {
+  InventorySourceBar,
+  type UpstreamChange } from
+'./components/InventorySourceBar';
 import {
   IMG,
   isImageItem,
@@ -98,6 +101,10 @@ interface ProjectCanvasProps {
   onImportInventory?: (source: InventorySource) => void;
   /** Hiện thanh nguồn kèm nút đồng bộ riêng — chỉ bật trong CMS. */
   showInventoryBar?: boolean;
+  /** Thay đổi phía chủ đầu tư, do trang CMS phát hiện. */
+  upstreamChange?: UpstreamChange | null;
+  /** Mất quyền đọc file nguồn. */
+  sourceAccessLost?: boolean;
   /** Bật sửa chữ trực tiếp trên trang khi hiển thị trong CMS. */
   editing?: {
     enabled: boolean;
@@ -127,6 +134,8 @@ export function ProjectCanvas({
   inventorySource,
   onImportInventory,
   showInventoryBar = false,
+  upstreamChange = null,
+  sourceAccessLost = false,
   editing,
   syncedMedia = {},
   chrome = true
@@ -265,6 +274,8 @@ export function ProjectCanvas({
         {isInventoryTab && inventoryReady && showInventoryBar && inventorySource &&
         <InventorySourceBar
           source={inventorySource}
+          upstream={upstreamChange}
+          accessLost={sourceAccessLost}
           onResynced={(source) => onImportInventory?.(source)} />
 
         }

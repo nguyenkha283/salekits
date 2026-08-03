@@ -16,6 +16,8 @@ export interface InventorySource {
   sheets: DetectedSheet[];
   /** Cột giá người dùng chọn khi nhập. */
   priceIndex: number;
+  /** Thời điểm chủ đầu tư sửa file, tại lần đồng bộ này. */
+  modifiedTime?: string;
 }
 
 interface InventorySetupProps {
@@ -37,6 +39,7 @@ export function InventorySetup({ onImported, context = 'bảng hàng' }: Invento
   const [error, setError] = useState('');
   /** Lời nhắc khi đường đọc không lấy được đủ thông tin. */
   const [degraded, setDegraded] = useState('');
+  const [modifiedTime, setModifiedTime] = useState('');
   const [sheets, setSheets] = useState<DetectedSheet[] | null>(null);
 
   const sourceLabel = file ? file.name : link.trim();
@@ -52,6 +55,7 @@ export function InventorySetup({ onImported, context = 'bảng hàng' }: Invento
       await parseWorkbookLink(link.trim());
       if (!result.sheets.length) throw new Error('File không có sheet nào đọc được.');
       setDegraded(result.degraded ?? '');
+      setModifiedTime(result.modifiedTime ?? '');
       setSheets(result.sheets);
     } catch (parseError) {
       setError(
@@ -175,7 +179,8 @@ export function InventorySetup({ onImported, context = 'bảng hàng' }: Invento
             label: sourceLabel,
             syncedAt: new Date().toISOString(),
             sheets: picked,
-            priceIndex
+            priceIndex,
+            modifiedTime
           });
         }} />
 

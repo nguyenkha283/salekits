@@ -23,6 +23,8 @@ import {
 import { Role } from '../detail/components/Header';
 import { CANVAS_TABS, ProjectCanvas, canEditTab } from '../detail/ProjectCanvas';
 import type { InventorySource } from '../detail/components/InventorySetup';
+import type { UpstreamChange } from '../detail/components/InventorySourceBar';
+import { checkSheetStatus } from '../detail/parseWorkbook';
 import { HIERARCHY_OPTIONS, SECTIONS, findSection } from '../detail/sectionRegistry';
 import {
   IMG,
@@ -51,8 +53,17 @@ const ROLES: Role[] = [
 'User khác'];
 
 
+interface Notification {
+  id: string;
+  unread: boolean;
+  title: string;
+  body: string;
+  time: string;
+  tone?: 'info' | 'warn' | 'danger';
+}
+
 /** Thông báo mẫu theo UC-21 của SRS. */
-const NOTIFICATIONS = [
+const SEED_NOTIFICATIONS: Notification[] = [
 {
   id: 'n1', unread: true,
   title: 'Trưởng line yêu cầu chỉnh sửa',
@@ -120,6 +131,9 @@ export function ProjectCmsPage() {
   const [bellOpen, setBellOpen] = useState(false);
   /** Prototype: dự án mới chưa có bảng hàng cho tới khi người dùng nhập. */
   const [inventorySource, setInventorySource] = useState<InventorySource | null>(null);
+  const [notifications, setNotifications] = useState<Notification[]>(SEED_NOTIFICATIONS);
+  const [upstream, setUpstream] = useState<UpstreamChange | null>(null);
+  const [accessLost, setAccessLost] = useState(false);
   const [synced, setSynced] = useState<SyncedProject | null>(null);
   const [edits, setEdits] = useState<SectionEdits>({});
   const [isResyncing, setIsResyncing] = useState(false);
@@ -208,6 +222,82 @@ export function ProjectCmsPage() {
     }
     setToolbarRect(element.getBoundingClientRect());
   }, []);
+
+  const notify = useCallback((entry: Omit<Notification, 'id' | 'unread'>) => {
+    setNotifications((current) => [
+    { ...entry, id: `n-${Date.now()}`, unread: true },
+    ...current]
+    );
+  }, []);
+
+  /**
+   * Theo dõi bảng hàng phía chủ đầu tư.
+   *
+   * Chạy ở cấp trang chứ không ở tab Bảng hàng, để QLGD nhận được thông báo
+   * kể cả khi đang làm việc ở tab khác. Chỉ đọc metadata nên rất nhẹ.
+   */
+  useEffect(() => {
+    const source = inventorySource;
+    if (!source || source.kind !== 'link' || !source.modifiedTime) return;
+
+    let cancelled = false;
+    let failures = 0;
+    let notified = '';
+
+    async function check() {
+      const status = await checkSheetStatus(source!.label);
+      if (cancelled) return;
+
+      if (!status) {
+        failures += 1;
+        // Vài lần lỗi liên tiếp mới coi là mất quyền — tránh báo động giả
+        // khi mạng chập chờn.
+        if (failures >= 3 && !accessLost) {
+          setAccessLost(true);
+          notify({
+            tone: 'danger',
+            title: 'Mất quyền đọc bảng hàng chủ đầu tư',
+            body: 'Hệ thống không còn đọc được file nguồn. Có thể chủ đầu tư đã đổi quyền chia sẻ hoặc xóa file.',
+            time: new Date().toLocaleString('vi-VN')
+          });
+        }
+        return;
+      }
+
+      failures = 0;
+      setAccessLost(false);
+
+      const changed =
+      status.modifiedTime && status.modifiedTime !== source!.modifiedTime;
+
+      if (changed) {
+        setUpstream({ time: status.modifiedTime, by: status.modifiedBy });
+        // Mỗi mốc thời gian chỉ báo một lần, không lặp mỗi chu kỳ.
+        if (notified !== status.modifiedTime) {
+          notified = status.modifiedTime;
+          notify({
+            tone: 'warn',
+            title: 'Chủ đầu tư đã cập nhật bảng hàng',
+            body:
+            `File nguồn được sửa lúc ${new Date(status.modifiedTime).toLocaleString('vi-VN')}` +
+            (status.modifiedBy ? ` bởi ${status.modifiedBy}` : '') +
+            '. Mở tab Bảng hàng để xem thay đổi trước khi áp dụng.',
+            time: new Date().toLocaleString('vi-VN')
+          });
+        }
+      } else {
+        setUpstream(null);
+      }
+    }
+
+    check();
+    const timer = window.setInterval(check, 5 * 60 * 1000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inventorySource, notify]);
 
   const showNotice = useCallback((message: string) => {
     setNotice(message);
@@ -337,7 +427,18 @@ export function ProjectCmsPage() {
           <div className="relative">
             <button
               type="button"
-              onClick={() => setBellOpen((value) => !value)}
+              onClick={() => {
+                setBellOpen((value) => !value);
+                if (!bellOpen) {
+                  // Mở ra là coi như đã đọc.
+                  window.setTimeout(
+                    () => setNotifications((current) =>
+                    current.map((item) => ({ ...item, unread: false }))
+                    ),
+                    1200
+                  );
+                }
+              }}
               className={`relative grid h-8 w-8 place-items-center rounded-md border transition-colors ${
               bellOpen ?
               'border-[#f5921f] bg-[#fdf3e2] text-[#b96f12]' :
@@ -348,9 +449,9 @@ export function ProjectCmsPage() {
               aria-expanded={bellOpen}>
 
               <BellIcon className="h-4 w-4" />
-              {NOTIFICATIONS.some((item) => item.unread) &&
+              {notifications.some((item) => item.unread) &&
               <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[#f5921f] px-1 font-mono text-[9px] font-bold text-white ring-2 ring-white">
-                  {NOTIFICATIONS.filter((item) => item.unread).length}
+                  {notifications.filter((item) => item.unread).length}
                 </span>
               }
             </button>
@@ -366,7 +467,7 @@ export function ProjectCmsPage() {
                   <div className="flex items-center gap-2 border-b border-[#eee4d5] px-4 py-3">
                     <h3 className="text-sm font-bold text-[#3b2c1d]">Thông báo</h3>
                     <span className="rounded bg-[#fdf3e2] px-1.5 py-0.5 font-mono text-[10px] font-bold text-[#8a6a3f]">
-                      {NOTIFICATIONS.filter((item) => item.unread).length} mới
+                      {notifications.filter((item) => item.unread).length} mới
                     </span>
                     <button
                     type="button"
@@ -378,7 +479,7 @@ export function ProjectCmsPage() {
                     </button>
                   </div>
                   <ul className="max-h-[340px] overflow-y-auto">
-                    {NOTIFICATIONS.map((item) =>
+                    {notifications.map((item) =>
                   <li
                     key={item.id}
                     className={`flex gap-2.5 border-b border-[#f5efe5] px-4 py-3 last:border-b-0 ${
@@ -387,7 +488,13 @@ export function ProjectCmsPage() {
 
                         <span
                       className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${
-                      item.unread ? 'bg-[#f5921f]' : 'bg-stone-300'}`
+                      !item.unread ?
+                      'bg-stone-300' :
+                      item.tone === 'danger' ?
+                      'bg-[#c0392b]' :
+                      item.tone === 'warn' ?
+                      'bg-[#f5921f]' :
+                      'bg-[#2a55b8]'}`
                       } />
 
                         <div className="min-w-0">
@@ -457,9 +564,12 @@ export function ProjectCmsPage() {
             tagline={tagline}
             inventorySource={inventorySource}
             showInventoryBar={editable}
+            upstreamChange={upstream}
+            sourceAccessLost={accessLost}
             onImportInventory={(source) => {
               const isFirst = !inventorySource;
               setInventorySource(source);
+              setUpstream(null);
               try {
                 // Cho trang xem trước dùng lại đúng dữ liệu vừa nhập.
                 window.sessionStorage.setItem('cms:inventory', JSON.stringify(source));

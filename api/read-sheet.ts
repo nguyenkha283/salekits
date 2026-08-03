@@ -183,15 +183,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Bước 1: hỏi Drive xem đây là loại file gì.
   let mimeType = '';
   let fileName = '';
+  /** Thời điểm chủ đầu tư sửa file lần cuối — mốc để phát hiện thay đổi. */
+  let modifiedTime = '';
   try {
     const drive = getDriveClient();
     const meta = await drive.files.get({
       fileId,
-      fields: 'mimeType, name',
+      fields: 'mimeType, name, modifiedTime',
       supportsAllDrives: true
     });
     mimeType = meta.data.mimeType ?? '';
     fileName = meta.data.name ?? '';
+    modifiedTime = meta.data.modifiedTime ?? '';
   } catch (error) {
     res.status(502).json({ error: describe(error) });
     return;
@@ -203,6 +206,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res.status(200).json({
         source: 'drive-download',
         fileName,
+        modifiedTime,
         workbook: await downloadBinary(fileId)
       });
     } catch (error) {
@@ -227,6 +231,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(200).json({
       source: 'sheets-api',
       fileName,
+      modifiedTime,
       sheets: await readViaSheetsApi(fileId)
     });
     return;
@@ -244,6 +249,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(200).json({
       source: 'drive-export',
       fileName,
+      modifiedTime,
       degraded: 'Sheets API chưa bật — không lấy được thông tin ô gộp và dòng ẩn.',
       workbook: await exportGoogleSheet(fileId)
     });
@@ -255,15 +261,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     );
 
     if (sheetsError && cannotExport) {
+      // Đây là lỗi CẤU HÌNH HỆ THỐNG, không phải lỗi của người dùng hay của
+      // chủ đầu tư. Hướng dẫn kỹ thuật đi vào log; người dùng chỉ thấy thông
+      // báo phù hợp với việc họ làm được.
       const link = enableUrl(sheetsError);
-      res.status(502).json({
+      console.error(
+        '[read-sheet] Google Sheets API chưa được bật trên project của hệ thống. ' +
+        'Đây là cấu hình một lần của đội kỹ thuật, không liên quan tới chủ đầu tư. ' +
+        (link ? `Bật tại: ${link}` : '')
+      );
+
+      res.status(503).json({
         error:
-        `File "${fileName}" bị chặn tải xuống nên không xuất được. ` +
-        'Cách duy nhất để đọc file này là bật Google Sheets API cho project' +
-        (link ? `: ${link}` : '.') +
-        ' Sau khi bật, đợi 1–2 phút rồi thử lại.',
-        needsSheetsApi: true,
-        enableUrl: link
+        'Hệ thống chưa đọc được Google Sheet do thiếu cấu hình phía máy chủ. ' +
+        'Vui lòng báo đội kỹ thuật — không cần liên hệ chủ đầu tư.',
+        code: 'SHEETS_API_DISABLED'
       });
       return;
     }
