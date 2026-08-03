@@ -14,13 +14,27 @@ XLSX_MIME,
 'text/csv'];
 
 
-/**
- * Lấy fileId từ mọi dạng liên kết Drive — không chỉ link Google Sheet.
- * File .xlsx tải lên Drive có link dạng /file/d/<id>/view.
- */
+/** Vùng ô gộp, chỉ số 0-based và bao gồm cả hai đầu. */
+interface MergeRange {
+  startRow: number;
+  endRow: number;
+  startColumn: number;
+  endColumn: number;
+}
+
+interface SheetPayload {
+  name: string;
+  grid: unknown[][];
+  merges: MergeRange[];
+  /** Chỉ số dòng bị ẩn hoặc bị lọc — 0-based theo lưới trả về. */
+  hiddenRows: number[];
+  /** Sheet bị ẩn trong file gốc. */
+  hidden: boolean;
+}
+
+/** Lấy fileId từ mọi dạng liên kết Drive. */
 function extractFileId(url: string): string | null {
   const text = url.trim();
-
   const patterns = [
   /\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/,
   /\/file\/d\/([a-zA-Z0-9-_]+)/,
@@ -32,41 +46,74 @@ function extractFileId(url: string): string | null {
     const match = text.match(pattern);
     if (match) return match[1];
   }
-
-  // Người dùng có thể dán thẳng ID.
   return /^[a-zA-Z0-9-_]{20,}$/.test(text) ? text : null;
 }
 
 /**
- * Đọc bằng Sheets API — cho giá trị đã tách sẵn theo từng sheet, không giới
- * hạn dung lượng. Chỉ dùng được với Google Sheet gốc.
+ * Đọc Google Sheet gốc bằng Sheets API.
+ *
+ * Đây là đường CHÍNH vì nó đọc được cả file bị chặn tải xuống — chặn tải xuống
+ * chỉ giới hạn ở giao diện, không giới hạn quyền đọc dữ liệu. Điều kiện duy
+ * nhất là service account nhìn thấy file, tức link để "bất kỳ ai có liên kết"
+ * hoặc file được chia sẻ cho địa chỉ của service account.
+ *
+ * Ngoài giá trị ô, đường này còn lấy được hai thứ mà xuất file không có:
+ * vùng ô gộp (penthouse thông tầng, duplex thông căn) và danh sách dòng bị ẩn.
  */
-async function readViaSheetsApi(spreadsheetId: string) {
+async function readViaSheetsApi(spreadsheetId: string): Promise<SheetPayload[]> {
   const sheets = getSheetsClient();
 
+  // Metadata: tên sheet, vùng gộp, trạng thái ẩn của từng dòng.
   const meta = await sheets.spreadsheets.get({
     spreadsheetId,
-    fields: 'sheets.properties.title'
+    includeGridData: true,
+    fields:
+    'sheets(properties(title,hidden),merges,data(rowMetadata(hiddenByUser,hiddenByFilter)))'
   });
-  const titles = (meta.data.sheets ?? []).
+
+  const sheetList = meta.data.sheets ?? [];
+  const titles = sheetList.
   map((sheet) => sheet.properties?.title).
   filter((title): title is string => Boolean(title));
 
   if (!titles.length) throw new Error('File không có sheet nào.');
 
+  // Giá trị ô của mọi sheet trong một lần gọi.
   const values = await sheets.spreadsheets.values.batchGet({
     spreadsheetId,
     ranges: titles,
-    valueRenderOption: 'UNFORMATTED_VALUE'
+    valueRenderOption: 'UNFORMATTED_VALUE',
+    dateTimeRenderOption: 'FORMATTED_STRING'
   });
 
-  return titles.map((name, index) => ({
-    name,
-    grid: values.data.valueRanges?.[index]?.values ?? []
-  }));
+  return titles.map((name, index) => {
+    const sheet = sheetList[index];
+    const rowMetadata = sheet?.data?.[0]?.rowMetadata ?? [];
+
+    const hiddenRows: number[] = [];
+    rowMetadata.forEach((row, position) => {
+      if (row?.hiddenByUser || row?.hiddenByFilter) hiddenRows.push(position);
+    });
+
+    // Sheets API dùng endRow/endColumn loại trừ; chuyển sang bao gồm cả hai đầu.
+    const merges: MergeRange[] = (sheet?.merges ?? []).map((range) => ({
+      startRow: range.startRowIndex ?? 0,
+      endRow: (range.endRowIndex ?? 1) - 1,
+      startColumn: range.startColumnIndex ?? 0,
+      endColumn: (range.endColumnIndex ?? 1) - 1
+    }));
+
+    return {
+      name,
+      grid: (values.data.valueRanges?.[index]?.values ?? []) as unknown[][],
+      merges,
+      hiddenRows,
+      hidden: Boolean(sheet?.properties?.hidden)
+    };
+  });
 }
 
-/** Google Sheet gốc: xuất sang .xlsx (giới hạn 10 MB của Drive export). */
+/** Google Sheet gốc: xuất sang .xlsx. Dự phòng khi Sheets API chưa bật. */
 async function exportGoogleSheet(fileId: string): Promise<string> {
   const drive = getDriveClient();
   const response = await drive.files.export(
@@ -86,7 +133,6 @@ async function downloadBinary(fileId: string): Promise<string> {
   return Buffer.from(response.data as ArrayBuffer).toString('base64');
 }
 
-/** Nhận diện lỗi "API chưa được bật" để chuyển sang đường dự phòng. */
 function isApiDisabled(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
   return /has not been used in project|SERVICE_DISABLED|accessNotConfigured/i.test(
@@ -100,12 +146,12 @@ function describe(error: unknown): string {
 
   if (/permission|notFound|not found|forbidden|403|404/i.test(message)) {
     return (
-      'Không mở được file. Hãy chia sẻ file cho service account ' +
-      '(quyền Người xem là đủ), hoặc đặt chế độ "Bất kỳ ai có liên kết".');
+      'Không mở được file. Kiểm tra link đã đặt chế độ "Bất kỳ ai có liên kết — ' +
+      'Người xem" chưa, hoặc chia sẻ file cho địa chỉ service account.');
 
   }
   if (/exportSizeLimitExceeded|too large/i.test(message)) {
-    return 'File vượt giới hạn 10 MB khi xuất. Hãy bật Google Sheets API cho project để đọc trực tiếp.';
+    return 'File quá lớn để xuất. Hãy bật Google Sheets API cho project để đọc trực tiếp.';
   }
   return `Không đọc được file: ${message}`;
 }
@@ -127,7 +173,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   res.setHeader('Cache-Control', 'no-store');
 
-  // Bước 1: hỏi Drive xem đây là loại file gì rồi mới chọn cách đọc.
+  // Bước 1: hỏi Drive xem đây là loại file gì.
   let mimeType = '';
   let fileName = '';
   try {
@@ -158,7 +204,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  // Bước 2b: không phải Google Sheet gốc và cũng không phải bảng tính.
+  // Bước 2b: không phải bảng tính.
   if (mimeType !== GOOGLE_SHEET_MIME) {
     res.status(400).json({
       error:
@@ -168,7 +214,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  // Bước 3: Google Sheet gốc — ưu tiên Sheets API, thiếu thì xuất qua Drive.
+  // Bước 3: Google Sheet gốc — Sheets API là đường chính.
   try {
     res.status(200).json({
       source: 'sheets-api',
@@ -181,12 +227,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res.status(502).json({ error: describe(error) });
       return;
     }
+    // Sheets API chưa bật — rơi xuống đường xuất file, mất thông tin ô gộp.
   }
 
   try {
     res.status(200).json({
       source: 'drive-export',
       fileName,
+      degraded: 'Sheets API chưa bật — không lấy được thông tin ô gộp và dòng ẩn.',
       workbook: await exportGoogleSheet(fileId)
     });
   } catch (error) {

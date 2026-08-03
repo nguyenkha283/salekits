@@ -23,6 +23,8 @@ interface SheetPickerDialogProps {
   sheets: DetectedSheet[];
   /** Tên file hoặc liên kết nguồn, hiển thị để đối chiếu. */
   sourceLabel?: string;
+  /** Lời nhắc khi đường đọc không lấy được đủ thông tin. */
+  degraded?: string;
   onCancel: () => void;
   onConfirm: (sheets: DetectedSheet[], priceIndex: number) => void;
 }
@@ -34,6 +36,7 @@ interface SheetPickerDialogProps {
 export function SheetPickerDialog({
   sheets: initial,
   sourceLabel,
+  degraded,
   onCancel,
   onConfirm
 }: SheetPickerDialogProps) {
@@ -142,6 +145,12 @@ export function SheetPickerDialog({
           </div> :
 
         <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-5 py-4">
+          {degraded &&
+          <p className="flex gap-2 rounded-lg border border-[#f0dcb6] bg-[#fdf3e2] p-3 text-[12px] leading-relaxed text-[#92600a]">
+              <AlertTriangleIcon className="mt-px h-4 w-4 shrink-0" />
+              {degraded}
+            </p>
+          }
           {sheets.map((sheet, index) =>
           <div
             key={`${sheet.name}-${index}`}
@@ -154,6 +163,12 @@ export function SheetPickerDialog({
                 <p className="text-[11px] text-stone-500">
                   {sheet.rows} dòng · {sheet.columns} cột ·{' '}
                   <b className="text-stone-700">{sheet.analysis.units.length} căn đọc được</b>
+                  {sheet.hiddenRowCount > 0 &&
+                  <> · <span className="text-[#92600a]">bỏ qua {sheet.hiddenRowCount} dòng ẩn</span></>
+                  }
+                  {sheet.merges.length > 0 &&
+                  <> · <span className="text-[#2a55b8]">{sheet.merges.length} ô gộp</span></>
+                  }
                 </p>
                 {sheet.analysis.units.length > 0 &&
                 <p className="mt-1 flex flex-wrap gap-1">

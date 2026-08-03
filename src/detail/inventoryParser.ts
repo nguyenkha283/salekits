@@ -37,6 +37,8 @@ export interface ParsedUnit {
   bedrooms: string;
   handover: string;
   status: UnitStatusValue;
+  /** Tên quỹ nếu cột Tình trạng ghi phân loại quỹ thay vì trạng thái bán. */
+  fundLabel?: string;
   /** Giá theo đúng thứ tự priceFields. */
   prices: number[];
   /** Các cột không nhận diện được, giữ nguyên để hiển thị ở chi tiết căn. */
@@ -56,6 +58,15 @@ export interface ColumnMapping {
   status?: number;
 }
 
+/** Căn thông tầng hoặc thông căn, suy từ ô gộp trong file gốc. */
+export interface SpanHint {
+  code: string;
+  /** Số tầng căn này chiếm — 2 nghĩa là penthouse thông hai tầng. */
+  floorSpan: number;
+  /** Số trục căn này chiếm — 2 nghĩa là duplex thông hai căn. */
+  columnSpan: number;
+}
+
 export interface SheetAnalysis {
   headerRow: number;
   mapping: ColumnMapping;
@@ -64,6 +75,8 @@ export interface SheetAnalysis {
   /** Nhãn cột không nhận diện được, hiển thị để người dùng biết bị bỏ qua. */
   unknownColumns: string[];
   warnings: string[];
+  /** Ô gộp ở cột Mã căn cho biết căn nào thông tầng. */
+  spanHints: SpanHint[];
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -145,8 +158,16 @@ const FIELD_PATTERNS: Array<{field: keyof ColumnMapping;patterns: RegExp[];}> = 
 { field: 'status', patterns: [/tinh trang/, /^trang thai$/, /^status$/] }];
 
 
+/**
+ * Tên cột giá rất đa dạng: "ĐƠN GIÁ", "TỔNG GIÁ", "GIÁ HTLS", "GIÁ TTS",
+ * "TGT chưa VAT", "Tổng giá trị HĐMB"… nên bắt rộng theo tên rồi kiểm chứng
+ * lại bằng dữ liệu để tránh nhận nhầm cột ghi chú.
+ */
 const PRICE_PATTERNS = [
-/tong gia tri/, /^tgt/, /gia ban/, /^gia$/, /don gia/, /thanh tien/, /vnd/, /gia tri hdmb/];
+/(^|[^a-z])gia([^a-z]|$)/, /^tgt/, /\btgt\b/, /thanh tien/, /\bvnd\b/, /\bvat\b/];
+
+/** Giá căn hộ luôn là số lớn; dùng ngưỡng này để loại cột không phải giá. */
+const MIN_PRICE_VALUE = 1_000_000;
 
 
 function matchField(label: string): keyof ColumnMapping | null {
@@ -161,7 +182,29 @@ function matchField(label: string): keyof ColumnMapping | null {
 function isPriceColumn(label: string): boolean {
   const text = plain(label);
   if (!text) return false;
+  // Cột diện tích cũng chứa chữ "m2" nhưng không phải giá.
+  if (/dien tich|^dt\b/.test(text)) return false;
   return PRICE_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+/**
+ * Xác nhận một cột thật sự chứa giá: lấy mẫu vài chục dòng, đa số phải là số
+ * đủ lớn. Nhờ vậy cột "Ghi chú giá" hay "Chính sách giá" không bị nhận nhầm.
+ */
+function looksNumeric(grid: Grid, column: number, fromRow: number): boolean {
+  let filled = 0;
+  let numeric = 0;
+
+  for (let row = fromRow; row < Math.min(grid.length, fromRow + 40); row++) {
+    const text = cellText(grid[row]?.[column]);
+    if (!text) continue;
+    filled += 1;
+    const value = parseNumber(grid[row]?.[column]);
+    if (value !== null && value >= MIN_PRICE_VALUE) numeric += 1;
+  }
+
+  if (!filled) return false;
+  return numeric / filled >= 0.6;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -176,12 +219,28 @@ const STATUS_RULES: Array<{value: UnitStatusValue;patterns: RegExp[];}> = [
 
 
 /**
+ * Cột Tình trạng của nhiều chủ đầu tư trộn lẫn hai khái niệm: trạng thái bán
+ * ("Đã bán") và phân loại quỹ ("Độc quyền", "Quỹ chéo"). Giá trị thuộc nhóm
+ * quỹ không phải trạng thái — căn vẫn còn hàng.
+ */
+const FUND_VALUES = [
+/doc quyen/, /quy cheo/, /quy chung/, /^dq$/, /thu cap/, /so cap/];
+
+
+export function isFundValue(value: Cell): boolean {
+  const text = plain(cellText(value));
+  return Boolean(text) && FUND_VALUES.some((pattern) => pattern.test(text));
+}
+
+/**
  * Ô trống là "Còn hàng" — trên file thật đây là giá trị chủ đạo (51/55 dòng).
  * Trả về null khi gặp giá trị lạ để importer báo cho người dùng biết.
  */
 export function mapStatus(value: Cell): UnitStatusValue | null {
   const text = plain(cellText(value));
   if (!text) return 'Còn hàng';
+  // Giá trị phân loại quỹ không phải trạng thái bán.
+  if (isFundValue(value)) return 'Còn hàng';
   for (const { value: status, patterns } of STATUS_RULES) {
     if (patterns.some((pattern) => pattern.test(text))) return status;
   }
@@ -256,7 +315,21 @@ export function findHeaderRow(grid: Grid): {row: number;depth: number;} {
    Phân tích một sheet
    ───────────────────────────────────────────────────────────── */
 
-export function analyzeSheet(grid: Grid, sheetName: string): SheetAnalysis {
+export interface AnalyzeOptions {
+  /** Ô gộp trong file gốc, chỉ số theo lưới đã truyền vào. */
+  merges?: Array<{
+    startRow: number;
+    endRow: number;
+    startColumn: number;
+    endColumn: number;
+  }>;
+}
+
+export function analyzeSheet(
+grid: Grid,
+sheetName: string,
+options: AnalyzeOptions = {})
+: SheetAnalysis {
   const warnings: string[] = [];
   const { row: headerRow, depth } = findHeaderRow(grid);
   const width = Math.max(...grid.slice(0, headerRow + 6).map((row) => row?.length ?? 0), 0);
@@ -280,7 +353,15 @@ export function analyzeSheet(grid: Grid, sheetName: string): SheetAnalysis {
       return;
     }
     if (isPriceColumn(label)) {
-      priceFields.push({ index, label, group: findGroupLabel(grid, headerRow, labelRow, index) });
+      if (looksNumeric(grid, index, labelRow + labelDepth)) {
+        priceFields.push({
+          index,
+          label,
+          group: findGroupLabel(grid, headerRow, labelRow, index)
+        });
+      } else {
+        unknownColumns.push(label);
+      }
       return;
     }
     if (!field) unknownColumns.push(label);
@@ -313,6 +394,8 @@ export function analyzeSheet(grid: Grid, sheetName: string): SheetAnalysis {
     const rawStatus = cells[mapping.status ?? -1];
     const status = mapStatus(rawStatus);
     if (status === null) unknownStatuses.add(cellText(rawStatus));
+    // Cột Tình trạng ghi tên quỹ thì giữ lại làm nhãn quỹ của căn.
+    const fundLabel = isFundValue(rawStatus) ? cellText(rawStatus) : '';
 
     const extras: Record<string, string> = {};
     labels.forEach((label, index) => {
@@ -333,6 +416,7 @@ export function analyzeSheet(grid: Grid, sheetName: string): SheetAnalysis {
       bedrooms: cellText(cells[mapping.bedrooms ?? -1]),
       handover: cellText(cells[mapping.handover ?? -1]),
       status: status ?? 'Còn hàng',
+      fundLabel,
       prices: priceFields.map((field) => parseNumber(cells[field.index]) ?? 0),
       extras
     });
@@ -390,6 +474,28 @@ export function analyzeSheet(grid: Grid, sheetName: string): SheetAnalysis {
     );
   }
 
+  // ── Cảnh báo khi loại căn đổi giữa chừng trên cùng một trục ──────────
+  // Loại căn là thuộc tính của TRỤC, nên tầng nào lệch thì gần như chắc chắn
+  // là penthouse hoặc duplex và cần tách thành khối riêng.
+  const byColumn = new Map<string, Map<string, string[]>>();
+  units.forEach((item) => {
+    if (!item.unit || !item.bedrooms) return;
+    const key = `${item.tower}|${item.unit}`;
+    const values = byColumn.get(key) ?? new Map<string, string[]>();
+    values.set(item.bedrooms, [...(values.get(item.bedrooms) ?? []), item.floor]);
+    byColumn.set(key, values);
+  });
+
+  byColumn.forEach((values, key) => {
+    if (values.size < 2) return;
+    const [tower, column] = key.split('|');
+    // Nhóm nhỏ nhất là phần lệch — thường là các tầng trên cùng.
+    const odd = [...values.entries()].sort((a, b) => a[1].length - b[1].length)[0];
+    warnings.push(
+      `Trục ${column} tòa ${tower}: loại căn đổi thành "${odd[0]}" ở tầng ${odd[1].join(', ')} — cân nhắc tách thành khối riêng.`
+    );
+  });
+
   if (unknownStatuses.size) {
     warnings.push(
       `Tình trạng chưa có trong danh mục ánh xạ: ${[...unknownStatuses].join(', ')} — tạm coi là Còn hàng.`
@@ -398,7 +504,37 @@ export function analyzeSheet(grid: Grid, sheetName: string): SheetAnalysis {
   if (duplicates) warnings.push(`${duplicates} dòng trùng mã căn đã bị bỏ qua.`);
   if (!units.length) warnings.push(`Sheet "${sheetName}" không có dòng dữ liệu nào đọc được.`);
 
-  return { headerRow, mapping, priceFields, units, unknownColumns, warnings };
+  // ── Suy căn thông tầng / thông căn từ ô gộp trong file ───────────────
+  //
+  // Bảng hàng dạng danh sách không có cách nào ghi rằng một căn penthouse
+  // chiếm hai tầng. Nhưng khi người lập bảng gộp ô ở cột Mã căn để biểu diễn
+  // điều đó thì thông tin nằm trong metadata của file, và Sheets API trả về.
+  const spanHints: SpanHint[] = [];
+  const codeColumn = mapping.code;
+
+  if (codeColumn !== undefined && options.merges?.length) {
+    options.merges.forEach((merge) => {
+      if (merge.startColumn > codeColumn || merge.endColumn < codeColumn) return;
+      if (merge.startRow <= labelRow) return;
+
+      const code = cellText(grid[merge.startRow]?.[codeColumn]);
+      if (!code) return;
+
+      const floorSpan = merge.endRow - merge.startRow + 1;
+      const columnSpan = merge.endColumn - merge.startColumn + 1;
+      if (floorSpan > 1 || columnSpan > 1) {
+        spanHints.push({ code, floorSpan, columnSpan });
+      }
+    });
+  }
+
+  if (spanHints.length) {
+    warnings.push(
+      `Phát hiện ${spanHints.length} căn thông tầng hoặc thông căn từ ô gộp trong file.`
+    );
+  }
+
+  return { headerRow, mapping, priceFields, units, unknownColumns, warnings, spanHints };
 }
 
 /**
@@ -441,6 +577,8 @@ export interface InventoryData {
   towers: string[];
   warnings: string[];
   sheetNames: string[];
+  /** Căn thông tầng / thông căn suy từ ô gộp — dùng để tự gộp ô trên lưới. */
+  spanHints: SpanHint[];
 }
 
 const FUND_COLORS = ['#ff0000', '#a77b00', '#2a55b8', '#0e9f6e', '#7b2d5e'];
@@ -480,6 +618,7 @@ priceIndex = 0)
   });
 
   const towers = [...new Set(units.map((unit) => unit.tower))].filter(Boolean).sort();
+  const spanHints = inventorySheets.flatMap((sheet) => sheet.analysis.spanHints);
   const priceFields = inventorySheets[0]?.analysis.priceFields ?? [];
 
   return {
@@ -489,7 +628,8 @@ priceIndex = 0)
     funds,
     towers,
     warnings,
-    sheetNames: sheets.map((sheet) => sheet.name)
+    sheetNames: sheets.map((sheet) => sheet.name),
+    spanHints
   };
 }
 

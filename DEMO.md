@@ -150,7 +150,18 @@ Bấm **Đọc file** → hệ thống bóc tách sheet → **popup chọn sheet
 **Toàn bộ dữ liệu bảng hàng đến từ file bạn nhập — không còn dữ liệu mẫu nào.**
 
 - **Tải file .xlsx** — đọc trực tiếp trong trình duyệt bằng SheetJS
-- **Dán liên kết Google Sheet** — đọc qua `/api/read-sheet` bằng service account
+- **Dán liên kết Google Sheet** — đọc qua `/api/read-sheet` bằng **Google Sheets API**
+
+Sheets API là đường chính vì nó đọc được cả file **bị chặn tải xuống** — chặn tải xuống chỉ giới hạn ở giao diện, không giới hạn quyền đọc dữ liệu. Điều kiện duy nhất là link đặt "Bất kỳ ai có liên kết — Người xem", hoặc file được chia sẻ cho địa chỉ service account.
+
+Đường này còn lấy được hai thứ mà xuất file không có:
+
+| | Dùng để làm gì |
+|---|---|
+| **Ô gộp** | Tự phát hiện penthouse thông tầng và duplex thông căn, gộp sẵn trên lưới |
+| **Dòng ẩn** | Loại bỏ, để dữ liệu nhập vào khớp với những gì QLGD nhìn thấy |
+
+Nếu Sheets API chưa bật, hệ thống tự rơi xuống xuất file `.xlsx` qua Drive và báo rõ là mất thông tin ô gộp.
 
 Bộ phân tích tự dò, không giả định vị trí cột hay dòng:
 

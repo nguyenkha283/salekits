@@ -46,9 +46,28 @@ export interface ColumnDef {
 export interface GridBlock {
   id: string;
   columns: ColumnDef[];
+  /**
+   * Bộ nhãn trục gốc của tòa nhà, theo đúng thứ tự trong file.
+   *
+   * Nhiều dự án bỏ số 04, 07, 13 và chèn 05A, 08A — nên đánh số lại theo
+   * 01, 02, 03… sẽ phá quy ước của chủ đầu tư. Khi gộp hoặc vô hiệu hóa trục,
+   * các trục còn lại nhận lần lượt các nhãn trong bộ này.
+   */
+  labelPool: string[];
+  /** Vùng ô dữ liệu đã gộp — căn penthouse thông tầng, duplex thông căn. */
+  merges: CellMerge[];
   /** Mỗi dòng tiêu đề là một mảng ô dài bằng số cột. */
   headers: Record<HeaderRowId, HeaderCell[]>;
   floors: string[];
+}
+
+/** Một vùng ô dữ liệu đã gộp, tính theo chỉ số tầng và chỉ số trục. */
+export interface CellMerge {
+  id: string;
+  floorStart: number;
+  floorEnd: number;
+  columnStart: number;
+  columnEnd: number;
 }
 
 export interface GridModel {
@@ -74,7 +93,7 @@ function makeColumn(code: string): ColumnDef {
    ───────────────────────────────────────────────────────────── */
 
 /** owners[k] = chỉ số ô tiêu đề đang phủ trục thứ k. */
-function toOwners(cells: HeaderCell[], columnCount: number): number[] {
+export function toOwners(cells: HeaderCell[], columnCount: number): number[] {
   const owners: number[] = [];
   let index = 0;
   while (index < columnCount) {
@@ -139,13 +158,17 @@ keep: (columnIndex: number) => number | null)
  * Trục bị vô hiệu hóa không nhận số, nên trục sau nó dồn lên.
  */
 export function renumberColumns(block: GridBlock): GridBlock {
-  let counter = 0;
+  const pool = block.labelPool ?? [];
+  let index = 0;
+
   return {
     ...block,
     columns: block.columns.map((column) => {
       if (column.disabled) return { ...column, label: '' };
-      counter += 1;
-      return { ...column, label: String(counter).padStart(2, '0') };
+      // Hết nhãn gốc thì mới sinh số mới.
+      const label = pool[index] ?? String(index + 1).padStart(2, '0');
+      index += 1;
+      return { ...column, label };
     })
   };
 }
@@ -174,7 +197,16 @@ export function mergeColumns(block: GridBlock, from: number, to: number): GridBl
   const columns = [...block.columns];
   columns.splice(start, end - start + 1, merged);
 
-  return renumberColumns({ ...block, columns, headers });
+  const shift = end - start;
+  const merges = block.merges.
+  map((item) => ({
+    ...item,
+    columnStart: item.columnStart > end ? item.columnStart - shift : Math.min(item.columnStart, start),
+    columnEnd: item.columnEnd > end ? item.columnEnd - shift : Math.min(item.columnEnd, start)
+  })).
+  filter((item) => item.columnEnd >= item.columnStart);
+
+  return renumberColumns({ ...block, columns, headers, merges });
 }
 
 /** Bật hoặc tắt trạng thái khu vực chung của một trục. */
@@ -246,6 +278,36 @@ function findView(unit: ParsedUnit): string {
  * Dựng lưới cho một tòa. Dòng nào file không có dữ liệu thì để trống để người
  * dùng tự điền — không bịa số.
  */
+/**
+ * Áp các căn thông tầng / thông căn đọc được từ ô gộp trong file gốc.
+ *
+ * Nhờ bước này, penthouse và duplex hiện đúng ngay sau khi nhập, người dùng
+ * không phải tự gộp lại thủ công.
+ */
+function applySpanHints(block: GridBlock, data: InventoryData, tower: string): GridBlock {
+  let result = block;
+
+  data.spanHints.forEach((hint) => {
+    const unit = data.units.find(
+      (item) => item.code === hint.code && item.tower === tower
+    );
+    if (!unit) return;
+
+    const floorIndex = result.floors.indexOf(unit.floor);
+    const columnIndex = result.columns.findIndex((column) => column.code === unit.unit);
+    if (floorIndex === -1 || columnIndex === -1) return;
+
+    result = mergeCellRegion(result, {
+      floorStart: floorIndex,
+      floorEnd: Math.min(floorIndex + hint.floorSpan - 1, result.floors.length - 1),
+      columnStart: columnIndex,
+      columnEnd: Math.min(columnIndex + hint.columnSpan - 1, result.columns.length - 1)
+    });
+  });
+
+  return result;
+}
+
 export function buildGrid(data: InventoryData, tower: string): GridModel {
   const axes = axesOf(data.units, tower);
   const columns = axes.columns;
@@ -272,16 +334,16 @@ export function buildGrid(data: InventoryData, tower: string): GridModel {
     )
   };
 
-  return {
-    blocks: [
-    {
-      id: nextId('block'),
-      columns: columns.map(makeColumn),
-      headers,
-      floors: axes.floors
-    }]
-
+  const block: GridBlock = {
+    id: nextId('block'),
+    columns: columns.map(makeColumn),
+    labelPool: [...columns],
+    merges: [],
+    headers,
+    floors: axes.floors
   };
+
+  return { blocks: [applySpanHints(block, data, tower)] };
 }
 
 /**
@@ -304,19 +366,36 @@ floorIndex: number)
 
   const upper: GridBlock = {
     ...block,
-    floors: block.floors.slice(0, floorIndex + 1)
+    floors: block.floors.slice(0, floorIndex + 1),
+    // Giữ lại vùng gộp nằm trọn trong phần trên.
+    merges: block.merges.filter((merge) => merge.floorEnd <= floorIndex)
   };
   const lower: GridBlock = {
     id: nextId('block'),
-    columns: block.columns.map((column) => ({ ...column, id: nextId('col') })),
+    // Khu vực chung của khối cũ không áp cho khối mới — penthouse thường có
+    // mặt bằng khác hẳn, nên mọi trục được bật lại rồi đánh số từ đầu.
+    columns: block.columns.map((column) => ({
+      ...column,
+      id: nextId('col'),
+      disabled: false
+    })),
     headers: Object.fromEntries(
       HEADER_ROWS.map((row) => [row.id, block.headers[row.id].map((cell) => cell ? { ...cell } : null)])
     ) as Record<HeaderRowId, HeaderCell[]>,
+    labelPool: [...block.labelPool],
+    merges: block.merges.
+    filter((merge) => merge.floorStart > floorIndex).
+    map((merge) => ({
+      ...merge,
+      id: nextId('merge'),
+      floorStart: merge.floorStart - floorIndex - 1,
+      floorEnd: merge.floorEnd - floorIndex - 1
+    })),
     floors: block.floors.slice(floorIndex + 1)
   };
 
   const blocks = [...model.blocks];
-  blocks.splice(index, 1, upper, lower);
+  blocks.splice(index, 1, upper, renumberColumns(lower));
   return { blocks };
 }
 
@@ -385,6 +464,76 @@ export function setCellValue(cells: HeaderCell[], index: number, value: string):
 }
 
 /* ─────────────────────────────────────────────────────────────
+   Gộp ô dữ liệu — penthouse thông tầng, duplex thông căn
+   ───────────────────────────────────────────────────────────── */
+
+function overlaps(a: CellMerge, b: CellMerge): boolean {
+  return (
+    a.floorStart <= b.floorEnd &&
+    b.floorStart <= a.floorEnd &&
+    a.columnStart <= b.columnEnd &&
+    b.columnStart <= a.columnEnd);
+
+}
+
+/** Vùng gộp đang phủ ô này, nếu có. */
+export function mergeAt(
+block: GridBlock,
+floorIndex: number,
+columnIndex: number)
+: CellMerge | undefined {
+  return block.merges.find(
+    (merge) =>
+    floorIndex >= merge.floorStart &&
+    floorIndex <= merge.floorEnd &&
+    columnIndex >= merge.columnStart &&
+    columnIndex <= merge.columnEnd
+  );
+}
+
+/**
+ * Gộp một vùng ô dữ liệu. Vùng chọn được nới ra hết các vùng gộp chồng lấn
+ * để không cắt đôi một căn penthouse đã tạo trước đó.
+ */
+export function mergeCellRegion(
+block: GridBlock,
+region: Omit<CellMerge, 'id'>)
+: GridBlock {
+  let bounds = { ...region };
+  let touched = block.merges.filter((merge) => overlaps(merge, bounds as CellMerge));
+
+  // Nới biên lặp lại cho tới khi không còn chạm vùng nào mới.
+  while (touched.length) {
+    const next = {
+      floorStart: Math.min(bounds.floorStart, ...touched.map((m) => m.floorStart)),
+      floorEnd: Math.max(bounds.floorEnd, ...touched.map((m) => m.floorEnd)),
+      columnStart: Math.min(bounds.columnStart, ...touched.map((m) => m.columnStart)),
+      columnEnd: Math.max(bounds.columnEnd, ...touched.map((m) => m.columnEnd))
+    };
+    const grown = block.merges.filter((merge) => overlaps(merge, next as CellMerge));
+    if (grown.length === touched.length) {
+      bounds = next;
+      break;
+    }
+    bounds = next;
+    touched = grown;
+  }
+
+  const kept = block.merges.filter((merge) => !overlaps(merge, bounds as CellMerge));
+  return { ...block, merges: [...kept, { ...bounds, id: nextId('merge') }] };
+}
+
+export function splitCellRegion(
+block: GridBlock,
+floorIndex: number,
+columnIndex: number)
+: GridBlock {
+  const target = mergeAt(block, floorIndex, columnIndex);
+  if (!target) return block;
+  return { ...block, merges: block.merges.filter((merge) => merge.id !== target.id) };
+}
+
+/* ─────────────────────────────────────────────────────────────
    Thêm và xóa cột, tầng, khối
    ───────────────────────────────────────────────────────────── */
 
@@ -414,7 +563,13 @@ export function addColumn(block: GridBlock, index: number, name: string): GridBl
     headers[row.id] = insertIntoRow(block.headers[row.id], index);
   });
 
-  return renumberColumns({ ...block, columns, headers });
+  const merges = block.merges.map((merge) => ({
+    ...merge,
+    columnStart: merge.columnStart >= index ? merge.columnStart + 1 : merge.columnStart,
+    columnEnd: merge.columnEnd >= index ? merge.columnEnd + 1 : merge.columnEnd
+  }));
+
+  return renumberColumns({ ...block, columns, headers, merges });
 }
 
 export function removeColumn(block: GridBlock, index: number): GridBlock {
@@ -423,7 +578,15 @@ export function removeColumn(block: GridBlock, index: number): GridBlock {
   const headers = remapHeaders(block, (position) => position === index ? null : position);
   const columns = block.columns.filter((_, position) => position !== index);
 
-  return renumberColumns({ ...block, columns, headers });
+  const merges = block.merges.
+  map((merge) => ({
+    ...merge,
+    columnStart: merge.columnStart > index ? merge.columnStart - 1 : merge.columnStart,
+    columnEnd: merge.columnEnd >= index ? merge.columnEnd - 1 : merge.columnEnd
+  })).
+  filter((merge) => merge.columnEnd >= merge.columnStart);
+
+  return renumberColumns({ ...block, columns, headers, merges });
 }
 
 export function renameColumn(block: GridBlock, index: number, name: string): GridBlock {
@@ -436,12 +599,31 @@ export function renameColumn(block: GridBlock, index: number, name: string): Gri
 export function addFloor(block: GridBlock, index: number, name: string): GridBlock {
   const floors = [...block.floors];
   floors.splice(index, 0, name);
-  return { ...block, floors };
+  return {
+    ...block,
+    floors,
+    merges: block.merges.map((merge) => ({
+      ...merge,
+      floorStart: merge.floorStart >= index ? merge.floorStart + 1 : merge.floorStart,
+      // Chèn vào giữa một vùng gộp thì vùng đó nới ra.
+      floorEnd: merge.floorEnd >= index ? merge.floorEnd + 1 : merge.floorEnd
+    }))
+  };
 }
 
 export function removeFloor(block: GridBlock, index: number): GridBlock {
   if (block.floors.length <= 1) return block;
-  return { ...block, floors: block.floors.filter((_, position) => position !== index) };
+  return {
+    ...block,
+    floors: block.floors.filter((_, position) => position !== index),
+    merges: block.merges.
+    map((merge) => ({
+      ...merge,
+      floorStart: merge.floorStart > index ? merge.floorStart - 1 : merge.floorStart,
+      floorEnd: merge.floorEnd >= index ? merge.floorEnd - 1 : merge.floorEnd
+    })).
+    filter((merge) => merge.floorEnd >= merge.floorStart)
+  };
 }
 
 export function renameFloor(block: GridBlock, index: number, name: string): GridBlock {

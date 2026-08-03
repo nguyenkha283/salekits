@@ -35,6 +35,8 @@ export function InventorySetup({ onImported, context = 'bảng hàng' }: Invento
   const [file, setFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const [error, setError] = useState('');
+  /** Lời nhắc khi đường đọc không lấy được đủ thông tin. */
+  const [degraded, setDegraded] = useState('');
   const [sheets, setSheets] = useState<DetectedSheet[] | null>(null);
 
   const sourceLabel = file ? file.name : link.trim();
@@ -45,11 +47,12 @@ export function InventorySetup({ onImported, context = 'bảng hàng' }: Invento
     setIsParsing(true);
     setError('');
     try {
-      const detected = file ?
+      const result = file ?
       await parseWorkbookFile(file) :
       await parseWorkbookLink(link.trim());
-      if (!detected.length) throw new Error('File không có sheet nào đọc được.');
-      setSheets(detected);
+      if (!result.sheets.length) throw new Error('File không có sheet nào đọc được.');
+      setDegraded(result.degraded ?? '');
+      setSheets(result.sheets);
     } catch (parseError) {
       setError(
         parseError instanceof Error ? parseError.message : 'Không đọc được file.'
@@ -163,6 +166,7 @@ export function InventorySetup({ onImported, context = 'bảng hàng' }: Invento
       <SheetPickerDialog
         sheets={sheets}
         sourceLabel={sourceLabel}
+        degraded={degraded}
         onCancel={() => setSheets(null)}
         onConfirm={(picked, priceIndex) => {
           setSheets(null);

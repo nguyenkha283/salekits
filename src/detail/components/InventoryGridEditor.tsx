@@ -12,7 +12,8 @@ import {
   HEADER_ROWS,
   addColumn,
   addFloor,
-  cellWidth,
+  mergeAt,
+  mergeCellRegion,
   mergeCells,
   mergeColumns,
   physicalWidth,
@@ -25,10 +26,13 @@ import {
   segmentAt,
   setCellValue,
   splitBlockAt,
+  splitCellRegion,
   splitCells,
   suggestColumnName,
   suggestFloorName,
+  toOwners,
   type GridBlock,
+  type HeaderCell,
   type GridModel,
   type HeaderRowId } from
 '../gridModel';
@@ -46,7 +50,15 @@ type Selection =
 {kind: 'header';blockId: string;rowId: HeaderRowId;start: number;end: number;} |
 {kind: 'column';blockId: string;start: number;end: number;} |
 {kind: 'floor';blockId: string;index: number;} |
-{kind: 'block';blockId: string;};
+{kind: 'block';blockId: string;} |
+{
+  kind: 'cells';
+  blockId: string;
+  floorStart: number;
+  floorEnd: number;
+  columnStart: number;
+  columnEnd: number;
+};
 
 interface InventoryGridEditorProps {
   model: GridModel;
@@ -106,11 +118,17 @@ export function InventoryGridEditor({
   /** Gộp: dùng chung cho ô tiêu đề và cho trục căn. */
   const canMerge =
   (selection?.kind === 'header' || selection?.kind === 'column') &&
-  selection.start !== selection.end;
+  selection.start !== selection.end ||
+  selection?.kind === 'cells' && (
+  selection.floorStart !== selection.floorEnd ||
+  selection.columnStart !== selection.columnEnd);
   const canSplit = Boolean(
     selection?.kind === 'header' &&
     activeBlock &&
-    segmentAt(activeBlock.headers[selection.rowId], selection.start).span > 1
+    segmentAt(activeBlock.headers[selection.rowId], selection.start).span > 1 ||
+    selection?.kind === 'cells' &&
+    activeBlock &&
+    mergeAt(activeBlock, selection.floorStart, selection.columnStart)
   );
   const canAddColumn = selection?.kind === 'column' || selection?.kind === 'header';
   const canToggleDisabled = selection?.kind === 'column';
@@ -150,6 +168,17 @@ export function InventoryGridEditor({
       setSelection(null);
       return;
     }
+    if (selection?.kind === 'cells') {
+      updateBlock(selection.blockId, (block) =>
+      mergeCellRegion(block, {
+        floorStart: Math.min(selection.floorStart, selection.floorEnd),
+        floorEnd: Math.max(selection.floorStart, selection.floorEnd),
+        columnStart: Math.min(selection.columnStart, selection.columnEnd),
+        columnEnd: Math.max(selection.columnStart, selection.columnEnd)
+      })
+      );
+      return;
+    }
     if (selection?.kind !== 'header') return;
     updateBlock(selection.blockId, (block) => ({
       ...block,
@@ -166,6 +195,12 @@ export function InventoryGridEditor({
   }
 
   function doSplit() {
+    if (selection?.kind === 'cells') {
+      updateBlock(selection.blockId, (block) =>
+      splitCellRegion(block, selection.floorStart, selection.columnStart)
+      );
+      return;
+    }
     if (selection?.kind !== 'header') return;
     updateBlock(selection.blockId, (block) => ({
       ...block,
@@ -255,6 +290,36 @@ export function InventoryGridEditor({
     setSelection({ ...selection, end: index });
   }
 
+  /** Bôi đen ô căn hộ theo cả hai chiều — penthouse thông tầng, duplex thông căn. */
+  function startCellSelect(
+  event: React.MouseEvent,
+  blockId: string,
+  floorIndex: number,
+  columnIndex: number)
+  {
+    if (!editable || event.button === 2) return;
+
+    if (event.shiftKey && selection?.kind === 'cells' && selection.blockId === blockId) {
+      setSelection({ ...selection, floorEnd: floorIndex, columnEnd: columnIndex });
+      return;
+    }
+    setSelection({
+      kind: 'cells',
+      blockId,
+      floorStart: floorIndex,
+      floorEnd: floorIndex,
+      columnStart: columnIndex,
+      columnEnd: columnIndex
+    });
+    setIsDragging(true);
+  }
+
+  function extendCellSelect(blockId: string, floorIndex: number, columnIndex: number) {
+    if (!isDragging || selection?.kind !== 'cells') return;
+    if (selection.blockId !== blockId) return;
+    setSelection({ ...selection, floorEnd: floorIndex, columnEnd: columnIndex });
+  }
+
   function extendSelect(blockId: string, rowId: HeaderRowId, index: number) {
     if (!isDragging || selection?.kind !== 'header') return;
     if (selection.blockId !== blockId || selection.rowId !== rowId) return;
@@ -325,7 +390,7 @@ export function InventoryGridEditor({
   return (
     <div className="space-y-3" onKeyDown={handleKeyDown}>
       {editable &&
-      <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-[#e0d2bd] bg-[#faf7f1] px-2 py-1.5">
+      <div className="sticky top-0 z-30 -mx-1 flex flex-wrap items-center gap-1.5 rounded-lg border border-[#e0d2bd] bg-[#faf7f1] px-2 py-1.5 shadow-sm">
           <ToolButton icon={<CombineIcon />} label="Gộp ô" enabled={canMerge} onClick={doMerge} />
           <ToolButton icon={<SplitIcon />} label="Tách ô" enabled={canSplit} onClick={doSplit} />
           <span className="mx-0.5 h-5 w-px bg-[#e0d2bd]" />
@@ -393,12 +458,14 @@ export function InventoryGridEditor({
                           startColumnSelect(event, block.id, group.start, group.end)
                           }
                           onMouseEnter={() => extendColumnSelect(block.id, group.end)}
-                          className={`select-none border border-white px-1 py-1.5 text-[10.5px] font-semibold uppercase tracking-wide ${
+                          className={`select-none border border-white px-1 py-1.5 ${
                           editable ? 'cursor-pointer' : ''} ${
-                          picked ? 'bg-[#f5921f] text-white' : 'bg-[#9ca3af] text-white/90'}`
-                          }>
+                          picked ? 'bg-[#f5921f]' : 'bg-[#9ca3af]'}`
+                          }
+                          aria-label="Khu vực chung"
+                          title="Khu vực chung">
 
-                          Khu vực chung
+                          <span className="block h-[15px]" />
                         </th>);
 
                     }
@@ -465,19 +532,31 @@ export function InventoryGridEditor({
                       <th className="sticky left-0 z-10 border border-white bg-[#1e7b45] px-2 py-1.5 text-[10.5px] font-bold uppercase tracking-wide text-white">
                         {row.label}
                       </th>
-                      {cells.map((cell, index) => {
-                        if (!cell) return null;
+                      {headerSegments(block, cells).map((segment) => {
+                        // Trục khu vực chung: ô ghi trơn, không nội dung.
+                        if (segment.disabled) {
+                          return (
+                            <td
+                              key={`gap-${segment.start}`}
+                              colSpan={segment.width}
+                              className="border border-white bg-[#9ca3af]" />);
+
+
+                        }
+
+                        const index = segment.start;
                         const inSelection =
                         selection?.kind === 'header' &&
                         selection.blockId === block.id &&
                         selection.rowId === row.id &&
                         index >= Math.min(selection.start, selection.end) &&
                         index <= Math.max(selection.start, selection.end);
+                        const cell = { value: segment.value, span: segment.span };
 
                         return (
                           <td
                             key={index}
-                            colSpan={cellWidth(block, index, cell.span)}
+                            colSpan={segment.width}
                             onMouseDown={(event) => startSelect(event, block.id, row.id, index)}
                             onMouseEnter={() => extendSelect(block.id, row.id, index)}
                             onContextMenu={(event) => openMenu(event, block.id, row.id, index)}
@@ -592,15 +671,32 @@ export function InventoryGridEditor({
 
                       {groupColumns(block).map((group) => {
                         const column = block.columns[group.start];
+
                         if (group.disabled) {
                           return (
                             <td
                               key={column.id}
                               colSpan={group.width}
-                              className="border border-[#cfe3d4] bg-[#e5e7eb]" />);
+                              className="border border-[#cfe3d4] bg-[#9ca3af]" />);
 
 
                         }
+
+                        // Ô nằm trong vùng gộp nhưng không phải góc trên trái thì bỏ qua.
+                        const region = mergeAt(block, floorIndex, group.start);
+                        if (
+                        region && (
+                        region.floorStart !== floorIndex || region.columnStart !== group.start))
+                        {
+                          return null;
+                        }
+
+                        const spanColumns = region ?
+                        block.columns.
+                        slice(region.columnStart, region.columnEnd + 1).
+                        reduce((total, item) => total + item.span, 0) :
+                        group.width;
+                        const spanFloors = region ? region.floorEnd - region.floorStart + 1 : 1;
 
                         const unit = column.mergedCodes.
                         map((code) => unitAt(floor, code)).
@@ -608,11 +704,35 @@ export function InventoryGridEditor({
                         const show = unit && isVisible(unit);
                         const style = unit ? STATUS_STYLES[unit.status] : null;
 
+                        const picked =
+                        selection?.kind === 'cells' &&
+                        selection.blockId === block.id &&
+                        floorIndex >= Math.min(selection.floorStart, selection.floorEnd) &&
+                        floorIndex <= Math.max(selection.floorStart, selection.floorEnd) &&
+                        group.start >= Math.min(selection.columnStart, selection.columnEnd) &&
+                        group.start <= Math.max(selection.columnStart, selection.columnEnd);
+
                         return (
-                          <td key={column.id} colSpan={group.width} className="border border-[#cfe3d4] p-0.5">
+                          <td
+                            key={column.id}
+                            colSpan={spanColumns}
+                            rowSpan={spanFloors}
+                            onMouseDown={(event) =>
+                            startCellSelect(event, block.id, floorIndex, group.start)
+                            }
+                            onMouseEnter={() =>
+                            extendCellSelect(block.id, floorIndex, group.start)
+                            }
+                            className={`select-none border p-0.5 ${
+                            editable ? 'cursor-cell' : ''} ${
+                            region ? 'border-[#f5921f]/60' : 'border-[#cfe3d4]'} ${
+                            picked ? 'bg-[#ffe9cf] outline outline-2 -outline-offset-2 outline-[#f5921f]' : ''}`
+                            }>
+
                             {show && unit && style &&
                             <button
                               type="button"
+                              onMouseDown={(event) => event.stopPropagation()}
                               onClick={() => onSelectUnit(unit)}
                               className="flex h-full min-h-[28px] w-full items-center justify-center rounded-sm px-1 transition-opacity hover:opacity-80"
                               style={{ backgroundColor: style.background, color: style.color }}
@@ -622,6 +742,9 @@ export function InventoryGridEditor({
                                   {renderPrice(unit)}
                                 </span>
                               </button>
+                            }
+                            {region && !show &&
+                            <span className="block h-full min-h-[28px] rounded-sm bg-[#fdf3e2]" />
                             }
                           </td>);
 
@@ -760,6 +883,14 @@ function describeSelection(selection: Selection | null): string {
     return count > 1 ? `Đang chọn ${count} trục căn` : 'Đang chọn một trục căn';
   }
   if (selection.kind === 'floor') return 'Đang chọn một tầng';
+  if (selection.kind === 'cells') {
+    const rows = Math.abs(selection.floorEnd - selection.floorStart) + 1;
+    const cols = Math.abs(selection.columnEnd - selection.columnStart) + 1;
+    if (rows > 1 && cols > 1) return `Đang chọn ${rows}×${cols} ô căn hộ`;
+    if (rows > 1) return `Đang chọn ${rows} ô theo chiều tầng`;
+    if (cols > 1) return `Đang chọn ${cols} ô theo chiều trục`;
+    return 'Đang chọn một ô căn hộ';
+  }
   return 'Đang chọn cả khối';
 }
 
@@ -832,4 +963,56 @@ function groupColumns(block: GridBlock): ColumnGroup[] {
   }
 
   return groups;
+}
+
+
+interface HeaderSegment {
+  start: number;
+  /** Số trục đoạn này phủ. */
+  span: number;
+  /** Số ô vật lý, đã tính độ rộng của từng trục. */
+  width: number;
+  disabled: boolean;
+  value: string;
+}
+
+/**
+ * Chia một dòng tiêu đề thành các đoạn để render.
+ *
+ * Đoạn bị cắt ở hai chỗ: khi đổi ô gộp, và khi chuyển giữa trục thường với
+ * trục khu vực chung. Nhờ vậy ô gộp phủ qua vùng khu vực chung vẫn hiển thị
+ * đúng — phần khu vực chung tách ra thành ô ghi riêng.
+ */
+function headerSegments(block: GridBlock, cells: HeaderCell[]): HeaderSegment[] {
+  const owners = toOwners(cells, block.columns.length);
+  const segments: HeaderSegment[] = [];
+  let index = 0;
+
+  while (index < block.columns.length) {
+    const owner = owners[index];
+    const disabled = block.columns[index].disabled;
+
+    let end = index;
+    while (
+    end + 1 < block.columns.length &&
+    owners[end + 1] === owner &&
+    block.columns[end + 1].disabled === disabled)
+    {
+      end += 1;
+    }
+
+    segments.push({
+      start: index,
+      span: end - index + 1,
+      width: block.columns.
+      slice(index, end + 1).
+      reduce((total, column) => total + column.span, 0),
+      disabled,
+      value: cells[owner]?.value ?? ''
+    });
+
+    index = end + 1;
+  }
+
+  return segments;
 }

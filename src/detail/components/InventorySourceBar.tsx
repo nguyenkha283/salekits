@@ -32,6 +32,8 @@ export function InventorySourceBar({ source, onResynced }: InventorySourceBarPro
   const [file, setFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const [error, setError] = useState('');
+  /** Lời nhắc khi đường đọc không lấy được đủ thông tin. */
+  const [degraded, setDegraded] = useState('');
   const [sheets, setSheets] = useState<DetectedSheet[] | null>(null);
 
   const nextLabel = file ? file.name : link.trim();
@@ -43,11 +45,12 @@ export function InventorySourceBar({ source, onResynced }: InventorySourceBarPro
     setIsParsing(true);
     setError('');
     try {
-      const detected = file ?
+      const result = file ?
       await parseWorkbookFile(file) :
       await parseWorkbookLink(link.trim());
-      if (!detected.length) throw new Error('File không có sheet nào đọc được.');
-      setSheets(detected);
+      if (!result.sheets.length) throw new Error('File không có sheet nào đọc được.');
+      setDegraded(result.degraded ?? '');
+      setSheets(result.sheets);
       setStage('picking');
     } catch (parseError) {
       setError(
@@ -311,6 +314,7 @@ export function InventorySourceBar({ source, onResynced }: InventorySourceBarPro
       <SheetPickerDialog
         sheets={sheets}
         sourceLabel={nextLabel}
+        degraded={degraded}
         onCancel={close}
         onConfirm={(picked, priceIndex) => {
           close();
