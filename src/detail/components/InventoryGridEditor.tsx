@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   BanIcon,
   CombineIcon,
+  CrownIcon,
   LayersIcon,
   Columns3Icon,
   Rows3Icon,
@@ -66,6 +67,8 @@ interface InventoryGridEditorProps {
   editable: boolean;
   unitAt: (floor: string, column: string) => ParsedUnit | undefined;
   renderPrice: (unit: ParsedUnit) => string;
+  /** Căn thuộc quỹ độc quyền — hiện vương miện. */
+  hasCrown?: (unit: ParsedUnit) => boolean;
   isVisible: (unit: ParsedUnit) => boolean;
   onSelectUnit: (unit: ParsedUnit) => void;
 }
@@ -76,6 +79,7 @@ export function InventoryGridEditor({
   editable,
   unitAt,
   renderPrice,
+  hasCrown,
   isVisible,
   onSelectUnit
 }: InventoryGridEditorProps) {
@@ -734,10 +738,16 @@ export function InventoryGridEditor({
                               type="button"
                               onMouseDown={(event) => event.stopPropagation()}
                               onClick={() => onSelectUnit(unit)}
-                              className="flex h-full min-h-[28px] w-full items-center justify-center rounded-sm px-1 transition-opacity hover:opacity-80"
+                              className="relative flex h-full min-h-[28px] w-full items-center justify-center rounded-sm px-1 transition-opacity hover:opacity-80"
                               style={{ backgroundColor: style.background, color: style.color }}
                               title={`${unit.code} · ${unit.status}`}>
 
+                                {hasCrown?.(unit) &&
+                              <CrownIcon
+                                className="absolute left-0.5 top-0.5 h-2.5 w-2.5 fill-[#173b7a] text-[#173b7a]"
+                                aria-label="Quỹ độc quyền" />
+
+                              }
                                 <span className="text-[11px] font-bold leading-tight">
                                   {renderPrice(unit)}
                                 </span>

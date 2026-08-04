@@ -4,6 +4,7 @@ import { Role } from './Header';
 import { UnitDetailModal } from './UnitDetailModal';
 import type { UnitStatus } from './UnitDetailModal';
 import {
+  isExclusiveFund,
   shortPrice,
   unitPrice,
   type FundGroup,
@@ -90,11 +91,6 @@ export function InventoryTable({
   );
   const activePriceColumn = data.priceFields[priceIndex];
 
-  const fundColors = useMemo(
-    () => Object.fromEntries(funds.map((fund) => [fund.id, fund.color])),
-    [funds]
-  );
-
   /** Tra nhanh: mã căn → danh sách quỹ chứa nó. */
   const fundsByCode = useMemo(() => {
     const map = new Map<string, string[]>();
@@ -108,6 +104,13 @@ export function InventoryTable({
 
   function fundsOf(unit: ParsedUnit): string[] {
     return fundsByCode.get(unit.code) ?? [];
+  }
+
+  /** Chỉ quỹ độc quyền mới mang vương miện. */
+  function hasCrown(unit: ParsedUnit): boolean {
+    return fundsOf(unit).some((id) =>
+    isExclusiveFund(funds.find((fund) => fund.id === id)?.name ?? '')
+    );
   }
 
   /** Không khai báo quỹ nào thì mọi căn đều hiện. */
@@ -232,8 +235,9 @@ export function InventoryTable({
                 isVisible ? 'border-[#4a3728] bg-[#f7f2ea] text-[#4a3728]' : 'border-[#e9e1d5] text-[#9c8672]'}`
                 }>
 
-                <CrownIcon className="h-3.5 w-3.5" style={{ color: fundColors[fund.id] }} aria-hidden="true" />
-                <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: fundColors[fund.id] }} />
+                {isExclusiveFund(fund.name) &&
+                <CrownIcon className="h-3.5 w-3.5 fill-[#173b7a] text-[#173b7a]" aria-hidden="true" />
+                }
                 {fund.name}
                 <span className="font-mono text-[10.5px] opacity-70">{fund.codes.length}</span>
               </button>);
@@ -286,6 +290,7 @@ export function InventoryTable({
             editable={canEditGrid && showNotice === false}
             unitAt={unitAt}
             renderPrice={(unit) => shortPrice(unit.prices[priceIndex])}
+            hasCrown={hasCrown}
             isVisible={(unit) =>
             passesFundFilter(unit) && visibleStatuses[unit.status] !== false
             }
@@ -331,7 +336,7 @@ export function InventoryTable({
           price: shortPrice(selectedUnit.prices[priceIndex]),
           status: selectedUnit.status
         }}
-        fundColor={fundColors[fundsOf(selectedUnit)[0]] ?? '#4a3728'}
+        fundColor="#4a3728"
         onClose={() => setSelectedUnit(null)} />
 
       }

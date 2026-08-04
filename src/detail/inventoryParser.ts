@@ -586,7 +586,6 @@ column: number)
 export interface FundGroup {
   id: string;
   name: string;
-  color: string;
   codes: string[];
 }
 
@@ -603,7 +602,25 @@ export interface InventoryData {
   spanHints: SpanHint[];
 }
 
-const FUND_COLORS = ['#ff0000', '#a77b00', '#2a55b8', '#0e9f6e', '#7b2d5e'];
+/**
+ * Thứ tự hiển thị quỹ: độc quyền trước, rồi chung và chéo, cuối cùng là quỹ
+ * khác. Không phân biệt bằng màu — chỉ quỹ độc quyền mang biểu tượng vương miện.
+ */
+export function fundRank(name: string): number {
+  const plain = name.
+  normalize('NFD').
+  replace(/[\u0300-\u036f]/g, '').
+  replace(/đ/gi, 'd').
+  toLowerCase();
+
+  if (/doc quyen/.test(plain)) return 0;
+  if (/chung|cheo/.test(plain)) return 1;
+  return 2;
+}
+
+export function isExclusiveFund(name: string): boolean {
+  return fundRank(name) === 0;
+}
 
 /**
  * Gộp kết quả các sheet đã chọn thành một bộ dữ liệu.
@@ -647,7 +664,6 @@ priceIndex = 0)
   const columnFunds: FundGroup[] = [...byLabel.entries()].map(([name, codes], index) => ({
     id: `fund-col-${index}`,
     name,
-    color: FUND_COLORS[index % FUND_COLORS.length],
     codes
   }));
 
@@ -659,12 +675,13 @@ priceIndex = 0)
     return {
       id: `fund-${index}`,
       name: sheet.name,
-      color: FUND_COLORS[(columnFunds.length + index) % FUND_COLORS.length],
       codes: sheet.analysis.units.map((unit) => unit.code)
     };
   });
 
-  const funds = [...columnFunds, ...sheetFunds];
+  const funds = [...columnFunds, ...sheetFunds].sort(
+    (a, b) => fundRank(a.name) - fundRank(b.name) || a.name.localeCompare(b.name)
+  );
 
   const towers = [...new Set(units.map((unit) => unit.tower))].filter(Boolean).sort();
   const spanHints = inventorySheets.flatMap((sheet) => sheet.analysis.spanHints);

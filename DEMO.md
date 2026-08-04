@@ -222,6 +222,20 @@ Bấm đồng bộ lại sẽ hiện **màn so khác biệt** trước khi ghi �
 
 **Mất quyền truy cập:** ba lần kiểm tra thất bại liên tiếp thì báo *"Mất quyền đọc file nguồn"* — tránh để đồng bộ hỏng âm thầm hàng tuần.
 
+### Tab Quỹ căn
+
+Mười một cột: Mã căn, Giá niêm yết, Loại hình, Hướng, View, DT tim tường, DT thông thủy, Tầng, Trục căn, Tòa nhà, Tình trạng.
+
+**Loại giá đang hiển thị** ghi trong dải xanh ngay trên bảng.
+
+**Lọc hai tầng, cùng một bộ tiêu chí:** dải nút bên trên bảng, và nút nhỏ cạnh mỗi tên cột. Bảy tiêu chí — Giá (11 khoảng), Loại hình, Diện tích (7 khoảng), Tầng, Trục căn, Tòa nhà, Tình trạng.
+
+Chọn nhiều giá trị trong cùng một cột thì lấy hợp; kết hợp nhiều cột thì lấy giao. Danh sách lựa chọn sinh từ chính dữ liệu nên không bao giờ thừa tầng hay trục không tồn tại.
+
+### Quỹ trên tab Bảng hàng
+
+Thứ tự cố định: **Độc quyền → chung và chéo → quỹ khác**. Chỉ quỹ độc quyền mang vương miện, không dùng màu để phân biệt quỹ.
+
 ### Template và dữ liệu là hai lớp tách rời
 
 Đồng bộ lại **chỉ thay dữ liệu căn**. Cấu trúc lưới đã soạn — gộp ô, khu vực chung, phân khối, dòng tiêu đề — **giữ nguyên**. Công soạn lưới chỉ tốn một lần cho mỗi tòa.
