@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { CheckIcon, ChevronDownIcon, CrownIcon, InfoIcon, XIcon } from 'lucide-react';
 import {
   isExclusiveFund,
@@ -112,7 +112,41 @@ interface FundInventoryProps {
 export function FundInventory({ data, showNotice = false }: FundInventoryProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
-  const [openFilter, setOpenFilter] = useState<FilterKey | null>(null);
+  /**
+   * Bộ lọc đang mở. Phải ghi cả NƠI mở, vì cùng một tiêu chí xuất hiện ở hai
+   * chỗ — dải nút bên trên bảng và nút cạnh tên cột. Chỉ lưu tên tiêu chí thì
+   * mở một cái sẽ bung cả hai.
+   */
+  const [openFilter, setOpenFilter] = useState<{
+    key: FilterKey;
+    source: 'bar' | 'column';
+  } | null>(null);
+
+  function toggleOpen(key: FilterKey, source: 'bar' | 'column') {
+    setOpenFilter((current) =>
+    current && current.key === key && current.source === source ?
+    null :
+    { key, source }
+    );
+  }
+
+  const isOpen = (key: FilterKey, source: 'bar' | 'column') =>
+  openFilter?.key === key && openFilter.source === source;
+
+  // Bấm ra ngoài hoặc nhấn Escape thì đóng.
+  useEffect(() => {
+    if (!openFilter) return;
+    const close = () => setOpenFilter(null);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpenFilter(null);
+    };
+    window.addEventListener('mousedown', close);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('mousedown', close);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [openFilter]);
 
   const priceIndex = data.priceIndex;
   const activePriceColumn = data.priceFields[priceIndex];
@@ -263,8 +297,8 @@ export function FundInventory({ data, showNotice = false }: FundInventoryProps) 
               label={column.label}
               picked={filters[key]}
               options={column.options}
-              open={openFilter === key}
-              onToggleOpen={() => setOpenFilter(openFilter === key ? null : key)}
+              open={isOpen(key, 'bar')}
+              onToggleOpen={() => toggleOpen(key, 'bar')}
               onPick={(value) => toggle(key, value)}
               onClear={() => setFilters((current) => ({ ...current, [key]: [] }))} />);
 
@@ -311,11 +345,8 @@ export function FundInventory({ data, showNotice = false }: FundInventoryProps) 
                     label={column.label}
                     picked={filters[column.key]}
                     options={column.options}
-                    open={openFilter === column.key}
-                    onToggleOpen={() => {
-                      const key = column.key as FilterKey;
-                      setOpenFilter(openFilter === key ? null : key);
-                    }}
+                    open={isOpen(column.key, 'column')}
+                    onToggleOpen={() => toggleOpen(column.key as FilterKey, 'column')}
                     onPick={(value) => toggle(column.key as FilterKey, value)}
                     onClear={() =>
                     setFilters((current) => ({ ...current, [column.key as FilterKey]: [] }))
@@ -426,6 +457,7 @@ function FilterMenu({ picked, options, onPick, onClear }: Omit<FilterProps, 'lab
   return (
     <div
       className="absolute right-0 top-full z-40 mt-1 max-h-72 w-52 overflow-y-auto rounded-lg bg-white py-1 text-left shadow-2xl ring-1 ring-black/10"
+      onMouseDown={(event) => event.stopPropagation()}
       onClick={(event) => event.stopPropagation()}>
 
       {picked.length > 0 &&
@@ -472,6 +504,7 @@ function ColumnFilter(props: FilterProps) {
     <span className="relative">
       <button
         type="button"
+        onMouseDown={(event) => event.stopPropagation()}
         onClick={props.onToggleOpen}
         aria-label={`Lọc theo ${props.label}`}
         className={`grid h-4 w-4 place-items-center rounded transition-colors ${
@@ -491,6 +524,7 @@ function FilterButton(props: FilterProps) {
     <span className="relative">
       <button
         type="button"
+        onMouseDown={(event) => event.stopPropagation()}
         onClick={props.onToggleOpen}
         className={`inline-flex items-center gap-1.5 rounded border px-2.5 py-1 text-[12px] font-semibold transition-colors ${
         props.picked.length ?
