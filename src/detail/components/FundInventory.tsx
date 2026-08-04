@@ -3,7 +3,6 @@ import { CheckIcon, ChevronDownIcon, CrownIcon, InfoIcon, XIcon } from 'lucide-r
 import {
   isExclusiveFund,
   shortPrice,
-  unitPrice,
   type InventoryData,
   type ParsedUnit,
   type UnitStatusValue } from
@@ -211,50 +210,68 @@ export function FundInventory({ data, showNotice = false }: FundInventoryProps) 
   const COLUMNS: Array<{
     key: FilterKey | null;
     label: string;
-    align?: 'right';
+    /** Đơn vị ghi nhỏ dưới tên cột. */
+    unit?: string;
+    align: 'left' | 'center';
+    width: number;
     options?: Array<{id: string;label: string;}>;
   }> = [
-  { key: null, label: 'Mã căn' },
+  { key: null, label: 'Mã căn', align: 'left', width: 150 },
   {
     key: 'price',
     label: 'Giá niêm yết',
-    align: 'right',
+    align: 'center',
+    width: 120,
     options: PRICE_RANGES.map((range) => ({ id: range.id, label: range.label }))
   },
   {
     key: 'bedrooms',
     label: 'Loại hình',
+    align: 'center',
+    width: 96,
     options: options.bedrooms.map((value) => ({ id: value, label: value }))
   },
-  { key: null, label: 'Hướng' },
-  { key: null, label: 'View' },
-  { key: null, label: 'DT tim tường', align: 'right' },
+  { key: null, label: 'Hướng', align: 'center', width: 80 },
+  { key: null, label: 'View', align: 'center', width: 150 },
+  { key: null, label: 'DT tim tường', unit: 'm²', align: 'center', width: 92 },
   {
     key: 'area',
     label: 'DT thông thủy',
-    align: 'right',
+    unit: 'm²',
+    align: 'center',
+    width: 98,
     options: AREA_RANGES.map((range) => ({ id: range.id, label: range.label }))
   },
   {
     key: 'floor',
     label: 'Tầng',
+    align: 'center',
+    width: 68,
     options: options.floor.map((value) => ({ id: value, label: value }))
   },
   {
     key: 'unit',
     label: 'Trục căn',
+    align: 'center',
+    width: 78,
     options: options.unit.map((value) => ({ id: value, label: value }))
   },
   {
     key: 'tower',
     label: 'Tòa nhà',
+    align: 'left',
+    width: 130,
     options: options.tower.map((value) => ({ id: value, label: value }))
   },
   {
     key: 'status',
     label: 'Tình trạng',
+    align: 'center',
+    width: 106,
     options: STATUS_OPTIONS.map((value) => ({ id: value, label: value }))
   }];
+
+  const totalWidth = COLUMNS.reduce((sum, column) => sum + column.width, 44);
 
 
   return (
@@ -285,44 +302,94 @@ export function FundInventory({ data, showNotice = false }: FundInventoryProps) 
         }
       </div>
 
-      {/* Bộ lọc tổng bên trên bảng */}
-      <div className="mt-3 flex flex-wrap items-center gap-2 rounded border border-[#e9e1d5] bg-[#faf7f1] p-3">
-        <span className="text-[12px] font-semibold text-[#4a3728]">Lọc nhanh:</span>
-        {COLUMNS.map((column) => {
-          const key = column.key;
-          if (!key || !column.options) return null;
-          return (
-            <FilterButton
-              key={key}
-              label={column.label}
-              picked={filters[key]}
-              options={column.options}
-              open={isOpen(key, 'bar')}
-              onToggleOpen={() => toggleOpen(key, 'bar')}
-              onPick={(value) => toggle(key, value)}
-              onClear={() => setFilters((current) => ({ ...current, [key]: [] }))} />);
+      {/* Bộ lọc — số kết quả trước, điều khiển sau, điều kiện đang áp cuối */}
+      <div className="mt-3 overflow-hidden rounded-lg border border-[#e9e1d5]">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 bg-[#faf7f1] px-3 py-2.5">
+          <p className="flex shrink-0 items-baseline gap-1.5">
+            <span className="text-[19px] font-bold tabular-nums text-[#4a3728]">
+              {rows.length}
+            </span>
+            <span className="text-[12px] text-[#9c8672]">
+              / {data.units.length} căn
+            </span>
+          </p>
 
-        })}
+          <span className="h-6 w-px shrink-0 bg-[#e0d2bd]" />
+
+          <div className="flex flex-1 flex-wrap items-center gap-1.5">
+            {COLUMNS.map((column) => {
+              const key = column.key;
+              if (!key || !column.options) return null;
+              return (
+                <FilterButton
+                  key={key}
+                  label={column.label}
+                  picked={filters[key]}
+                  options={column.options}
+                  open={isOpen(key, 'bar')}
+                  onToggleOpen={() => toggleOpen(key, 'bar')}
+                  onPick={(value) => toggle(key, value)}
+                  onClear={() => setFilters((current) => ({ ...current, [key]: [] }))} />);
+
+            })}
+          </div>
+
+          {selectedIds.length > 0 &&
+          <span className="shrink-0 rounded bg-[#fdf3e2] px-2 py-1 text-[11.5px] font-semibold text-[#8a5a12]">
+              Đã chọn {selectedIds.length}
+            </span>
+          }
+        </div>
+
         {activeCount > 0 &&
-        <button
-          type="button"
-          onClick={() => setFilters(EMPTY_FILTERS)}
-          className="inline-flex items-center gap-1 rounded border border-[#e0d2bd] bg-white px-2 py-1 text-[11.5px] font-semibold text-[#992d22] transition-colors hover:bg-[#fbedeb]">
+        <div className="flex flex-wrap items-center gap-1.5 border-t border-[#e9e1d5] bg-white px-3 py-2">
+            <span className="mr-1 text-[11.5px] font-semibold uppercase tracking-wide text-[#9c8672]">
+              Đang lọc
+            </span>
+            {(Object.keys(filters) as FilterKey[]).flatMap((key) =>
+          filters[key].map((value) => {
+            const column = COLUMNS.find((item) => item.key === key);
+            const option = column?.options?.find((item) => item.id === value);
+            return (
+              <button
+                key={`${key}-${value}`}
+                type="button"
+                onClick={() => toggle(key, value)}
+                className="inline-flex items-center gap-1 rounded border border-[#f0d9b8] bg-[#fdf3e2] py-0.5 pl-2 pr-1 text-[11.5px] font-medium text-[#8a5a12] transition-colors hover:bg-[#fbe9cf]">
 
-            <XIcon className="h-3 w-3" />
-            Xóa {activeCount} bộ lọc
-          </button>
+                    <span className="text-[#b08e5c]">{column?.label}:</span>
+                    {option?.label ?? value}
+                    <XIcon className="h-3 w-3 opacity-60" />
+                  </button>);
+
+          })
+          )}
+            <button
+            type="button"
+            onClick={() => setFilters(EMPTY_FILTERS)}
+            className="ml-auto text-[11.5px] font-semibold text-[#992d22] hover:underline">
+
+              Xóa tất cả
+            </button>
+          </div>
         }
-        <p className="ml-auto text-[12px] text-[#9c8672]">
-          {rows.length}/{data.units.length} căn · đã chọn {selectedIds.length}
-        </p>
       </div>
 
-      <div className="mt-3 overflow-x-auto border border-[#e9e1d5] bg-white">
-        <table className="w-full min-w-[1180px] border-collapse text-left text-[13px]">
+      <div className="mt-3 overflow-x-auto rounded-lg border border-[#e9e1d5] bg-white">
+        <table
+          className="w-full border-collapse text-left text-[13px]"
+          style={{ minWidth: totalWidth }}>
+
+          <colgroup>
+            <col style={{ width: 44 }} />
+            {COLUMNS.map((column) =>
+            <col key={column.label} style={{ width: column.width }} />
+            )}
+          </colgroup>
+
           <thead>
             <tr className="bg-[#827464] text-white">
-              <th className="w-10 px-3 py-2.5">
+              <th className="border-r border-white/20 px-3 py-2">
                 <button
                   onClick={() => setSelectedIds(allSelected ? [] : rows.map((row) => row.code))}
                   aria-label={allSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
@@ -333,13 +400,25 @@ export function FundInventory({ data, showNotice = false }: FundInventoryProps) 
                   {allSelected && <CheckIcon className="h-3 w-3 text-[#4a3728]" />}
                 </button>
               </th>
-              {COLUMNS.map((column) =>
+              {COLUMNS.map((column, index) =>
               <th
                 key={column.label}
-                className={`px-3 py-2.5 font-semibold ${column.align === 'right' ? 'text-right' : ''}`}>
+                className={`px-2 py-2 font-semibold ${
+                index < COLUMNS.length - 1 ? 'border-r border-white/20' : ''} ${
+                column.align === 'center' ? 'text-center' : 'text-left'}`
+                }>
 
-                  <span className="inline-flex items-center gap-1">
-                    {column.label}
+                  <span
+                  className={`inline-flex items-center gap-1 ${
+                  column.align === 'center' ? 'justify-center' : ''}`
+                  }>
+
+                    <span className="leading-tight">
+                      {column.label}
+                      {column.unit &&
+                    <span className="ml-1 font-normal text-white/60">({column.unit})</span>
+                    }
+                    </span>
                     {column.key && column.options &&
                   <ColumnFilter
                     label={column.label}
@@ -358,20 +437,52 @@ export function FundInventory({ data, showNotice = false }: FundInventoryProps) 
               )}
             </tr>
           </thead>
+
           <tbody>
             {rows.map((row) => {
               const isSelected = selectedIds.includes(row.code);
               const funds = fundsByCode.get(row.code) ?? [];
               const crown = funds.some(isExclusiveFund);
 
+              const cells = [
+              <span key="code" className="inline-flex items-center gap-1 font-semibold text-[#4a3728]">
+                  {row.code}
+                  {crown &&
+                <CrownIcon
+                  className="h-3 w-3 shrink-0 fill-[#173b7a] text-[#173b7a]"
+                  aria-label="Quỹ độc quyền" />
+
+                }
+                </span>,
+              <span key="price" className="font-semibold tabular-nums">
+                  {shortPrice(row.prices[priceIndex])}
+                </span>,
+              row.bedrooms || '—',
+              extraByKeyword(row, 'huong') || '—',
+              <span key="view" className="block truncate" title={extraByKeyword(row, 'view')}>
+                  {extraByKeyword(row, 'view') || '—'}
+                </span>,
+              <span key="tim" className="tabular-nums">{timTuong(row) || '—'}</span>,
+              <span key="tt" className="tabular-nums">{row.area?.toFixed(1) ?? '—'}</span>,
+              <span key="floor" className="tabular-nums">{row.floor || '—'}</span>,
+              <span key="unit" className="tabular-nums">{row.unit || '—'}</span>,
+              row.tower || '—',
+              <span
+                key="status"
+                className={`inline-block rounded px-2 py-0.5 text-[11.5px] font-semibold ${STATUS_STYLES[row.status]}`}>
+
+                  {row.status}
+                </span>];
+
+
               return (
                 <tr
                   key={row.code}
-                  className={`border-b border-[#f0eae0] transition-colors ${
+                  className={`border-t border-[#f0eae0] transition-colors ${
                   isSelected ? 'bg-[#fdf3e2]' : 'hover:bg-[#faf7f1]'}`
                   }>
 
-                  <td className="px-3 py-2">
+                  <td className="border-r border-[#f2ece2] px-3 py-1.5">
                     <button
                       onClick={() =>
                       setSelectedIds((current) =>
@@ -388,45 +499,27 @@ export function FundInventory({ data, showNotice = false }: FundInventoryProps) 
                       {isSelected && <CheckIcon className="h-3 w-3 text-white" />}
                     </button>
                   </td>
-                  <td className="px-3 py-2 font-semibold text-[#4a3728]">
-                    <span className="inline-flex items-center gap-1.5">
-                      {crown &&
-                      <CrownIcon
-                        className="h-3.5 w-3.5 shrink-0 fill-[#173b7a] text-[#173b7a]"
-                        aria-label="Quỹ độc quyền" />
+                  {cells.map((content, index) =>
+                  <td
+                    key={COLUMNS[index].label}
+                    className={`px-2 py-1.5 ${
+                    index < cells.length - 1 ? 'border-r border-[#f2ece2]' : ''} ${
+                    COLUMNS[index].align === 'center' ? 'text-center' : 'text-left'}`
+                    }>
 
-                      }
-                      {row.code}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 text-right font-semibold tabular-nums">
-                    {shortPrice(row.prices[priceIndex])}
-                    <span className="ml-1.5 text-[11.5px] font-normal text-stone-400">
-                      {unitPrice(row.prices[priceIndex], row.area)}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2">{row.bedrooms || '—'}</td>
-                  <td className="px-3 py-2">{extraByKeyword(row, 'huong') || '—'}</td>
-                  <td className="px-3 py-2">{extraByKeyword(row, 'view') || '—'}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{timTuong(row) || '—'}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">
-                    {row.area?.toFixed(1) ?? '—'}
-                  </td>
-                  <td className="px-3 py-2 tabular-nums">{row.floor || '—'}</td>
-                  <td className="px-3 py-2 tabular-nums">{row.unit || '—'}</td>
-                  <td className="px-3 py-2">{row.tower || '—'}</td>
-                  <td className="px-3 py-2">
-                    <span className={`rounded px-2 py-0.5 text-[11.5px] font-semibold ${STATUS_STYLES[row.status]}`}>
-                      {row.status}
-                    </span>
-                  </td>
+                      {content}
+                    </td>
+                  )}
                 </tr>);
 
             })}
 
             {!rows.length &&
             <tr>
-                <td colSpan={COLUMNS.length + 1} className="px-3 py-10 text-center text-[13px] text-stone-500">
+                <td
+                colSpan={COLUMNS.length + 1}
+                className="border-t border-[#f0eae0] px-3 py-10 text-center text-[13px] text-stone-500">
+
                   Không có căn nào khớp bộ lọc. Thử bỏ bớt điều kiện.
                 </td>
               </tr>
