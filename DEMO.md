@@ -215,6 +215,12 @@ Bấm đồng bộ lại sẽ hiện **màn so khác biệt** trước khi ghi �
 
 **Mất quyền truy cập:** ba lần kiểm tra thất bại liên tiếp thì báo *"Mất quyền đọc file nguồn"* — tránh để đồng bộ hỏng âm thầm hàng tuần.
 
+### Template và dữ liệu là hai lớp tách rời
+
+Đồng bộ lại **chỉ thay dữ liệu căn**. Cấu trúc lưới đã soạn — gộp ô, khu vực chung, phân khối, dòng tiêu đề — **giữ nguyên**. Công soạn lưới chỉ tốn một lần cho mỗi tòa.
+
+Nếu dữ liệu mới có tầng hoặc trục chưa có trên lưới, hệ thống báo *"N căn chưa hiển thị được"* kèm danh sách tầng/trục thiếu và nút **Bổ sung vào lưới** — thêm vào mà không đụng tới phần đã soạn.
+
 ### Đồng bộ lại bảng hàng
 
 Bảng hàng **không nằm trong thư mục Drive chung của dự án**, nên nó có nút đồng bộ riêng thay vì dùng nút *Đồng bộ lại* trên thanh đầu.

@@ -56,6 +56,7 @@ export interface ColumnMapping {
   bedrooms?: number;
   handover?: number;
   status?: number;
+  fund?: number;
 }
 
 /** Căn thông tầng hoặc thông căn, suy từ ô gộp trong file gốc. */
@@ -155,7 +156,8 @@ const FIELD_PATTERNS: Array<{field: keyof ColumnMapping;patterns: RegExp[];}> = 
 { field: 'area', patterns: [/dien tich thong thuy/, /^dtt+t?$/, /^dt tt$/, /dien tich/, /^dt$/, /^area$/] },
 { field: 'bedrooms', patterns: [/^so pn$/, /so phong ngu/, /^pn$/, /loai can/, /^bedroom/] },
 { field: 'handover', patterns: [/goi ban giao/, /tieu chuan ban giao/, /^ban giao$/] },
-{ field: 'status', patterns: [/tinh trang/, /^trang thai$/, /^status$/] }];
+{ field: 'status', patterns: [/tinh trang/, /^trang thai$/, /^status$/] },
+{ field: 'fund', patterns: [/^quy$/, /^loai quy$/, /phan loai quy/, /^quy can$/] }];
 
 
 /**
@@ -395,7 +397,9 @@ options: AnalyzeOptions = {})
     const status = mapStatus(rawStatus);
     if (status === null) unknownStatuses.add(cellText(rawStatus));
     // Cột Tình trạng ghi tên quỹ thì giữ lại làm nhãn quỹ của căn.
-    const fundLabel = isFundValue(rawStatus) ? cellText(rawStatus) : '';
+    // Ưu tiên cột Quỹ riêng; không có thì lấy từ cột Tình trạng nếu nó ghi quỹ.
+    const fundColumn = cellText(cells[mapping.fund ?? -1]);
+    const fundLabel = fundColumn || (isFundValue(rawStatus) ? cellText(rawStatus) : '');
 
     const extras: Record<string, string> = {};
     labels.forEach((label, index) => {
@@ -607,15 +611,31 @@ priceIndex = 0)
     });
   });
 
-  const funds: FundGroup[] = fundSheets.map((sheet, index) => {
+  // Quỹ khai bằng cột trong sheet quỹ căn.
+  const byLabel = new Map<string, string[]>();
+  units.forEach((unit) => {
+    if (!unit.fundLabel) return;
+    byLabel.set(unit.fundLabel, [...(byLabel.get(unit.fundLabel) ?? []), unit.code]);
+  });
+
+  const columnFunds: FundGroup[] = [...byLabel.entries()].map(([name, codes], index) => ({
+    id: `fund-col-${index}`,
+    name,
+    color: FUND_COLORS[index % FUND_COLORS.length],
+    codes
+  }));
+
+  const sheetFunds: FundGroup[] = fundSheets.map((sheet, index) => {
     sheet.analysis.warnings.forEach((warning) => warnings.push(`${sheet.name}: ${warning}`));
     return {
       id: `fund-${index}`,
       name: sheet.name,
-      color: FUND_COLORS[index % FUND_COLORS.length],
+      color: FUND_COLORS[(columnFunds.length + index) % FUND_COLORS.length],
       codes: sheet.analysis.units.map((unit) => unit.code)
     };
   });
+
+  const funds = [...columnFunds, ...sheetFunds];
 
   const towers = [...new Set(units.map((unit) => unit.tower))].filter(Boolean).sort();
   const spanHints = inventorySheets.flatMap((sheet) => sheet.analysis.spanHints);

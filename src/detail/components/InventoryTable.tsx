@@ -11,7 +11,12 @@ import {
   type ParsedUnit } from
 '../inventoryParser';
 import { InventoryGridEditor } from './InventoryGridEditor';
-import { buildGrid, type GridModel } from '../gridModel';
+import {
+  absorbMissing,
+  buildGrid,
+  reconcileGrid,
+  type GridModel } from
+'../gridModel';
 
 interface InventoryTableProps {
   role: Role;
@@ -19,6 +24,14 @@ interface InventoryTableProps {
   data: InventoryData;
   /** Ghi chú pháp lý chỉ hiện ở trang xem trước và trang công khai. */
   showNotice?: boolean;
+  /**
+   * Lưới đã soạn, giữ qua các lần đồng bộ. Không truyền thì dựng mới từ dữ
+   * liệu — dùng cho trang công khai.
+   */
+  grids?: Record<string, GridModel>;
+  /** Template đọc từ sheet Tòa, ưu tiên hơn template tự dựng. */
+  templates?: Record<string, GridModel>;
+  onGridsChange?: (grids: Record<string, GridModel>) => void;
 }
 
 const STATUS_LEGENDS: Array<{label: UnitStatus;color: string;}> = [
@@ -28,7 +41,14 @@ const STATUS_LEGENDS: Array<{label: UnitStatus;color: string;}> = [
 { label: 'Đã cọc', color: 'rgba(129, 55, 4, 1)' }];
 
 
-export function InventoryTable({ role, data, showNotice = false }: InventoryTableProps) {
+export function InventoryTable({
+  role,
+  data,
+  showNotice = false,
+  grids: externalGrids,
+  templates,
+  onGridsChange
+}: InventoryTableProps) {
   const [tower, setTower] = useState(data.towers[0] ?? '');
   /** Cột giá đã chọn ở bước nhập file. */
   const priceIndex = data.priceIndex;
@@ -46,13 +66,28 @@ export function InventoryTable({ role, data, showNotice = false }: InventoryTabl
   /** Chỉ người quản lý mới đổi được cột giá hiển thị. */
   const canEditGrid = role === 'Quản lý giao dịch' || role === 'APM';
 
-  /** Lưới soạn thảo của từng tòa; dựng lần đầu từ dữ liệu đã bóc rồi giữ lại. */
-  const [grids, setGrids] = useState<Record<string, GridModel>>({});
-  const grid = grids[tower] ?? buildGrid(data, tower);
+  /**
+   * Lưới của từng tòa. Đồng bộ lại CHỈ thay dữ liệu — cấu trúc lưới đã soạn
+   * (gộp ô, khu vực chung, phân khối) được giữ nguyên.
+   */
+  const [localGrids, setLocalGrids] = useState<Record<string, GridModel>>({});
+  const grids = externalGrids ?? localGrids;
+  const grid = useMemo(
+    () => grids[tower] ?? templates?.[tower] ?? buildGrid(data, tower),
+    [grids, templates, tower, data]
+  );
 
   function updateGrid(next: GridModel) {
-    setGrids((current) => ({ ...current, [tower]: next }));
+    const merged = { ...grids, [tower]: next };
+    if (onGridsChange) onGridsChange(merged);else
+    setLocalGrids(merged);
   }
+
+  /** Căn nằm ngoài lưới sau khi đồng bộ — phải báo, không im lặng bỏ qua. */
+  const reconcile = useMemo(
+    () => reconcileGrid(grid, data, tower),
+    [grid, data, tower]
+  );
   const activePriceColumn = data.priceFields[priceIndex];
 
   const fundColors = useMemo(
@@ -127,6 +162,38 @@ export function InventoryTable({ role, data, showNotice = false }: InventoryTabl
       }
 
       <TransientWarnings warnings={data.warnings} />
+
+      {canEditGrid && reconcile.unmatchedCount > 0 &&
+      <div className="mt-3 rounded border border-[#f0dcb6] bg-[#fdf3e2] px-3 py-2.5">
+          <p className="flex gap-2 text-[12.5px] font-semibold text-[#92600a]">
+            <InfoIcon className="mt-px h-4 w-4 shrink-0" />
+            {reconcile.unmatchedCount} căn chưa hiển thị được trên lưới
+          </p>
+          <p className="mt-1 pl-6 text-[11.5px] leading-relaxed text-[#92600a]">
+            Đồng bộ chỉ thay dữ liệu, giữ nguyên cấu trúc lưới bạn đã soạn. Dữ
+            liệu mới có
+            {reconcile.missingFloors.length > 0 &&
+            <> tầng <b>{reconcile.missingFloors.join(', ')}</b></>
+            }
+            {reconcile.missingFloors.length > 0 && reconcile.missingColumns.length > 0 && ' và'}
+            {reconcile.missingColumns.length > 0 &&
+            <> trục <b>{reconcile.missingColumns.join(', ')}</b></>
+            }
+            {' '}chưa có trên lưới.
+          </p>
+          <button
+          type="button"
+          onClick={() =>
+          updateGrid(
+            absorbMissing(grid, reconcile.missingFloors, reconcile.missingColumns)
+          )
+          }
+          className="ml-6 mt-2 rounded border border-[#e0d2bd] bg-white px-2.5 py-1.5 text-[12px] font-semibold text-[#8a6a3f] transition-colors hover:bg-[#faf6ef]">
+
+            Bổ sung vào lưới
+          </button>
+        </div>
+      }
 
       <div className="mt-4 w-full border border-[#e9e1d5] bg-[#faf7f1] p-3 sm:p-4">
         <div className="flex flex-wrap gap-2" role="tablist" aria-label="Chọn tòa nhà">

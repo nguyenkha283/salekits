@@ -14,8 +14,9 @@ const FIELD_LABELS: Record<string, string> = {
 };
 
 const KIND_LABEL: Record<SheetKind, string> = {
-  inventory: 'Bảng hàng',
-  fund: 'Quỹ căn',
+  tower: 'Sheet tòa',
+  inventory: 'Quỹ căn',
+  fund: 'Đánh dấu quỹ',
   skip: 'Bỏ qua'
 };
 
@@ -52,6 +53,7 @@ export function SheetPickerDialog({
 
   const inventoryCount = sheets.filter((sheet) => sheet.kind === 'inventory').length;
   const fundCount = sheets.filter((sheet) => sheet.kind === 'fund').length;
+  const towerCount = sheets.filter((sheet) => sheet.kind === 'tower').length;
 
   /** Cột giá lấy từ sheet bảng hàng đầu tiên. */
   const priceFields =
@@ -170,6 +172,13 @@ export function SheetPickerDialog({
                   <> · <span className="text-[#2a55b8]">{sheet.merges.length} ô gộp</span></>
                   }
                 </p>
+                {sheet.tower &&
+                <p className="mt-0.5 text-[11px] text-[#2c6e3f]">
+                    Template: {sheet.tower.model.blocks.length} khối ·{' '}
+                    {sheet.tower.model.blocks.reduce((total, block) => total + block.floors.length, 0)} tầng ·{' '}
+                    {sheet.tower.model.blocks[0]?.columns.length ?? 0} trục
+                  </p>
+                }
                 {sheet.analysis.units.length > 0 &&
                 <p className="mt-1 flex flex-wrap gap-1">
                     {Object.keys(sheet.analysis.mapping).map((field) =>
@@ -208,7 +217,7 @@ export function SheetPickerDialog({
           {inventoryCount === 0 &&
           <p className="flex gap-2 rounded-lg border border-[#f0dcb6] bg-[#fdf3e2] p-3 text-[12px] leading-relaxed text-[#92600a]">
               <AlertTriangleIcon className="mt-px h-4 w-4 shrink-0" />
-              Cần ít nhất một sheet Bảng hàng để nhập dữ liệu.
+              Cần ít nhất một sheet Quỹ căn để nhập dữ liệu.
             </p>
           }
         </div>
@@ -218,7 +227,7 @@ export function SheetPickerDialog({
           <span className="text-[12px] text-stone-500">
             {isPricingStep ?
             'Bước 2/2 — chọn cột giá' :
-            `${inventoryCount} sheet bảng hàng · ${fundCount} sheet quỹ`}
+            `${towerCount} sheet tòa · ${inventoryCount} sheet quỹ căn · ${fundCount} sheet đánh dấu`}
           </span>
           <button
             type="button"

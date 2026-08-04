@@ -16,6 +16,7 @@ import { FloorPlanContent } from './components/FloorPlanContent';
 import { TeamContent } from './components/TeamContent';
 import { InventorySetup, type InventorySource } from './components/InventorySetup';
 import { buildInventory, type InventoryData } from './inventoryParser';
+import type { GridModel } from './gridModel';
 import {
   InventorySourceBar,
   type UpstreamChange } from
@@ -105,6 +106,9 @@ interface ProjectCanvasProps {
   upstreamChange?: UpstreamChange | null;
   /** Mất quyền đọc file nguồn. */
   sourceAccessLost?: boolean;
+  /** Lưới đã soạn, giữ qua các lần đồng bộ lại. */
+  grids?: Record<string, GridModel>;
+  onGridsChange?: (grids: Record<string, GridModel>) => void;
   /** Bật sửa chữ trực tiếp trên trang khi hiển thị trong CMS. */
   editing?: {
     enabled: boolean;
@@ -136,6 +140,8 @@ export function ProjectCanvas({
   showInventoryBar = false,
   upstreamChange = null,
   sourceAccessLost = false,
+  grids,
+  onGridsChange,
   editing,
   syncedMedia = {},
   chrome = true
@@ -151,6 +157,27 @@ export function ProjectCanvas({
     null,
     [inventorySource]
   );
+
+  /**
+   * Template từ sheet Tòa (Kiểu 1). Có sẵn thì dùng luôn — trung thực hơn
+   * nhiều so với dựng lại từ danh sách.
+   */
+  const towerTemplates = useMemo(() => {
+    const result: Record<string, GridModel> = {};
+    inventorySource?.sheets.
+    filter((sheet) => sheet.kind === 'tower' && sheet.tower)
+    .forEach((sheet) => {
+      const tower = sheet.tower;
+      if (!tower || !tower.model.blocks.length) return;
+      // Khớp theo tên tòa, ký hiệu tòa, hoặc chính tên sheet.
+      [tower.towerName, tower.towerCode, sheet.name].
+      filter(Boolean).
+      forEach((key) => {
+        result[key] = tower.model;
+      });
+    });
+    return result;
+  }, [inventorySource]);
 
   // Rót dữ liệu Drive vào đúng section của từng component thiết kế sẵn.
   const overviewGroups = syncedMedia['tong-quan'];
@@ -281,7 +308,13 @@ export function ProjectCanvas({
         }
         {activeTab === 'toa-nha' && inventoryData && <BuildingsContent data={inventoryData} />}
         {activeTab === 'bang-hang' && inventoryData &&
-        <InventoryTable role={role} data={inventoryData} showNotice={chrome} />
+        <InventoryTable
+          role={role}
+          data={inventoryData}
+          showNotice={chrome}
+          grids={grids}
+          templates={towerTemplates}
+          onGridsChange={onGridsChange} />
         }
         {activeTab === 'quy-can' && inventoryData &&
         <FundInventory data={inventoryData} showNotice={chrome} />

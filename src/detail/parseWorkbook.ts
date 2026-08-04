@@ -1,6 +1,14 @@
 import { analyzeSheet, type Grid, type SheetAnalysis } from './inventoryParser';
+import { isTowerSheet, parseTowerSheet, type TowerSheet } from './towerSheet';
 
-export type SheetKind = 'inventory' | 'fund' | 'skip';
+/**
+ * Bốn loại sheet:
+ *  tower     — sheet Tòa dạng bảng biểu, dùng làm template (Kiểu 1)
+ *  inventory — sheet quỹ căn chứa dữ liệu căn
+ *  fund      — sheet đánh dấu căn thuộc quỹ nào
+ *  skip      — quy trình, biểu mẫu, ghi chú
+ */
+export type SheetKind = 'tower' | 'inventory' | 'fund' | 'skip';
 
 /** Vùng ô gộp, chỉ số 0-based, bao gồm cả hai đầu. */
 export interface MergeRange {
@@ -22,6 +30,8 @@ export interface DetectedSheet {
   hiddenRowCount: number;
   /** Sheet bị ẩn trong file gốc. */
   hidden: boolean;
+  /** Template đọc được, chỉ có ở sheet Tòa. */
+  tower?: TowerSheet;
 }
 
 export interface WorkbookResult {
@@ -35,7 +45,13 @@ export interface WorkbookResult {
 }
 
 /** Đoán phân loại ban đầu từ tên sheet — người dùng vẫn sửa lại được. */
-function guessKind(name: string, analysis: SheetAnalysis, hidden: boolean): SheetKind {
+function guessKind(
+name: string,
+analysis: SheetAnalysis,
+hidden: boolean,
+isTower: boolean)
+: SheetKind {
+  if (isTower) return 'tower';
   const plain = name.
   normalize('NFD').
   replace(/[\u0300-\u036f]/g, '').
@@ -92,15 +108,22 @@ hidden = false)
   const shifted = shiftMerges(merges, hiddenRows);
   const analysis = analyzeSheet(cleaned.grid, name, { merges: shifted });
 
+  // Sheet Tòa nhận diện bằng ô TẦNG/CĂN ở cột đầu.
+  const isTower = isTowerSheet(cleaned.grid);
+  const tower = isTower ?
+  parseTowerSheet(cleaned.grid, shifted, name) :
+  undefined;
+
   return {
     name,
     rows: cleaned.grid.length,
     columns: Math.max(...cleaned.grid.map((row) => row.length), 0),
-    kind: guessKind(name, analysis, hidden),
+    kind: guessKind(name, analysis, hidden, isTower),
     analysis,
     merges: shifted,
     hiddenRowCount: cleaned.dropped,
-    hidden
+    hidden,
+    tower
   };
 }
 

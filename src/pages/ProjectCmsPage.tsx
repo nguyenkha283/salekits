@@ -24,6 +24,7 @@ import { Role } from '../detail/components/Header';
 import { CANVAS_TABS, ProjectCanvas, canEditTab } from '../detail/ProjectCanvas';
 import type { InventorySource } from '../detail/components/InventorySetup';
 import type { UpstreamChange } from '../detail/components/InventorySourceBar';
+import type { GridModel } from '../detail/gridModel';
 import { checkSheetStatus } from '../detail/parseWorkbook';
 import { HIERARCHY_OPTIONS, SECTIONS, findSection } from '../detail/sectionRegistry';
 import {
@@ -133,6 +134,8 @@ export function ProjectCmsPage() {
   const [inventorySource, setInventorySource] = useState<InventorySource | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>(SEED_NOTIFICATIONS);
   const [upstream, setUpstream] = useState<UpstreamChange | null>(null);
+  /** Lưới đã soạn, sống độc lập với dữ liệu để đồng bộ lại không xóa mất. */
+  const [grids, setGrids] = useState<Record<string, GridModel>>({});
   const [accessLost, setAccessLost] = useState(false);
   const [synced, setSynced] = useState<SyncedProject | null>(null);
   const [edits, setEdits] = useState<SectionEdits>({});
@@ -566,6 +569,8 @@ export function ProjectCmsPage() {
             showInventoryBar={editable}
             upstreamChange={upstream}
             sourceAccessLost={accessLost}
+            grids={grids}
+            onGridsChange={setGrids}
             onImportInventory={(source) => {
               const isFirst = !inventorySource;
               setInventorySource(source);

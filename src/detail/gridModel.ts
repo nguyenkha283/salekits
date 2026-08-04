@@ -7,7 +7,7 @@
  */
 
 import type { InventoryData, ParsedUnit } from './inventoryParser';
-import { axesOf } from './inventoryParser';
+import { axesOf, compareLabel as compareLabels } from './inventoryParser';
 
 /** Sáu dòng tiêu đề bắt buộc của một bảng hàng. */
 export const HEADER_ROWS = [
@@ -659,4 +659,121 @@ export function suggestFloorName(block: GridBlock): string {
   filter((value) => Number.isFinite(value) && value > 0);
   const next = numbers.length ? Math.max(...numbers) + 1 : 1;
   return String(next);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Đối chiếu lưới với dữ liệu sau khi đồng bộ lại
+   ───────────────────────────────────────────────────────────── */
+
+export interface GridReconcile {
+  /** Tầng có trong dữ liệu mới nhưng chưa có trên lưới. */
+  missingFloors: string[];
+  /** Trục có trong dữ liệu mới nhưng chưa có trên lưới. */
+  missingColumns: string[];
+  /** Căn không hiển thị được vì thiếu tầng hoặc trục. */
+  unmatchedCount: number;
+  /** Ô trên lưới không còn căn nào trong dữ liệu mới. */
+  emptyCellCount: number;
+}
+
+/**
+ * So lưới hiện có với dữ liệu vừa đồng bộ.
+ *
+ * Đồng bộ lại CHỈ thay dữ liệu, giữ nguyên cấu trúc lưới mà QLGD đã soạn —
+ * gộp ô, khu vực chung, phân khối đều còn nguyên. Đổi lại, căn nằm ngoài lưới
+ * sẽ không hiển thị, nên phải báo cho QLGD biết thay vì im lặng bỏ qua.
+ */
+export function reconcileGrid(
+model: GridModel,
+data: InventoryData,
+tower: string)
+: GridReconcile {
+  const units = data.units.filter((unit) => unit.tower === tower);
+
+  const gridFloors = new Set(model.blocks.flatMap((block) => block.floors));
+  const gridColumns = new Set(
+    model.blocks.flatMap((block) => block.columns.flatMap((column) => column.mergedCodes))
+  );
+
+  const missingFloors: string[] = [];
+  const missingColumns: string[] = [];
+  let unmatchedCount = 0;
+
+  units.forEach((unit) => {
+    const hasFloor = gridFloors.has(unit.floor);
+    const hasColumn = gridColumns.has(unit.unit);
+
+    if (!hasFloor && unit.floor && !missingFloors.includes(unit.floor)) {
+      missingFloors.push(unit.floor);
+    }
+    if (!hasColumn && unit.unit && !missingColumns.includes(unit.unit)) {
+      missingColumns.push(unit.unit);
+    }
+    if (!hasFloor || !hasColumn) unmatchedCount += 1;
+  });
+
+  // Ô trên lưới không còn dữ liệu — thường là căn bị chủ đầu tư gỡ.
+  const codes = new Set(units.map((unit) => `${unit.floor}|${unit.unit}`));
+  let emptyCellCount = 0;
+  model.blocks.forEach((block) => {
+    block.floors.forEach((floor) => {
+      block.columns.forEach((column) => {
+        if (column.disabled) return;
+        const has = column.mergedCodes.some((code) => codes.has(`${floor}|${code}`));
+        if (!has) emptyCellCount += 1;
+      });
+    });
+  });
+
+  return {
+    missingFloors: missingFloors.sort(compareLabels),
+    missingColumns: missingColumns.sort(compareLabels),
+    unmatchedCount,
+    emptyCellCount
+  };
+}
+
+/**
+ * Bổ sung tầng và trục còn thiếu vào lưới, giữ nguyên mọi thứ QLGD đã soạn.
+ * Tầng thêm vào khối cuối; trục thêm vào mọi khối để lưới không lệch cột.
+ */
+export function absorbMissing(
+model: GridModel,
+missingFloors: string[],
+missingColumns: string[])
+: GridModel {
+  let blocks = model.blocks;
+
+  if (missingColumns.length) {
+    blocks = blocks.map((block) => {
+      let result = block;
+      missingColumns.forEach((code) => {
+        result = addColumn(result, result.columns.length, code);
+        // Trục mới phải mang đúng mã gốc để tra được dữ liệu.
+        const last = result.columns.length - 1;
+        result = {
+          ...result,
+          columns: result.columns.map((column, index) =>
+          index === last ? { ...column, code, mergedCodes: [code] } : column
+          ),
+          labelPool: [...result.labelPool, code]
+        };
+      });
+      return result;
+    });
+  }
+
+  if (missingFloors.length) {
+    const lastIndex = blocks.length - 1;
+    blocks = blocks.map((block, index) => {
+      if (index !== lastIndex) return block;
+      let result = block;
+      missingFloors.forEach((floor) => {
+        result = addFloor(result, result.floors.length, floor);
+      });
+      return result;
+    });
+  }
+
+  return { blocks };
 }
