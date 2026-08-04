@@ -149,6 +149,13 @@ Bấm **Đọc file** → hệ thống bóc tách sheet → **popup chọn sheet
 
 **Toàn bộ dữ liệu bảng hàng đến từ file bạn nhập — không còn dữ liệu mẫu nào.**
 
+Hai file mẫu kèm theo để thử ngay:
+
+| File | Kiểu | Nội dung |
+|---|---|---|
+| `MAU-BANG-HANG-KIEU-1-bang-bieu.xlsx` | Dạng bảng biểu | 2 sheet tòa (3 khối, có duplex và penthouse) + sheet quỹ căn 286 căn + sheet hướng dẫn |
+| `MAU-BANG-HANG-KIEU-2-quy-can.xlsx` | Dạng quỹ căn | 1 sheet 192 căn đủ 15 cột + sheet đánh dấu quỹ + sheet quy trình |
+
 - **Tải file .xlsx** — đọc trực tiếp trong trình duyệt bằng SheetJS
 - **Dán liên kết Google Sheet** — đọc qua `/api/read-sheet` bằng **Google Sheets API**
 

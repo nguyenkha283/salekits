@@ -149,15 +149,26 @@ export function parseNumber(value: Cell): number | null {
 
 /** Từ khoá nhận diện, xếp theo độ ưu tiên giảm dần. */
 const FIELD_PATTERNS: Array<{field: keyof ColumnMapping;patterns: RegExp[];}> = [
-{ field: 'code', patterns: [/^ma can ho$/, /^ma can$/, /ma can ho/, /^ma sp$/, /ma san pham/] },
-{ field: 'tower', patterns: [/^toa$/, /truc.*toa/, /toa.*truc/, /^toa nha$/, /^block$/, /^phan khu$/] },
-{ field: 'floor', patterns: [/^tang$/, /^so tang$/, /^floor$/] },
-{ field: 'unit', patterns: [/^can so$/, /^so can$/, /^can$/, /^truc$/, /^truc can$/, /^ma so can$/] },
-{ field: 'area', patterns: [/dien tich thong thuy/, /^dtt+t?$/, /^dt tt$/, /dien tich/, /^dt$/, /^area$/] },
-{ field: 'bedrooms', patterns: [/^so pn$/, /so phong ngu/, /^pn$/, /loai can/, /^bedroom/] },
-{ field: 'handover', patterns: [/goi ban giao/, /tieu chuan ban giao/, /^ban giao$/] },
-{ field: 'status', patterns: [/tinh trang/, /^trang thai$/, /^status$/] },
-{ field: 'fund', patterns: [/^quy$/, /^loai quy$/, /phan loai quy/, /^quy can$/] }];
+{ field: 'code', patterns: [/ma can/, /^ma sp$/, /ma san pham/, /^ma căn/, /^unit code$/] },
+{ field: 'tower', patterns: [/^toa/, /truc.*toa/, /toa.*truc/, /^block$/, /^phan khu$/, /^tower$/] },
+{ field: 'floor', patterns: [/^tang/, /^so tang$/, /^floor$/, /^lau$/] },
+{ field: 'unit', patterns: [/^can so$/, /^so can$/, /^can$/, /^truc/, /^ma so can$/, /^vi tri can$/] },
+{
+  field: 'area',
+  // "DT thông thủy (m2)", "Diện tích thông thủy", "DTTT", "DT TT" — ưu tiên
+  // thông thủy vì đó là diện tích tính tiền.
+  patterns: [
+  /thong thuy/, /^dttt/, /^dt tt/, /^s tt/, /dien tich/, /^dt\b/, /^area$/, /^s\s*\(m2\)/]
+},
+{
+  field: 'bedrooms',
+  patterns: [
+  /^so pn$/, /so phong ngu/, /^pn$/, /loai can/, /loai hinh/, /loai sp/,
+  /loai san pham/, /^bedroom/, /^type$/, /^loai$/]
+},
+{ field: 'handover', patterns: [/ban giao/, /^hoan thien$/] },
+{ field: 'status', patterns: [/tinh trang/, /^trang thai/, /^status$/, /^tt$/] },
+{ field: 'fund', patterns: [/^quy$/, /loai quy/, /phan loai quy/, /^quy can$/, /^nguon hang$/] }];
 
 
 /**
@@ -175,10 +186,17 @@ const MIN_PRICE_VALUE = 1_000_000;
 function matchField(label: string): keyof ColumnMapping | null {
   const text = plain(label);
   if (!text) return null;
+  // Tim tường là cột riêng, không phải diện tích chính.
+  if (isTimTuong(label)) return null;
   for (const { field, patterns } of FIELD_PATTERNS) {
     if (patterns.some((pattern) => pattern.test(text))) return field;
   }
   return null;
+}
+
+/** Cột tim tường phải loại trước khi so với mẫu diện tích thông thủy. */
+function isTimTuong(label: string): boolean {
+  return /tim tuong/.test(plain(label));
 }
 
 function isPriceColumn(label: string): boolean {
@@ -597,13 +615,21 @@ priceIndex = 0)
 : InventoryData {
   const inventorySheets = sheets.filter((sheet) => sheet.kind === 'inventory');
   const fundSheets = sheets.filter((sheet) => sheet.kind === 'fund');
+  /**
+   * Có sheet tòa thì diện tích, loại hình, hướng, view nằm ở template — sheet
+   * quỹ căn không cần các cột đó, nên bỏ cảnh báo thiếu cho khỏi gây hiểu nhầm.
+   */
+  const hasTemplate = sheets.some((sheet) => sheet.kind === 'tower');
+  const fromTemplate = /Không tìm thấy cột (Diện tích|Loại hình|Hướng|View)/;
 
   const units: ParsedUnit[] = [];
   const seen = new Set<string>();
   const warnings: string[] = [];
 
   inventorySheets.forEach((sheet) => {
-    sheet.analysis.warnings.forEach((warning) => warnings.push(`${sheet.name}: ${warning}`));
+    sheet.analysis.warnings.
+    filter((warning) => !(hasTemplate && fromTemplate.test(warning))).
+    forEach((warning) => warnings.push(`${sheet.name}: ${warning}`));
     sheet.analysis.units.forEach((unit) => {
       if (seen.has(unit.code)) return;
       seen.add(unit.code);
@@ -626,7 +652,10 @@ priceIndex = 0)
   }));
 
   const sheetFunds: FundGroup[] = fundSheets.map((sheet, index) => {
-    sheet.analysis.warnings.forEach((warning) => warnings.push(`${sheet.name}: ${warning}`));
+    // Sheet đánh dấu quỹ chỉ cần mã căn — không cảnh báo thiếu cột dữ liệu.
+    sheet.analysis.warnings.
+    filter((warning) => !/Không tìm thấy cột|Đã suy số căn/.test(warning)).
+    forEach((warning) => warnings.push(`${sheet.name}: ${warning}`));
     return {
       id: `fund-${index}`,
       name: sheet.name,

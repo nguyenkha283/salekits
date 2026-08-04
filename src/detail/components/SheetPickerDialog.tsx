@@ -2,6 +2,11 @@ import React, { useState } from 'react';
 import { AlertTriangleIcon, CheckCircle2Icon, XIcon } from 'lucide-react';
 import type { DetectedSheet, SheetKind } from '../parseWorkbook';
 
+/** Các trường hiển thị trạng thái nhận diện — thiếu cái nào thấy ngay. */
+const REQUIRED_FIELDS = [
+'code', 'tower', 'floor', 'unit', 'bedrooms', 'area', 'status', 'fund'];
+
+
 const FIELD_LABELS: Record<string, string> = {
   code: 'Mã căn',
   tower: 'Tòa',
@@ -180,18 +185,52 @@ export function SheetPickerDialog({
                   </p>
                 }
                 {sheet.analysis.units.length > 0 &&
-                <p className="mt-1 flex flex-wrap gap-1">
-                    {Object.keys(sheet.analysis.mapping).map((field) =>
-                  <span key={field} className="rounded bg-[#e6f0e8] px-1.5 py-px text-[10px] font-semibold text-[#2c6e3f]">
-                        {FIELD_LABELS[field] ?? field}
-                      </span>
-                  )}
-                    {sheet.analysis.priceFields.length > 0 &&
-                  <span className="rounded bg-[#e6edfb] px-1.5 py-px text-[10px] font-semibold text-[#2a55b8]">
+                <>
+                    <p className="mt-1 flex flex-wrap gap-1">
+                      {REQUIRED_FIELDS.map((field) => {
+                      const found = sheet.analysis.mapping[field] !== undefined;
+                      return (
+                        <span
+                          key={field}
+                          className={`rounded px-1.5 py-px text-[10px] font-semibold ${
+                          found ?
+                          'bg-[#e6f0e8] text-[#2c6e3f]' :
+                          'bg-[#fbedeb] text-[#992d22] line-through'}`
+                          }>
+
+                            {FIELD_LABELS[field]}
+                          </span>);
+
+                    })}
+                      <span
+                      className={`rounded px-1.5 py-px text-[10px] font-semibold ${
+                      sheet.analysis.priceFields.length ?
+                      'bg-[#e6edfb] text-[#2a55b8]' :
+                      'bg-[#fbedeb] text-[#992d22] line-through'}`
+                      }>
+
                         {sheet.analysis.priceFields.length} cột giá
                       </span>
+                    </p>
+
+                    {sheet.analysis.unknownColumns.length > 0 &&
+                  <details className="mt-1">
+                        <summary className="cursor-pointer text-[10.5px] text-stone-400 hover:text-stone-600">
+                          {sheet.analysis.unknownColumns.length} cột không nhận diện được
+                        </summary>
+                        <p className="mt-1 flex flex-wrap gap-1">
+                          {sheet.analysis.unknownColumns.map((column, position) =>
+                      <span
+                        key={`${column}-${position}`}
+                        className="rounded bg-[#f0eae0] px-1.5 py-px font-mono text-[10px] text-stone-500">
+
+                              {column}
+                            </span>
+                      )}
+                        </p>
+                      </details>
                   }
-                  </p>
+                  </>
                 }
               </div>
               <div className="flex gap-1 rounded-lg bg-[#f3ece1] p-1">
