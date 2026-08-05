@@ -16,6 +16,7 @@ import { FloorPlanContent } from './components/FloorPlanContent';
 import { TeamContent } from './components/TeamContent';
 import { InventorySetup, type InventorySource } from './components/InventorySetup';
 import { buildInventory, type InventoryData } from './inventoryParser';
+import type { ProjectLayout } from './parseWorkbook';
 import type { GridModel } from './gridModel';
 import {
   InventorySourceBar,
@@ -66,6 +67,20 @@ function sizedOrUndefined(url: string | undefined, width: number) {
 }
 
 /** Vai trò không được xem các tab hạn chế. */
+/**
+ * Dự án thấp tầng không có tab Bảng hàng.
+ *
+ * Bảng hàng dạng lưới định vị căn bằng cặp (tầng, trục) — khái niệm không tồn
+ * tại ở liền kề, biệt thự, shophouse. Với thấp tầng, căn hiển thị ở Quỹ căn
+ * dạng phẳng và định vị bằng pin trên Mặt bằng quỹ căn.
+ */
+export function tabsForLayout(layout: ProjectLayout): CanvasTab[] {
+  if (layout === 'thap-tang') {
+    return CANVAS_TABS.filter((tab) => tab.id !== 'bang-hang');
+  }
+  return CANVAS_TABS;
+}
+
 export function canViewRestricted(role: Role): boolean {
   return role !== 'User khác';
 }
@@ -106,6 +121,8 @@ interface ProjectCanvasProps {
   upstreamChange?: UpstreamChange | null;
   /** Mất quyền đọc file nguồn. */
   sourceAccessLost?: boolean;
+  /** Cao tầng có tab Bảng hàng dạng lưới; thấp tầng không. */
+  projectLayout?: ProjectLayout;
   /** Lưới đã soạn, giữ qua các lần đồng bộ lại. */
   grids?: Record<string, GridModel>;
   onGridsChange?: (grids: Record<string, GridModel>) => void;
@@ -140,6 +157,7 @@ export function ProjectCanvas({
   showInventoryBar = false,
   upstreamChange = null,
   sourceAccessLost = false,
+  projectLayout = 'cao-tang',
   grids,
   onGridsChange,
   editing,
@@ -250,7 +268,11 @@ export function ProjectCanvas({
           </div>
 
           <div className="mt-6">
-            <ProjectTabs active={activeTab} onChange={onChangeTab} hideRestricted={!canViewRestricted(role)} />
+            <ProjectTabs
+              active={activeTab}
+              onChange={onChangeTab}
+              hideRestricted={!canViewRestricted(role)}
+              hidden={projectLayout === 'thap-tang' ? ['bang-hang'] : []} />
           </div>
         </>
       }
@@ -266,7 +288,13 @@ export function ProjectCanvas({
 
         {isOverview &&
         <OverviewContent
-          tabs={<ProjectTabs active={activeTab} onChange={onChangeTab} hideRestricted={!canViewRestricted(role)} />}
+          tabs={
+          <ProjectTabs
+            active={activeTab}
+            onChange={onChangeTab}
+            hideRestricted={!canViewRestricted(role)}
+            hidden={projectLayout === 'thap-tang' ? ['bang-hang'] : []} />
+          }
           heroSlides={heroSlides}
           overviewImage={overviewImage}
           overviewHtml={overviewHtml}
@@ -293,6 +321,7 @@ export function ProjectCanvas({
         {/* Ba tab phụ thuộc bảng hàng: chưa nhập thì hiện màn nhập nguồn dữ liệu. */}
         {isInventoryTab && !inventoryReady &&
         <InventorySetup
+          projectLayout={projectLayout}
           context={activeTab === 'quy-can' ? 'quỹ căn' : activeTab === 'toa-nha' ? 'sản phẩm' : 'bảng hàng'}
           onImported={(source) => onImportInventory?.(source)} />
 
@@ -307,7 +336,7 @@ export function ProjectCanvas({
 
         }
         {activeTab === 'toa-nha' && inventoryData && <BuildingsContent data={inventoryData} />}
-        {activeTab === 'bang-hang' && inventoryData &&
+        {activeTab === 'bang-hang' && projectLayout !== 'thap-tang' && inventoryData &&
         <InventoryTable
           role={role}
           data={inventoryData}

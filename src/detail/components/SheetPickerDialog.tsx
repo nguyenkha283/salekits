@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { AlertTriangleIcon, CheckCircle2Icon, XIcon } from 'lucide-react';
-import type { DetectedSheet, SheetKind } from '../parseWorkbook';
+import type { DetectedSheet, ProjectLayout, SheetKind } from '../parseWorkbook';
+
+const LAYOUT_LABEL: Record<string, string> = {
+  'cao-tang': 'Cao tầng',
+  'thap-tang': 'Thấp tầng',
+  'khong-ro': 'Chưa rõ'
+};
 
 /** Các trường hiển thị trạng thái nhận diện — thiếu cái nào thấy ngay. */
 const REQUIRED_FIELDS = [
@@ -31,6 +37,8 @@ interface SheetPickerDialogProps {
   sourceLabel?: string;
   /** Lời nhắc khi đường đọc không lấy được đủ thông tin. */
   degraded?: string;
+  /** Loại hình dự án, để cảnh báo khi chọn nhầm sheet. */
+  projectLayout?: ProjectLayout;
   onCancel: () => void;
   onConfirm: (sheets: DetectedSheet[], priceIndex: number) => void;
 }
@@ -43,6 +51,7 @@ export function SheetPickerDialog({
   sheets: initial,
   sourceLabel,
   degraded,
+  projectLayout,
   onCancel,
   onConfirm
 }: SheetPickerDialogProps) {
@@ -59,6 +68,21 @@ export function SheetPickerDialog({
   const inventoryCount = sheets.filter((sheet) => sheet.kind === 'inventory').length;
   const fundCount = sheets.filter((sheet) => sheet.kind === 'fund').length;
   const towerCount = sheets.filter((sheet) => sheet.kind === 'tower').length;
+
+  /**
+   * Sheet đã chọn nhưng bố cục không khớp loại hình dự án.
+   *
+   * Một dự án có cả cao tầng lẫn thấp tầng thường để mỗi loại một sheet trong
+   * cùng file, rất dễ chọn nhầm. Bố cục suy từ dữ liệu nên bắt được ngay.
+   */
+  const mismatched = projectLayout ?
+  sheets.filter(
+    (sheet) =>
+    sheet.kind === 'inventory' &&
+    sheet.analysis.detection.layout !== 'khong-ro' &&
+    sheet.analysis.detection.layout !== projectLayout
+  ) :
+  [];
 
   /** Cột giá lấy từ sheet bảng hàng đầu tiên. */
   const priceFields =
@@ -152,6 +176,29 @@ export function SheetPickerDialog({
           </div> :
 
         <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-5 py-4">
+          {mismatched.length > 0 &&
+          <div className="rounded-lg border border-[#efcfca] bg-[#fbedeb] p-3">
+              <p className="flex gap-2 text-[12.5px] font-semibold text-[#992d22]">
+                <AlertTriangleIcon className="mt-px h-4 w-4 shrink-0" />
+                Sheet đã chọn không khớp loại hình dự án
+              </p>
+              <p className="mt-1 pl-6 text-[11.5px] leading-relaxed text-[#992d22]">
+                Dự án khai là <b>{LAYOUT_LABEL[projectLayout ?? '']}</b>, nhưng
+                {mismatched.length === 1 ? ' sheet' : ' các sheet'} sau có bố cục
+                khác. Kiểm tra lại trước khi nhập.
+              </p>
+              <ul className="mt-1.5 space-y-1 pl-6">
+                {mismatched.map((sheet) =>
+              <li key={sheet.name} className="text-[11.5px] text-[#992d22]">
+                    <b className="font-mono">{sheet.name}</b> —{' '}
+                    {LAYOUT_LABEL[sheet.analysis.detection.layout]}:{' '}
+                    {sheet.analysis.detection.reason}
+                  </li>
+              )}
+              </ul>
+            </div>
+          }
+
           {degraded &&
           <p className="flex gap-2 rounded-lg border border-[#f0dcb6] bg-[#fdf3e2] p-3 text-[12px] leading-relaxed text-[#92600a]">
               <AlertTriangleIcon className="mt-px h-4 w-4 shrink-0" />
@@ -202,6 +249,18 @@ export function SheetPickerDialog({
                           </span>);
 
                     })}
+                      {sheet.analysis.detection.layout !== 'khong-ro' &&
+                      <span
+                        className={`rounded px-1.5 py-px text-[10px] font-semibold ${
+                        !projectLayout || sheet.analysis.detection.layout === projectLayout ?
+                        'bg-[#efe9e1] text-[#8a6a3f]' :
+                        'bg-[#fbedeb] text-[#992d22]'}`
+                        }
+                        title={sheet.analysis.detection.reason}>
+
+                          {LAYOUT_LABEL[sheet.analysis.detection.layout]}
+                        </span>
+                      }
                       <span
                       className={`rounded px-1.5 py-px text-[10px] font-semibold ${
                       sheet.analysis.priceFields.length ?

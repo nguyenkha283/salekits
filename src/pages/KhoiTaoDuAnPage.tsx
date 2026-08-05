@@ -22,6 +22,8 @@ export function KhoiTaoDuAnPage() {
   const navigate = useNavigate();
   const [tenDuAn, setTenDuAn] = useState('');
   const [driveLink, setDriveLink] = useState('');
+  /** Cao tầng có tab Bảng hàng dạng lưới; thấp tầng chỉ có Quỹ căn. */
+  const [loaiHinh, setLoaiHinh] = useState<'cao-tang' | 'thap-tang'>('cao-tang');
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState('');
 
@@ -61,9 +63,10 @@ export function KhoiTaoDuAnPage() {
       // Truyền projectId qua query string (không chỉ location.state) để
       // ProjectCreatedPage tải lại được đúng dữ liệu này kể cả khi reload
       // trang — vì location.state của React Router bị mất khi tải lại.
-      navigate(`/hoan-tat?projectId=${encodeURIComponent(data.projectId)}`, {
-        state: { project }
-      });
+      navigate(
+        `/hoan-tat?projectId=${encodeURIComponent(data.projectId)}&loaiHinh=${loaiHinh}`,
+        { state: { project } }
+      );
     } catch (error) {
       setIsSyncing(false);
       setSyncError(
@@ -113,6 +116,40 @@ export function KhoiTaoDuAnPage() {
               disabled={isSyncing}
               className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-[#6D3A18] focus:ring-2 focus:ring-orange-100 disabled:bg-neutral-100" />
             
+          </div>
+
+          <div className="mt-4">
+            <label className="mb-1 block text-xs font-semibold text-neutral-700">
+              Loại hình dự án
+            </label>
+            <div className="flex gap-2">
+              {([
+              { id: 'cao-tang', label: 'Cao tầng', hint: 'Chung cư — có tab Bảng hàng dạng lưới' },
+              { id: 'thap-tang', label: 'Thấp tầng', hint: 'Liền kề, biệt thự, shophouse — chỉ có Quỹ căn' }] as const).
+              map((option) =>
+              <button
+                key={option.id}
+                type="button"
+                disabled={isSyncing}
+                onClick={() => setLoaiHinh(option.id)}
+                className={`flex-1 rounded-md border px-3 py-2.5 text-left transition-colors disabled:opacity-60 ${
+                loaiHinh === option.id ?
+                'border-[#6D3A18] bg-orange-50' :
+                'border-neutral-300 hover:bg-neutral-50'}`
+                }>
+
+                  <span className="block text-sm font-semibold text-neutral-800">
+                    {option.label}
+                  </span>
+                  <span className="mt-0.5 block text-[11px] leading-snug text-neutral-500">
+                    {option.hint}
+                  </span>
+                </button>
+              )}
+            </div>
+            <p className="mt-1 text-[11px] text-neutral-500">
+              Quyết định cấu trúc tab của dự án. Đổi được trước khi nhập bảng hàng.
+            </p>
           </div>
 
           <div className="mt-4">

@@ -25,6 +25,7 @@ import { CANVAS_TABS, ProjectCanvas, canEditTab } from '../detail/ProjectCanvas'
 import type { InventorySource } from '../detail/components/InventorySetup';
 import type { UpstreamChange } from '../detail/components/InventorySourceBar';
 import type { GridModel } from '../detail/gridModel';
+import type { ProjectLayout } from '../detail/parseWorkbook';
 import { checkSheetStatus } from '../detail/parseWorkbook';
 import { HIERARCHY_OPTIONS, SECTIONS, findSection } from '../detail/sectionRegistry';
 import {
@@ -123,9 +124,19 @@ interface SectionEdits {
 export function ProjectCmsPage() {
   const [searchParams] = useSearchParams();
   const projectId = searchParams.get('projectId');
+  /** Loại hình khai ở bước Khởi tạo dự án; mặc định cao tầng. */
+  const projectLayout: ProjectLayout =
+  searchParams.get('loaiHinh') === 'thap-tang' ? 'thap-tang' : 'cao-tang';
 
   const [role, setRole] = useState<Role>('APM');
   const [activeTab, setActiveTab] = useState('tong-quan');
+
+  // Dự án thấp tầng không có tab Bảng hàng — chuyển sang Quỹ căn nếu đang ở đó.
+  useEffect(() => {
+    if (projectLayout === 'thap-tang' && activeTab === 'bang-hang') {
+      setActiveTab('quy-can');
+    }
+  }, [projectLayout, activeTab]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [configOpen, setConfigOpen] = useState(false);
@@ -372,7 +383,8 @@ export function ProjectCmsPage() {
     }
   }
 
-  const publicHref = `/du-an${projectId ? `?projectId=${encodeURIComponent(projectId)}` : ''}`;
+  const publicHref = `/du-an?loaiHinh=${projectLayout}${
+  projectId ? `&projectId=${encodeURIComponent(projectId)}` : ''}`;
   const sectionsInTab = SECTIONS.filter((item) => item.tab === activeTab);
 
   return (
@@ -569,6 +581,7 @@ export function ProjectCmsPage() {
             showInventoryBar={editable}
             upstreamChange={upstream}
             sourceAccessLost={accessLost}
+            projectLayout={projectLayout}
             grids={grids}
             onGridsChange={setGrids}
             onImportInventory={(source) => {
@@ -661,6 +674,7 @@ export function ProjectCmsPage() {
           isResyncing={isResyncing}
           sectionsInTab={sectionsInTab}
           editable={editable}
+          projectLayout={projectLayout}
           onClose={() => setDrawerOpen(false)}
           onPickTab={(tab) => setActiveTab(tab)}
           onPickSection={(id) => setSelectedSection(id)}
@@ -729,6 +743,8 @@ interface DriveDrawerProps {
   isResyncing: boolean;
   sectionsInTab: typeof SECTIONS;
   editable: boolean;
+  /** Ẩn tab Bảng hàng với dự án thấp tầng. */
+  projectLayout: ProjectLayout;
   onClose: () => void;
   onPickTab: (tab: string) => void;
   onPickSection: (id: string) => void;
@@ -744,6 +760,7 @@ function DriveDrawer({
   isResyncing,
   sectionsInTab,
   editable,
+  projectLayout,
   onClose,
   onPickTab,
   onPickSection,
@@ -803,7 +820,9 @@ function DriveDrawer({
         <p className="px-2 pb-1 pt-1 text-[10px] font-bold uppercase tracking-wider text-stone-400">
           Tất cả các tab
         </p>
-        {CANVAS_TABS.map((tab) => {
+        {CANVAS_TABS.filter(
+          (tab) => !(projectLayout === 'thap-tang' && tab.id === 'bang-hang')
+        ).map((tab) => {
           const groups = syncedMedia[tab.id] ?? [];
           const count = groups.reduce((sum, group) => sum + group.items.length, 0);
           const isActive = tab.id === activeTab;

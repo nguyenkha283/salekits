@@ -24,7 +24,12 @@ Chỉ khi muốn trình diễn cả phần đồng bộ Drive thật mới cần
 Trang chủ có sẵn **dải điều hướng demo** với ba bước theo đúng thứ tự.
 
 ### Bước 1 — Khởi tạo dự án · `/khoi-tao-du-an` (2 phút)
-Nhập tên dự án, dán link thư mục Drive. Nhấn Tạo dự án.
+Nhập tên dự án, **chọn loại hình**, dán link thư mục Drive. Nhấn Tạo dự án.
+
+| Loại hình | Cấu trúc tab |
+|---|---|
+| **Cao tầng** | Có tab Bảng hàng dạng lưới, định vị căn bằng cặp tầng × trục |
+| **Thấp tầng** | **Không có tab Bảng hàng**. Căn hiển thị ở Quỹ căn dạng phẳng và định vị bằng pin trên Mặt bằng quỹ căn |
 
 > Đối chiếu SRS: UC-02, và giả định mục 2.6 rằng nội dung đã nằm sẵn trên Drive theo quy ước thư mục.
 
@@ -209,6 +214,10 @@ Gộp ô xử lý đúng cả khi vùng chọn chồng lên ô đã gộp sẵn 
 Trang công khai hiển thị cùng lưới đó ở chế độ chỉ xem.
 
 Chặn xác nhận nếu chưa chọn sheet Bảng hàng nào.
+
+**Cảnh báo chọn nhầm sheet.** Một dự án có cả cao tầng lẫn thấp tầng thường để mỗi loại một sheet trong cùng file. Hệ thống suy bố cục từ chính dữ liệu — không dựa vào tên sheet — và cảnh báo khi sheet không khớp loại hình dự án.
+
+Cách phân biệt: bảng hàng cao tầng định vị căn bằng cặp (tầng, trục) nên cùng một mã trục lặp qua nhiều tầng. Thấp tầng không có khái niệm đó. Riêng nhà phố và biệt thự có thể có cột *Số tầng* — là quy mô căn, không phải vị trí — nên hệ thống tách riêng hai khái niệm này.
 
 ### Theo dõi thay đổi từ chủ đầu tư
 

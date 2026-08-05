@@ -7,7 +7,12 @@ import {
   UploadIcon } from
 'lucide-react';
 import { SheetPickerDialog } from './SheetPickerDialog';
-import { parseWorkbookFile, parseWorkbookLink, type DetectedSheet } from '../parseWorkbook';
+import {
+  parseWorkbookFile,
+  parseWorkbookLink,
+  type DetectedSheet,
+  type ProjectLayout } from
+'../parseWorkbook';
 
 export interface InventorySource {
   kind: 'link' | 'file';
@@ -21,6 +26,8 @@ export interface InventorySource {
 }
 
 interface InventorySetupProps {
+  /** Loại hình dự án, dùng để cảnh báo khi sheet không khớp. */
+  projectLayout?: ProjectLayout;
   /** Gọi khi người dùng hoàn tất chọn sheet — CMS chuyển sang hiển thị bảng. */
   onImported: (source: InventorySource) => void;
   /** Nhãn hiển thị, khác nhau giữa các tab phụ thuộc bảng hàng. */
@@ -32,7 +39,11 @@ interface InventorySetupProps {
  * hoặc tải file. Bảng hàng KHÔNG nằm trong thư mục Drive chung của dự án nên
  * đây là nguồn dữ liệu riêng.
  */
-export function InventorySetup({ onImported, context = 'bảng hàng' }: InventorySetupProps) {
+export function InventorySetup({
+  onImported,
+  context = 'bảng hàng',
+  projectLayout
+}: InventorySetupProps) {
   const [link, setLink] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
@@ -171,6 +182,7 @@ export function InventorySetup({ onImported, context = 'bảng hàng' }: Invento
         sheets={sheets}
         sourceLabel={sourceLabel}
         degraded={degraded}
+        projectLayout={projectLayout}
         onCancel={() => setSheets(null)}
         onConfirm={(picked, priceIndex) => {
           setSheets(null);

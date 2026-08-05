@@ -57,6 +57,8 @@ export interface ColumnMapping {
   handover?: number;
   status?: number;
   fund?: number;
+  /** Số tầng của căn — nhà phố, biệt thự. Không phải vị trí tầng. */
+  floorCount?: number;
 }
 
 /** Căn thông tầng hoặc thông căn, suy từ ô gộp trong file gốc. */
@@ -66,6 +68,24 @@ export interface SpanHint {
   floorSpan: number;
   /** Số trục căn này chiếm — 2 nghĩa là duplex thông hai căn. */
   columnSpan: number;
+}
+
+/**
+ * Bố cục bảng hàng suy từ dữ liệu.
+ *
+ * Khác biệt cốt lõi: bảng hàng cao tầng định vị căn bằng cặp (tầng, trục) nên
+ * cùng một mã trục lặp lại qua nhiều tầng. Bảng hàng thấp tầng không có khái
+ * niệm tầng — mỗi căn là một lô đất riêng.
+ */
+export type SheetLayout = 'cao-tang' | 'thap-tang' | 'khong-ro';
+
+export interface LayoutDetection {
+  layout: SheetLayout;
+  /** Lý do để hiển thị cho người dùng khi cảnh báo chọn nhầm sheet. */
+  reason: string;
+  distinctFloors: number;
+  /** Số căn trung bình trên mỗi tầng. Cao tầng thường lớn hơn 1 rõ rệt. */
+  unitsPerFloor: number;
 }
 
 export interface SheetAnalysis {
@@ -78,6 +98,8 @@ export interface SheetAnalysis {
   warnings: string[];
   /** Ô gộp ở cột Mã căn cho biết căn nào thông tầng. */
   spanHints: SpanHint[];
+  /** Bố cục cao tầng hay thấp tầng, dùng để cảnh báo chọn nhầm sheet. */
+  detection: LayoutDetection;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -151,7 +173,13 @@ export function parseNumber(value: Cell): number | null {
 const FIELD_PATTERNS: Array<{field: keyof ColumnMapping;patterns: RegExp[];}> = [
 { field: 'code', patterns: [/ma can/, /^ma sp$/, /ma san pham/, /^ma căn/, /^unit code$/] },
 { field: 'tower', patterns: [/^toa/, /truc.*toa/, /toa.*truc/, /^block$/, /^phan khu$/, /^tower$/] },
-{ field: 'floor', patterns: [/^tang/, /^so tang$/, /^floor$/, /^lau$/] },
+// "Tầng" là VỊ TRÍ của căn trong tòa. Phải loại "Số tầng" — với nhà phố và
+// biệt thự thì đó là QUY MÔ của căn (nhà 5 tầng), không phải vị trí.
+{ field: 'floor', patterns: [/^tang$/, /^tang\b/, /^floor$/, /^lau$/] },
+{
+  field: 'floorCount',
+  patterns: [/so tang/, /quy mo/, /tang xay/, /so tam/, /^storeys?$/]
+},
 { field: 'unit', patterns: [/^can so$/, /^so can$/, /^can$/, /^truc/, /^ma so can$/, /^vi tri can$/] },
 {
   field: 'area',
@@ -556,7 +584,80 @@ options: AnalyzeOptions = {})
     );
   }
 
-  return { headerRow, mapping, priceFields, units, unknownColumns, warnings, spanHints };
+  return {
+    headerRow,
+    mapping,
+    priceFields,
+    units,
+    unknownColumns,
+    warnings,
+    spanHints,
+    detection: detectLayout(units, mapping)
+  };
+}
+
+/**
+ * Suy bố cục từ chính dữ liệu, không dựa vào tên sheet.
+ *
+ * Ba dấu hiệu, xét theo thứ tự:
+ *  1. Không có cột Tầng  → thấp tầng
+ *  2. Có cột Số tầng mà không có cột Tầng → thấp tầng (nhà phố, biệt thự)
+ *  3. Có cột Tầng: nhiều tầng và mỗi tầng nhiều căn → cao tầng
+ */
+export function detectLayout(
+units: ParsedUnit[],
+mapping: ColumnMapping)
+: LayoutDetection {
+  const floors = [...new Set(units.map((unit) => unit.floor).filter(Boolean))];
+  const distinctFloors = floors.length;
+  const unitsPerFloor = distinctFloors ? units.length / distinctFloors : 0;
+
+  if (mapping.floor === undefined) {
+    return {
+      layout: 'thap-tang',
+      reason:
+      mapping.floorCount !== undefined ?
+      'Không có cột Tầng, chỉ có cột Số tầng — đặc trưng của nhà phố và biệt thự.' :
+      'File không có cột Tầng.',
+      distinctFloors,
+      unitsPerFloor
+    };
+  }
+
+  if (!units.length) {
+    return { layout: 'khong-ro', reason: 'Không đọc được căn nào.', distinctFloors, unitsPerFloor };
+  }
+
+  // Giá trị tầng toàn số nhỏ và ít loại: gần như chắc chắn là quy mô nhà,
+  // không phải vị trí tầng. Nhà phố thường 2–7 tầng.
+  const allSmall = floors.every((floor) => {
+    const number = Number(floor.replace(/\D/g, ''));
+    return Number.isFinite(number) && number > 0 && number <= 10;
+  });
+  if (allSmall && distinctFloors <= 8 && unitsPerFloor > 3) {
+    return {
+      layout: 'thap-tang',
+      reason: `Cột Tầng chỉ có ${distinctFloors} giá trị nhỏ (${floors.join(', ')}) — nhiều khả năng là số tầng của căn chứ không phải vị trí.`,
+      distinctFloors,
+      unitsPerFloor
+    };
+  }
+
+  if (distinctFloors >= 5 && unitsPerFloor >= 2) {
+    return {
+      layout: 'cao-tang',
+      reason: `${distinctFloors} tầng, trung bình ${unitsPerFloor.toFixed(1)} căn mỗi tầng.`,
+      distinctFloors,
+      unitsPerFloor
+    };
+  }
+
+  return {
+    layout: 'khong-ro',
+    reason: `${distinctFloors} tầng, trung bình ${unitsPerFloor.toFixed(1)} căn mỗi tầng — chưa đủ căn cứ để kết luận.`,
+    distinctFloors,
+    unitsPerFloor
+  };
 }
 
 /**

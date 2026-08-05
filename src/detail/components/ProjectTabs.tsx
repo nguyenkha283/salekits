@@ -70,13 +70,18 @@ interface ProjectTabsProps {
   onChange: (key: string) => void;
   /** Ẩn các tab hạn chế với vai trò không có quyền xem. */
   hideRestricted?: boolean;
+  /** Ẩn tab theo khoá — dùng khi loại hình dự án không có tab đó. */
+  hidden?: string[];
 }
 export function ProjectTabs({
   active,
   onChange,
-  hideRestricted = false
+  hideRestricted = false,
+  hidden = []
 }: ProjectTabsProps) {
-  const TABS_VISIBLE = hideRestricted ? TABS.filter((tab) => !tab.restricted) : TABS;
+  const TABS_VISIBLE = TABS.filter(
+    (tab) => !(hideRestricted && tab.restricted) && !hidden.includes(tab.key)
+  );
   const scrollRef = useRef<HTMLDivElement>(null);
   return <div className="project-tabs-sticky border-b border-stone-200 bg-white shadow-sm">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

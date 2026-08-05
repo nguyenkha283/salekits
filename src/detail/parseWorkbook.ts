@@ -34,6 +34,9 @@ export interface DetectedSheet {
   tower?: TowerSheet;
 }
 
+/** Loại hình dự án — quyết định tab nào hiển thị và cảnh báo chọn nhầm sheet. */
+export type ProjectLayout = 'cao-tang' | 'thap-tang';
+
 export interface WorkbookResult {
   sheets: DetectedSheet[];
   /** Đường đọc đã dùng — hiển thị khi bị giảm chất lượng. */

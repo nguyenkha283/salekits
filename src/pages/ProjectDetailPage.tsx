@@ -6,6 +6,7 @@ import { Footer } from '../detail/components/Footer';
 import { ProjectCanvas } from '../detail/ProjectCanvas';
 import { buildSyncedMedia, type SyncedContent } from '../detail/syncedMedia';
 import type { InventorySource } from '../detail/components/InventorySetup';
+import type { ProjectLayout } from '../detail/parseWorkbook';
 
 const DEMO_NAME = 'IMPERIA SKY PARK';
 
@@ -18,6 +19,8 @@ interface SyncedProject {
 export function ProjectDetailPage() {
   const [searchParams] = useSearchParams();
   const projectId = searchParams.get('projectId');
+  const projectLayout: ProjectLayout =
+  searchParams.get('loaiHinh') === 'thap-tang' ? 'thap-tang' : 'cao-tang';
 
   const [role, setRole] = useState<Role>('Quản lý giao dịch');
   const [activeTab, setActiveTab] = useState('tong-quan');
@@ -82,7 +85,7 @@ export function ProjectDetailPage() {
             }
             </span>
             <Link
-            to={`/hoan-tat?projectId=${encodeURIComponent(projectId)}`}
+            to={`/hoan-tat?projectId=${encodeURIComponent(projectId)}&loaiHinh=${projectLayout}`}
             className="ml-auto inline-flex items-center gap-1.5 rounded-md border border-[#e3c79f] bg-white px-3 py-1.5 font-semibold text-[#8a6a3f] transition-colors hover:bg-[#fdf8ee]">
 
               <PencilIcon className="h-3.5 w-3.5" />
@@ -101,7 +104,8 @@ export function ProjectDetailPage() {
           overviewHtml={synced?.content?.overviewContent ?? ''}
           locationHtml={synced?.content?.locationContent ?? ''}
           syncedMedia={syncedMedia}
-          inventorySource={inventorySource} />
+          inventorySource={inventorySource}
+          projectLayout={projectLayout} />
 
       </main>
 
