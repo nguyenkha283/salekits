@@ -97,6 +97,20 @@ export interface TowerSheet {
   warnings: string[];
 }
 
+/**
+ * Chuẩn hóa tên tòa để khớp giữa sheet template và cột Tòa của sheet dữ liệu.
+ * Hai nơi này thường viết khác nhau về hoa thường, dấu và khoảng trắng.
+ */
+export function normalizeTowerKey(value: string): string {
+  return value.
+  normalize('NFD').
+  replace(/[\u0300-\u036f]/g, '').
+  replace(/đ/gi, 'd').
+  replace(/^t[oò]a\s*/i, '').
+  replace(/[\s_-]+/g, '').
+  toLowerCase();
+}
+
 /** "TÒA TEST1 (T1)" → { name: "TEST1", code: "T1" } */
 export function parseTowerSheetName(name: string): {name: string;code: string;} {
   const withCode = name.match(/^(.*?)\s*\(([^)]+)\)\s*$/);

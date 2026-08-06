@@ -12,6 +12,7 @@ import {
   type ParsedUnit } from
 '../inventoryParser';
 import { InventoryGridEditor } from './InventoryGridEditor';
+import { normalizeTowerKey } from '../towerSheet';
 import {
   absorbMissing,
   buildGrid,
@@ -73,10 +74,25 @@ export function InventoryTable({
    */
   const [localGrids, setLocalGrids] = useState<Record<string, GridModel>>({});
   const grids = externalGrids ?? localGrids;
+  /**
+   * Template chỉ được lấy từ sheet template ở LẦN NHẬP ĐẦU TIÊN (FR-69a).
+   * Sau đó nó được chốt vào `grids` và mọi lần đồng bộ sau chỉ thay dữ liệu,
+   * giữ nguyên cấu trúc QLGD đã chỉnh.
+   */
   const grid = useMemo(
-    () => grids[tower] ?? templates?.[tower] ?? buildGrid(data, tower),
+    () =>
+    grids[tower] ??
+    templates?.[normalizeTowerKey(tower)] ??
+    buildGrid(data, tower),
     [grids, templates, tower, data]
   );
+
+  // Chốt template vào lưới ngay khi tòa được mở lần đầu.
+  useEffect(() => {
+    if (!onGridsChange) return;
+    if (grids[tower]) return;
+    onGridsChange({ ...grids, [tower]: grid });
+  }, [tower, grids, grid, onGridsChange]);
 
   function updateGrid(next: GridModel) {
     const merged = { ...grids, [tower]: next };

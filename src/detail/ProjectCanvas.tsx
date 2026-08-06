@@ -17,6 +17,7 @@ import { TeamContent } from './components/TeamContent';
 import { InventorySetup, type InventorySource } from './components/InventorySetup';
 import { buildInventory, type InventoryData } from './inventoryParser';
 import type { ProjectLayout } from './parseWorkbook';
+import { normalizeTowerKey } from './towerSheet';
 import type { GridModel } from './gridModel';
 import {
   InventorySourceBar,
@@ -182,18 +183,21 @@ export function ProjectCanvas({
    */
   const towerTemplates = useMemo(() => {
     const result: Record<string, GridModel> = {};
+
     inventorySource?.sheets.
-    filter((sheet) => sheet.kind === 'tower' && sheet.tower)
-    .forEach((sheet) => {
+    filter((sheet) => sheet.kind === 'tower' && sheet.tower).
+    forEach((sheet) => {
       const tower = sheet.tower;
       if (!tower || !tower.model.blocks.length) return;
-      // Khớp theo tên tòa, ký hiệu tòa, hoặc chính tên sheet.
+      // Tên tòa trong sheet template và trong cột Tòa của sheet dữ liệu có thể
+      // viết khác nhau về hoa thường và dấu, nên khớp theo dạng đã chuẩn hóa.
       [tower.towerName, tower.towerCode, sheet.name].
       filter(Boolean).
       forEach((key) => {
-        result[key] = tower.model;
+        result[normalizeTowerKey(key)] = tower.model;
       });
     });
+
     return result;
   }, [inventorySource]);
 

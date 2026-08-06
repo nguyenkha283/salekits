@@ -245,6 +245,12 @@ Chọn nhiều giá trị trong cùng một cột thì lấy hợp; kết hợp 
 
 Thứ tự cố định: **Độc quyền → chung và chéo → quỹ khác**. Chỉ quỹ độc quyền mang vương miện, không dùng màu để phân biệt quỹ.
 
+### Sheet template chỉ đọc ở lần nhập đầu
+
+Với file Kiểu 1, template được lấy từ sheet lưới ở **lần nhập đầu tiên** rồi chốt lại. Từ lần đồng bộ thứ hai trở đi, hệ thống giữ nguyên cấu trúc QLGD đã chỉnh và chỉ thay dữ liệu — kể cả khi chủ đầu tư sửa sheet lưới trong file.
+
+Tên tòa giữa sheet template và cột Tòa của sheet dữ liệu khớp theo dạng đã chuẩn hóa, nên `TÒA HOA SEN (A1)` nhận cả `A1` lẫn `Hoa Sen`.
+
 ### Template và dữ liệu là hai lớp tách rời
 
 Đồng bộ lại **chỉ thay dữ liệu căn**. Cấu trúc lưới đã soạn — gộp ô, khu vực chung, phân khối, dòng tiêu đề — **giữ nguyên**. Công soạn lưới chỉ tốn một lần cho mỗi tòa.
