@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { BellIcon, ChevronDownIcon, PlusIcon, CheckIcon, MenuIcon } from 'lucide-react';
 import { Logo } from './Logo';
-export type Role = 'Trưởng line' | 'APM' | 'Trợ lý dự án' | 'Hành chính dự án' | 'Quản lý giao dịch' | 'Marketing' | 'User khác';
-const ROLES: Role[] = ['Trưởng line', 'APM', 'Trợ lý dự án', 'Hành chính dự án', 'Quản lý giao dịch', 'Marketing', 'User khác'];
+export type Role = 'Trưởng line' | 'APM' | 'Trợ lý dự án' | 'Hành chính dự án' | 'Quản lý giao dịch' | 'Marketing' | 'Ban lãnh đạo' | 'User khác';
+const ROLES: Role[] = ['Trưởng line', 'APM', 'Trợ lý dự án', 'Hành chính dự án', 'Quản lý giao dịch', 'Marketing', 'Ban lãnh đạo', 'User khác'];
 
 /** Roles allowed to see the "Tạo dự án" button. */
 const CREATE_ROLES: Role[] = ['APM', 'Trợ lý dự án', 'Hành chính dự án'];

@@ -8,7 +8,9 @@ import { matchInvestorName } from './investorMatching';
 export const CURRENT_USER = {
   id: 'u-apm-01',
   name: 'Nguyễn Thu Hà',
-  title: 'APM · Phòng kinh doanh dự án 2'
+  title: 'Phòng kinh doanh dự án 2',
+  /** Line đang phụ trách, dùng khi đóng vai Trưởng line. */
+  lineId: 'line-2'
 };
 
 /** Sản phẩm con của dự án — theo phân cấp dự án cha – con của SRS. */
@@ -28,6 +30,12 @@ export interface DashboardProject {
   createdAt: string;
   coverUrl: string;
   investorId: string;
+  /** Đầu mối liên hệ của dự án — tùy chọn (FR-CDT-10). */
+  contactId?: string;
+  /** Người khởi tạo dự án, quyết định phạm vi nhìn thấy đầu mối. */
+  createdBy: string;
+  /** Line phụ trách, dùng cho phạm vi của Trưởng line. */
+  lineId: string;
   children: ProjectChild[];
 }
 
@@ -41,6 +49,9 @@ export const DASHBOARD_PROJECTS: DashboardProject[] = [
   createdAt: '28/07/2026',
   coverUrl: '/af1ffc9b-36a7-4608-9ff1-165cbcf660be.jpg',
   investorId: 'i-001',
+  createdBy: CURRENT_USER.id,
+  lineId: 'line-2',
+  contactId: 'c-001',
   children: [
   { id: 'p-001-t1', name: 'Tòa A1 — Hoa Sen', kind: 'Tòa nhà' },
   { id: 'p-001-t2', name: 'Tòa A2 — Hoa Mai', kind: 'Tòa nhà' },
@@ -57,6 +68,9 @@ export const DASHBOARD_PROJECTS: DashboardProject[] = [
   createdAt: '14/07/2026',
   coverUrl: '/688da3c2-8d95-4650-9f33-bb0bfb6d4692.jpg',
   investorId: 'i-002',
+  createdBy: CURRENT_USER.id,
+  lineId: 'line-2',
+  contactId: 'c-002',
   children: [
   { id: 'p-002-k1', name: 'Phân khu The Zurich', kind: 'Phân khu' },
   { id: 'p-002-k2', name: 'Phân khu The Copenhagen', kind: 'Phân khu' },
@@ -72,6 +86,9 @@ export const DASHBOARD_PROJECTS: DashboardProject[] = [
   createdAt: '02/07/2026',
   coverUrl: '/f757d0c2-1880-4786-9ade-d83bdf5ffd51.jpg',
   investorId: 'i-003',
+  createdBy: CURRENT_USER.id,
+  lineId: 'line-2',
+  contactId: 'c-003',
   children: [
   { id: 'p-003-t1', name: 'Tòa Sky Tower', kind: 'Tòa nhà' },
   { id: 'p-003-t2', name: 'Tòa Lake Tower', kind: 'Tòa nhà' }]
@@ -86,6 +103,9 @@ export const DASHBOARD_PROJECTS: DashboardProject[] = [
   createdAt: '19/06/2026',
   coverUrl: '/73dda9ab-a667-4bd9-a168-fc13267d6901.jpg',
   investorId: 'i-004',
+  createdBy: 'u-apm-07',
+  lineId: 'line-5',
+  contactId: 'c-004',
   children: [
   { id: 'p-004-k1', name: 'Phân khu Đồi Hoàng Hôn', kind: 'Phân khu' },
   { id: 'p-004-k2', name: 'Phân khu Bãi Trường', kind: 'Phân khu' }]
@@ -100,6 +120,8 @@ export const DASHBOARD_PROJECTS: DashboardProject[] = [
   createdAt: '05/06/2026',
   coverUrl: '/ebd3240e-6608-4c50-8739-cfe41926dd74.jpg',
   investorId: 'i-005',
+  createdBy: 'u-apm-07',
+  lineId: 'line-5',
   children: [
   { id: 'p-005-t1', name: 'Tòa Sunrise', kind: 'Tòa nhà' },
   { id: 'p-005-t2', name: 'Tòa Sunset', kind: 'Tòa nhà' },

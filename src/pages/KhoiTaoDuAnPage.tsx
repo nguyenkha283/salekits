@@ -167,7 +167,22 @@ export function KhoiTaoDuAnPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           driveFolderUrl: trimmedDriveLink,
-          projectName: tenDuAn.trim()
+          projectName: tenDuAn.trim(),
+          propertyOwnerId: investor?.id,
+          address: address.trim(),
+          province,
+          ward,
+          // Gửi cả bản ghi đầu mối: backend tra theo số điện thoại, đã có thì
+          // dùng lại, chưa có thì tạo rồi gắn vào dự án ngay trong một lượt.
+          contact: contact ?
+          {
+            name: contact.name,
+            phone: contact.phone,
+            dob: contact.dob,
+            note: contact.note,
+            createdBy: contact.createdBy
+          } :
+          undefined
         })
       });
 

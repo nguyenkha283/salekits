@@ -88,7 +88,9 @@ export function canViewRestricted(role: Role): boolean {
 
 /** Quyền biên tập theo ma trận phân quyền mục 2.5 của SRS. */
 export function canEditTab(role: Role, tabId: string): boolean {
-  if (role === 'Trưởng line' || role === 'User khác') return false;
+  // Ban lãnh đạo xem toàn bộ nhưng không sửa nội dung nào.
+  if (role === 'Trưởng line' || role === 'Ban lãnh đạo' || role === 'User khác')
+  return false;
   if (role === 'Quản lý giao dịch')
   return ['bang-hang', 'quy-can', 'mat-bang'].includes(tabId);
   if (role === 'Marketing') return tabId === 'tin-tuc';

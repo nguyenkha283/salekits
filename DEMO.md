@@ -37,7 +37,9 @@ Bố cục hai cột: ba thẻ biểu mẫu bên trái, **thẻ xem trước dí
 
 **Link Drive không bắt buộc.** Bỏ trống thì bấm Tạo dự án là vào thẳng CMS, kèm dải cảnh báo *Chưa liên kết Drive* trên thanh đầu. Các khối vẫn hiện nội dung mẫu để thấy bố cục — gỡ hết nội dung mẫu là việc riêng, cần chốt với PO.
 
-**Đầu mối liên hệ dùng chung.** Số điện thoại là thứ định danh: gõ số trước, hệ thống tra ngay, đã có bản ghi thì hiện tên và nút *Dùng đầu mối này*. Nhờ vậy hai APM của hai dự án cùng chủ đầu tư không tạo ra hai bản ghi cho cùng một người. Số nhập kiểu nào cũng quy về một dạng — `+84 912 345 678`, `0912.345.678` và `912345678` là cùng một số. Khu vực này có ở cả màn Khởi tạo dự án lẫn popup Thêm chủ đầu tư.
+**Đầu mối liên hệ dùng chung.** Chọn xong chủ đầu tư là ô số điện thoại hiện ra ngay. Gõ đủ 10–11 số, hệ thống tra: trùng thì hiện luôn thông tin đầu mối đã có và chốt lại; chưa có mới mở các trường Tên đại diện, Ngày sinh, Ghi chú. Nhờ vậy hai APM của hai dự án cùng chủ đầu tư không tạo ra hai bản ghi cho cùng một người. Số nhập kiểu nào cũng quy về một dạng — `+84 912 345 678`, `0912.345.678` và `912345678` là cùng một số. Khu vực này có ở cả màn Khởi tạo dự án lẫn popup Thêm chủ đầu tư.
+
+Bấm Tạo dự án là `/api/sync-project` ghi một lượt: dự án, chủ đầu tư, địa chỉ, và đầu mối — tra theo số điện thoại, có rồi thì dùng lại bản ghi cũ chứ không ghi đè ghi chú của APM khác. Dự án được gắn với đầu mối ngay trong lượt đó.
 
 Toàn bộ dữ liệu nhập ở đây chảy thẳng sang **Cấu hình dự án** trong CMS, không phải nhập lại lần hai.
 
@@ -77,7 +79,7 @@ Các thành phần tương tác vẫn hoạt động bình thường khi đang b
 
 Ba thứ nên chỉ vào:
 
-- **Bộ chọn vai trò** trên thanh đầu, đủ 6 vai trò theo mục 2.4. Đổi sang *Trưởng line* — thanh trên báo không sửa được tab nào, đúng với việc vai trò này chỉ duyệt. Đổi sang *Quản lý giao dịch* — chỉ Mặt bằng, Bảng hàng, Quỹ căn mở ra.
+- **Bộ chọn vai trò** trên thanh đầu, gồm cả **Ban lãnh đạo** — vai trò này xem được toàn bộ tab nhưng không sửa nội dung nào. Đổi sang *Trưởng line* — thanh trên báo không sửa được tab nào, đúng với việc vai trò này chỉ duyệt. Đổi sang *Quản lý giao dịch* — chỉ Mặt bằng, Bảng hàng, Quỹ căn mở ra.
 - **Bấm vào khối *Tổng quan dự án*** rồi gõ vài chữ trong ngăn kéo — chữ trên trang đổi ngay.
 - **Nút Đồng bộ lại** — ảnh từ Drive chảy thẳng vào đúng section, xem mục 4 bên dưới.
 - **Cấu hình dự án** (bánh răng) — mã dự án, địa giới, đội ngũ, SEO, trạng thái xuất bản.
@@ -380,7 +382,7 @@ Tiêu đề **Dự án của tôi**, nút **Tạo dự án** nổi bật bên ph
 
 Dựng theo *Đặc tả module Quản lý chủ đầu tư v1.0*. Tiêu đề **Danh sách chủ đầu tư**, nút **Thêm mới** bên phải, ô tìm kiếm có gợi ý, và ô tích **CĐT do tôi tạo**.
 
-Danh sách gồm Logo, Tên CĐT, Mô tả. Bản ghi do người dùng hiện tại tạo có thêm nút **Edit** và **Xóa** — đúng FR-CDT-12, chỉ người tạo bản ghi và Admin mới sửa được.
+Năm cột: Logo, Tên CĐT, Mô tả, **Số đầu mối**, Hành động. Bấm vào tên hoặc số đầu mối là mở **màn chi tiết chủ đầu tư**. Bản ghi do người dùng hiện tại tạo có thêm nút **Edit** và **Xóa** — đúng FR-CDT-12.
 
 **Gợi ý khi gõ** chạy qua một hàm bất đồng bộ có debounce 180 ms và hủy lệnh cũ, nên khi nối vào endpoint thật chỉ cần thay thân hàm `searchInvestors`. Ba mức so khớp theo mục 3.2 của đặc tả:
 
@@ -394,13 +396,24 @@ Danh sách gồm Logo, Tên CĐT, Mô tả. Bản ghi do người dùng hiện t
 
 Không tìm thấy thì ngay trong ô gợi ý có lối **Thêm mới chủ đầu tư này**, mang theo từ khóa đang gõ sang popup.
 
-**Dò trùng ngay trong popup tạo mới.** Vừa gõ tên là hệ thống dò tiếp bằng đúng ba mức trên và hiện khối cảnh báo vàng ngay dưới ô tên, liệt kê tối đa 4 bản ghi gần giống kèm mã và số dự án. Mỗi dòng có nút **Dùng bản ghi này** — bấm là đóng popup, lọc danh sách về đúng bản ghi đó và làm nổi nó lên vài giây. Đây là chốt chặn cuối của mục đích chống trùng: người dùng đã mở popup nghĩa là họ tin bản ghi chưa tồn tại, nên phải đưa bản ghi giống ra trước mắt thay vì đợi họ đi tìm. Vẫn có nút **Bỏ qua** vì hai doanh nghiệp tên gần giống nhau là chuyện có thật.
+**Dò trùng ngay trong popup tạo mới.** Vừa gõ tên là hệ thống dò tiếp bằng đúng ba mức trên và hiện khối cảnh báo vàng ngay dưới ô tên, liệt kê tối đa 4 bản ghi gần giống kèm mã và số dự án. Mỗi dòng có nút **Dùng bản ghi này**. Vẫn có nút **Bỏ qua** vì hai doanh nghiệp tên gần giống nhau là chuyện có thật.
 
-**Popup thêm / sửa** có đủ các trường của mục 2.2: tên, mã (tự sinh, khóa lại), mã số thuế, đường dẫn, logo PNG/JPG, mô tả ngắn kèm đếm ký tự và cảnh báo mềm ở mốc 200, tối đa 4 lợi thế cạnh tranh, tối đa 4 con số ấn tượng (con số · nhãn · mô tả), địa chỉ, website, năm thành lập, trạng thái. Sửa đường dẫn thì hiện cảnh báo địa chỉ cũ sẽ mất.
+**Popup thêm / sửa** có đủ các trường của mục 2.2, cộng thêm khu vực **Đầu mối liên hệ** ở cuối — chỉ hiện với người tạo bản ghi. Nhập số điện thoại trước để tra trùng, đã có thì báo dùng lại bản ghi cũ.
 
-Mã sinh từ tên sau khi bỏ dấu và bỏ tiền tố pháp nhân, trùng thì tự thêm hậu tố số. Trạng thái để ở dạng chỉ đọc vì chỉ Admin đổi được (UC-CDT-05).
+Bản ghi đang có dự án tham chiếu thì **không xóa được** — theo FR-CDT-15.
 
-Bản ghi đang có dự án tham chiếu thì **không xóa được** — hộp thoại nói rõ lý do và hướng sang trạng thái Ngừng sử dụng, theo FR-CDT-15.
+### Phạm vi nhìn thấy đầu mối liên hệ
+
+Thanh đầu dashboard có **bộ chọn vai trò**; đổi vai trò là số liệu, danh sách dự án và danh sách đầu mối đổi theo. Màn chi tiết chủ đầu tư hiển thị từng đầu mối kèm **danh sách dự án gắn với đầu mối đó**, cũng lọc theo cùng phạm vi.
+
+| Vai trò | Thấy đầu mối nào |
+|---|---|
+| **Ban lãnh đạo** | Toàn bộ đầu mối của chủ đầu tư, kèm mọi dự án gắn với từng đầu mối |
+| **Trưởng line** | Chỉ đầu mối gắn với dự án thuộc line mình phụ trách |
+| **APM · Trợ lý dự án · Hành chính dự án** | Đầu mối gắn với dự án do mình tạo, hoặc đầu mối do chính mình tạo |
+| **Quản lý giao dịch · Marketing · User khác** | Không thấy, cột Số đầu mối hiện dấu gạch |
+
+Quản lý giao dịch và Marketing bị chặn có chủ đích theo FR-CDT-11, dù họ thuộc đội ngũ dự án — không phải sót.
 
 ### Chưa có ở màn này
 

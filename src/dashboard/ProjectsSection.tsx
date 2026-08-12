@@ -14,14 +14,23 @@ import {
 'lucide-react';
 import type { DashboardProject } from './dashboardData';
 import { normalizeName } from './investorMatching';
+import { canCreateProject, projectListHeading, type DashboardRole } from './roles';
 
 interface ProjectsSectionProps {
   projects: DashboardProject[];
   onChange: (projects: DashboardProject[]) => void;
+  role: DashboardRole;
 }
 
-export function ProjectsSection({ projects, onChange }: ProjectsSectionProps) {
+export function ProjectsSection({
+  projects,
+  onChange,
+  role
+}: ProjectsSectionProps) {
   const navigate = useNavigate();
+  const heading = projectListHeading(role);
+  /** Chỉ nhóm Người tạo dự án mới sửa và xóa được dự án. */
+  const canEdit = canCreateProject(role);
   const [keyword, setKeyword] = useState('');
   const [pendingDelete, setPendingDelete] = useState<DashboardProject | undefined>();
 
@@ -48,20 +57,20 @@ export function ProjectsSection({ projects, onChange }: ProjectsSectionProps) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-neutral-900 sm:text-[28px]">
-            Dự án của tôi
+            {heading.title}
           </h1>
-          <p className="mt-1 text-sm text-neutral-600">
-            Quản lý các dự án do bạn khởi tạo
-          </p>
+          <p className="mt-1 text-sm text-neutral-600">{heading.subtitle}</p>
         </div>
+        {canEdit &&
         <button
           type="button"
           onClick={() => navigate('/khoi-tao-du-an')}
           className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-5 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-orange-600">
           
-          <PlusIcon className="h-5 w-5" />
-          Tạo dự án
-        </button>
+            <PlusIcon className="h-5 w-5" />
+            Tạo dự án
+          </button>
+        }
       </div>
 
       <div className="relative mt-6">
@@ -164,6 +173,8 @@ export function ProjectsSection({ projects, onChange }: ProjectsSectionProps) {
                     <EyeIcon className="h-4 w-4" />
                     <span className="sr-only">Xem {project.name}</span>
                   </button>
+                  {canEdit &&
+              <>
                   <button
                 type="button"
                 onClick={() => openCms(project)}
@@ -182,6 +193,8 @@ export function ProjectsSection({ projects, onChange }: ProjectsSectionProps) {
                     <Trash2Icon className="h-4 w-4" />
                     <span className="sr-only">Xóa {project.name}</span>
                   </button>
+                  </>
+              }
                 </div>
               </li>
           )}

@@ -3,15 +3,12 @@ import {
   CheckCircle2Icon,
   LoaderIcon,
   PhoneIcon,
-  PlusIcon,
-  UserRoundIcon,
-  XIcon } from
+  UserRoundIcon } from
 'lucide-react';
 import {
   DEMO_CONTACTS,
   isValidPhone,
   lookupContactByPhone,
-  normalizePhone,
   type ProjectContact } from
 './contactData';
 import { CURRENT_USER } from './dashboardData';
@@ -24,7 +21,7 @@ interface ContactPickerProps {
   contacts: ProjectContact[];
   value?: ProjectContact;
   onChange: (contact?: ProjectContact) => void;
-  /** Bản ghi mới tạo, để màn cha nạp vào kho chung. */
+  /** Bản ghi mới, để màn cha nạp vào kho chung và gửi lên khi tạo dự án. */
   onCreate: (contact: ProjectContact) => void;
 }
 
@@ -35,10 +32,10 @@ const FIELD =
 /**
  * Nhập đầu mối liên hệ cho dự án — UC-CDT-04.
  *
- * Số điện thoại là thứ định danh bản ghi, nên nó là ô nhập đầu tiên: gõ xong là
- * hệ thống tra ngay, có rồi thì dùng lại bản ghi đó thay vì tạo bản trùng. Nhờ
- * vậy hai APM của hai dự án cùng chủ đầu tư không tạo ra hai bản ghi cho cùng
- * một người.
+ * Số điện thoại là thứ định danh bản ghi nên nó là ô nhập đầu tiên và là ô duy
+ * nhất hiện ra lúc đầu: gõ đủ số, hệ thống tra ngay. Trùng thì hiện luôn thông
+ * tin đầu mối đã có; chưa có mới mở các trường còn lại. Nhờ vậy hai APM của hai
+ * dự án cùng chủ đầu tư không tạo ra hai bản ghi cho cùng một người.
  */
 export function ContactPicker({
   investorId,
@@ -48,7 +45,6 @@ export function ContactPicker({
   onChange,
   onCreate
 }: ContactPickerProps) {
-  const [isOpen, setIsOpen] = useState(false);
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
   const [dob, setDob] = useState('');
@@ -56,9 +52,11 @@ export function ContactPicker({
   const [matched, setMatched] = useState<ProjectContact | null>(null);
   const [isLooking, setIsLooking] = useState(false);
 
-  /** Tra số điện thoại trong lúc gõ. */
+  const phoneReady = isValidPhone(phone);
+
+  /** Tra số điện thoại ngay khi số đã đủ dài. */
   useEffect(() => {
-    if (!isValidPhone(phone)) {
+    if (!phoneReady) {
       setMatched(null);
       setIsLooking(false);
       return;
@@ -77,11 +75,14 @@ export function ContactPicker({
       clearTimeout(timer);
       controller.abort();
     };
-  }, [phone, contacts]);
+  }, [phone, phoneReady, contacts]);
 
-  const contactsOfInvestor = contacts.filter(
-    (item) => item.investorId === investorId
-  );
+  /** Trùng hoàn toàn thì chọn luôn, không bắt bấm thêm một nút nữa. */
+  useEffect(() => {
+    if (matched) onChange(matched);
+    // onChange đến từ màn cha, không đưa vào deps để tránh chạy lặp
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matched]);
 
   function reset() {
     setPhone('');
@@ -89,17 +90,11 @@ export function ContactPicker({
     setDob('');
     setNote('');
     setMatched(null);
-    setIsOpen(false);
+    onChange(undefined);
   }
 
-  function useMatched() {
-    if (!matched) return;
-    onChange(matched);
-    reset();
-  }
-
-  function createContact() {
-    if (!investorId || !isValidPhone(phone) || !name.trim()) return;
+  function saveNew() {
+    if (!investorId || !phoneReady || !name.trim()) return;
     const contact: ProjectContact = {
       id: `c-${Date.now()}`,
       investorId,
@@ -111,17 +106,17 @@ export function ContactPicker({
     };
     onCreate(contact);
     onChange(contact);
-    reset();
   }
 
   if (!investorId) {
     return (
       <p className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 px-3 py-3 text-xs text-neutral-500">
-        Chọn chủ đầu tư trước, đầu mối là người của chủ đầu tư đó.
+        Chọn chủ đầu tư trước — đầu mối là người của chủ đầu tư đó.
       </p>);
 
   }
 
+  // Đã chốt được đầu mối, dù là bản ghi cũ hay vừa tạo
   if (value) {
     return (
       <div className="rounded-lg border border-neutral-300 bg-white px-3 py-2.5">
@@ -155,79 +150,28 @@ export function ContactPicker({
           </div>
           <button
             type="button"
-            onClick={() => onChange(undefined)}
+            onClick={reset}
             className="shrink-0 rounded-md px-2.5 py-1.5 text-xs font-semibold text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900">
             
             Đổi
           </button>
         </div>
-      </div>);
-
-  }
-
-  if (!isOpen) {
-    return (
-      <div className="space-y-2">
-        {contactsOfInvestor.length > 0 &&
-        <ul className="space-y-1.5">
-            {contactsOfInvestor.map((contact) =>
-          <li key={contact.id}>
-                <button
-              type="button"
-              onClick={() => onChange(contact)}
-              className="flex w-full items-center gap-3 rounded-lg border border-neutral-200 px-3 py-2 text-left transition-colors hover:border-orange-200 hover:bg-orange-50">
-              
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#f6efe6] text-[#6D3A18]">
-                    <UserRoundIcon className="h-4 w-4" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold text-neutral-900">
-                      {contact.name}
-                    </span>
-                    <span className="block truncate text-xs text-neutral-500">
-                      {contact.phone}
-                    </span>
-                  </span>
-                </button>
-              </li>
-          )}
-          </ul>
+        {matched &&
+        <p className="mt-2 flex items-start gap-1.5 border-t border-neutral-100 pt-2 text-[11px] text-emerald-700">
+            <CheckCircle2Icon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            Số này đã có trong hệ thống — dùng lại bản ghi cũ, không tạo bản
+            trùng.
+          </p>
         }
-        <button
-          type="button"
-          onClick={() => setIsOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-300 px-3 py-2 text-xs font-semibold text-neutral-700 transition-colors hover:bg-neutral-50">
-          
-          <PlusIcon className="h-3.5 w-3.5" />
-          {contactsOfInvestor.length > 0 ? 'Đầu mối khác' : 'Thêm đầu mối liên hệ'}
-        </button>
-        <p className="text-[11px] text-neutral-500">
-          Thông tin nội bộ, không hiển thị trên trang công khai. Có thể để trống
-          và bổ sung sau.
-        </p>
       </div>);
 
   }
 
   return (
-    <div className="rounded-lg border border-neutral-300 bg-white p-3.5">
-      <div className="mb-3 flex items-center justify-between">
-        <p className="text-xs font-bold text-neutral-800">
-          Đầu mối mới của {investorName ?? 'chủ đầu tư'}
-        </p>
-        <button
-          type="button"
-          onClick={reset}
-          aria-label="Đóng"
-          className="grid h-7 w-7 place-items-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700">
-          
-          <XIcon className="h-4 w-4" />
-        </button>
-      </div>
-
+    <div className="space-y-3">
       <div>
         <label className={LABEL} htmlFor="contact-phone">
-          Số điện thoại <span className="text-orange-600">*</span>
+          Số điện thoại đầu mối
         </label>
         <div className="relative">
           <PhoneIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
@@ -243,49 +187,25 @@ export function ContactPicker({
           <LoaderIcon className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-neutral-400" />
           }
         </div>
+        {phone.trim().length > 0 && !phoneReady ?
         <p className="mt-1 text-[11px] text-neutral-500">
-          Số điện thoại là thứ định danh đầu mối. Nhập trước để hệ thống tra xem
-          đã có bản ghi chưa.
-        </p>
-        {phone.trim().length > 0 && !isValidPhone(phone) &&
-        <p className="mt-1 text-xs font-medium text-red-600">
-            Số điện thoại chưa đúng định dạng.
+            Nhập đủ 10 hoặc 11 số để hệ thống tra.
+          </p> :
+
+        <p className="mt-1 text-[11px] text-neutral-500">
+            Nhập số để tra xem {investorName ?? 'chủ đầu tư'} đã có đầu mối trong
+            hệ thống chưa. Để trống cũng được, bổ sung sau.
           </p>
         }
       </div>
 
-      {matched &&
-      <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-          <p className="flex items-start gap-2 text-xs font-bold text-emerald-900">
-            <CheckCircle2Icon className="mt-0.5 h-4 w-4 shrink-0" />
-            Số này đã có đầu mối trong hệ thống
+      {phoneReady && !isLooking && !matched &&
+      <div className="space-y-3 rounded-lg border border-neutral-200 bg-neutral-50/60 p-3">
+          <p className="text-[11px] font-semibold text-neutral-700">
+            Chưa có đầu mối nào dùng số này. Nhập thông tin để tạo mới.
           </p>
-          <p className="mt-1.5 text-sm font-semibold text-neutral-900">
-            {matched.name}
-          </p>
-          <p className="text-xs text-neutral-600">
-            {matched.phone}
-            {matched.investorId !== investorId &&
-          ' · thuộc chủ đầu tư khác'}
-          </p>
-          {matched.note &&
-        <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-neutral-600">
-              {matched.note}
-            </p>
-        }
-          <button
-          type="button"
-          onClick={useMatched}
-          className="mt-2.5 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-700">
-          
-            Dùng đầu mối này
-          </button>
-        </div>
-      }
 
-      {!matched &&
-      <>
-          <div className="mt-3">
+          <div>
             <label className={LABEL} htmlFor="contact-name">
               Tên đại diện <span className="text-orange-600">*</span>
             </label>
@@ -298,7 +218,7 @@ export function ContactPicker({
           
           </div>
 
-          <div className="mt-3">
+          <div>
             <label className={LABEL} htmlFor="contact-dob">
               Ngày sinh
             </label>
@@ -311,7 +231,7 @@ export function ContactPicker({
           
           </div>
 
-          <div className="mt-3">
+          <div>
             <label className={LABEL} htmlFor="contact-note">
               Ghi chú
             </label>
@@ -325,25 +245,21 @@ export function ContactPicker({
           
           </div>
 
-          <div className="mt-3 flex items-center justify-end gap-2">
-            <button
-            type="button"
-            onClick={reset}
-            className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-700 transition-colors hover:bg-neutral-50">
-            
-              Hủy
-            </button>
-            <button
-            type="button"
-            onClick={createContact}
-            disabled={!isValidPhone(phone) || name.trim().length === 0}
-            className="rounded-md bg-orange-500 px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-neutral-300">
-            
-              Lưu đầu mối
-            </button>
-          </div>
-        </>
+          <button
+          type="button"
+          onClick={saveNew}
+          disabled={name.trim().length === 0}
+          className="rounded-md bg-orange-500 px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-neutral-300">
+          
+            Dùng đầu mối này
+          </button>
+        </div>
       }
+
+      <p className="text-[11px] text-neutral-500">
+        Thông tin nội bộ, không hiển thị trên trang công khai. Đầu mối được gắn
+        vào dự án ngay khi bấm Tạo dự án.
+      </p>
     </div>);
 
 }

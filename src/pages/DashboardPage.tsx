@@ -15,6 +15,16 @@ import {
 '../dashboard/dashboardData';
 import { ProjectsSection } from '../dashboard/ProjectsSection';
 import { InvestorsSection } from '../dashboard/InvestorsSection';
+import { DEMO_CONTACTS, type ProjectContact } from '../dashboard/contactData';
+import {
+  DASHBOARD_ROLES,
+  canCreateProject,
+  canManageInvestors,
+  canSeeContacts,
+  projectListHeading,
+  visibleProjects,
+  type DashboardRole } from
+'../dashboard/roles';
 import type { Investor } from '../types/investor';
 
 type MenuKey = 'tong-quan' | 'du-an' | 'chu-dau-tu';
@@ -37,6 +47,15 @@ export function DashboardPage() {
 
   const [projects, setProjects] = useState<DashboardProject[]>(DASHBOARD_PROJECTS);
   const [investors, setInvestors] = useState<Investor[]>(DASHBOARD_INVESTORS);
+  const [contacts, setContacts] = useState<ProjectContact[]>(DEMO_CONTACTS);
+  /** Bộ chọn vai trò là giả lập để trình diễn phân quyền, chưa gắn HRM. */
+  const [role, setRole] = useState<DashboardRole>('APM');
+
+  const scopedProjects = visibleProjects(projects, {
+    role,
+    userId: CURRENT_USER.id,
+    lineId: CURRENT_USER.lineId
+  });
 
   function goTo(key: MenuKey) {
     setSearchParams(key === 'tong-quan' ? {} : { muc: key });
@@ -61,18 +80,45 @@ export function DashboardPage() {
           Dashboard
         </span>
 
-        <div className="ml-auto flex items-center gap-2.5">
-          <span className="grid h-9 w-9 place-items-center rounded-full bg-orange-50 text-orange-600 ring-1 ring-orange-100">
-            <UserIcon className="h-5 w-5" />
-          </span>
-          <span className="hidden leading-tight sm:block">
-            <span className="block text-sm font-semibold text-neutral-900">
-              {CURRENT_USER.name}
+        <div className="ml-auto flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <label
+              className="hidden text-xs font-semibold text-neutral-500 sm:block"
+              htmlFor="dashboard-role">
+              
+              Vai trò
+            </label>
+            <select
+              id="dashboard-role"
+              value={role}
+              onChange={(event) => setRole(event.target.value as DashboardRole)}
+              className="rounded-lg border border-neutral-300 bg-white px-2.5 py-1.5 text-sm font-semibold text-neutral-800 outline-none transition-colors focus:border-[#6D3A18] focus:ring-2 focus:ring-orange-100">
+              
+              {DASHBOARD_ROLES.map((item) =>
+              <option key={item} value={item}>
+                  {item}
+                </option>
+              )}
+            </select>
+          </div>
+
+          <span className="hidden h-6 w-px bg-neutral-200 sm:block" aria-hidden="true" />
+
+          <div className="flex items-center gap-2.5">
+            <span className="grid h-9 w-9 place-items-center rounded-full bg-orange-50 text-orange-600 ring-1 ring-orange-100">
+              <UserIcon className="h-5 w-5" />
             </span>
-            <span className="block text-xs text-neutral-500">
-              {CURRENT_USER.title}
+            <span className="hidden leading-tight sm:block">
+              <span className="block text-sm font-semibold text-neutral-900">
+                {CURRENT_USER.name}
+              </span>
+              <span className="block text-xs text-neutral-500">
+                {role === 'Trưởng line' ?
+                `Trưởng line ${CURRENT_USER.lineId.replace('line-', '')} · ${CURRENT_USER.title}` :
+                `${role} · ${CURRENT_USER.title}`}
+              </span>
             </span>
-          </span>
+          </div>
         </div>
       </header>
 
@@ -113,19 +159,59 @@ export function DashboardPage() {
         <main className="min-w-0 flex-1">
           {active === 'tong-quan' &&
           <OverviewSection
-            projectCount={projects.length}
+            role={role}
+            projectCount={scopedProjects.length}
             investorCount={investors.length}
-            myInvestorCount={
-            investors.filter((item) => item.createdBy === CURRENT_USER.id).length
+            contactCount={
+            canSeeContacts(role) ?
+            contacts.filter((contact) =>
+            role === 'Ban lãnh đạo' ?
+            true :
+            role === 'Trưởng line' ?
+            projects.some(
+              (project) =>
+              project.contactId === contact.id &&
+              project.lineId === CURRENT_USER.lineId
+            ) :
+            contact.createdBy === CURRENT_USER.id ||
+            projects.some(
+              (project) =>
+              project.contactId === contact.id &&
+              project.createdBy === CURRENT_USER.id
+            )
+            ).length :
+            null
             }
             onGoTo={goTo} />
 
           }
           {active === 'du-an' &&
-          <ProjectsSection projects={projects} onChange={setProjects} />
+          <ProjectsSection
+            projects={scopedProjects}
+            onChange={(next) => {
+              const kept = new Set(next.map((item) => item.id));
+              setProjects((all) =>
+              all.filter(
+                (item) =>
+                kept.has(item.id) ||
+                !scopedProjects.some((scoped) => scoped.id === item.id)
+              )
+              );
+            }}
+            role={role} />
+
           }
           {active === 'chu-dau-tu' &&
-          <InvestorsSection investors={investors} onChange={setInvestors} />
+          <InvestorsSection
+            investors={investors}
+            onChange={setInvestors}
+            contacts={contacts}
+            onContactsChange={setContacts}
+            projects={projects}
+            role={role}
+            userId={CURRENT_USER.id}
+            lineId={CURRENT_USER.lineId} />
+
           }
         </main>
       </div>
@@ -134,26 +220,41 @@ export function DashboardPage() {
 }
 
 interface OverviewSectionProps {
+  role: DashboardRole;
   projectCount: number;
   investorCount: number;
-  myInvestorCount: number;
+  /** null nghĩa là vai trò này không xem được đầu mối (FR-CDT-11). */
+  contactCount: number | null;
   onGoTo: (key: MenuKey) => void;
 }
 
 /** Bản phác thảo — số liệu lấy từ dữ liệu mẫu, chưa nối API. */
 function OverviewSection({
+  role,
   projectCount,
   investorCount,
-  myInvestorCount,
+  contactCount,
   onGoTo
 }: OverviewSectionProps) {
+  const heading = projectListHeading(role);
   const cards = useMemo(
     () => [
-    { label: 'Dự án do tôi khởi tạo', value: projectCount, key: 'du-an' as const },
-    { label: 'Chủ đầu tư dùng chung', value: investorCount, key: 'chu-dau-tu' as const },
-    { label: 'Chủ đầu tư do tôi tạo', value: myInvestorCount, key: 'chu-dau-tu' as const }],
+    { label: heading.title, value: projectCount, key: 'du-an' as const },
+    {
+      label: 'Chủ đầu tư dùng chung',
+      value: investorCount,
+      key: 'chu-dau-tu' as const
+    },
+    {
+      label:
+      contactCount === null ?
+      'Đầu mối — ngoài phạm vi vai trò' :
+      'Đầu mối trong phạm vi của bạn',
+      value: contactCount === null ? '—' : contactCount,
+      key: 'chu-dau-tu' as const
+    }],
 
-    [projectCount, investorCount, myInvestorCount]
+    [heading.title, projectCount, investorCount, contactCount]
   );
 
   return (
@@ -162,7 +263,9 @@ function OverviewSection({
         Xin chào, {CURRENT_USER.name}
       </h1>
       <p className="mt-1 text-sm text-neutral-600">
-        Nơi theo dõi dự án bạn phụ trách và danh mục chủ đầu tư dùng chung.
+        Đang xem với vai trò{' '}
+        <span className="font-semibold text-neutral-800">{role}</span>. Phạm vi
+        dữ liệu bên dưới đổi theo vai trò đang chọn.
       </p>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
@@ -181,6 +284,7 @@ function OverviewSection({
         )}
       </div>
 
+      {(canCreateProject(role) || canManageInvestors(role)) &&
       <div className="mt-6 rounded-xl border border-neutral-200 bg-white p-5">
         <h2 className="text-base font-bold text-neutral-900">Bắt đầu nhanh</h2>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -201,6 +305,7 @@ function OverviewSection({
           </button>
         </div>
       </div>
+      }
     </div>);
 
 }

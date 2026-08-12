@@ -57,6 +57,15 @@ export const DEMO_CONTACTS: ProjectContact[] = [
   createdBy: 'u-apm-07'
 },
 {
+  id: 'c-004',
+  investorId: 'i-004',
+  name: 'Anh Phạm Hữu Nam',
+  phone: '0903 777 888',
+  dob: '1975-06-20',
+  note: 'Quyết định nhanh, nhưng cần văn bản đầy đủ trước khi họp.',
+  createdBy: 'u-apm-07'
+},
+{
   id: 'c-003',
   investorId: 'i-003',
   name: 'Chị Lê Minh Châu',

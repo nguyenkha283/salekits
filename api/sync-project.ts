@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getDriveClient } from './_lib/googleAuth.js';
 import { getSupabaseClient } from './_lib/supabaseClient.js';
 import { extractFolderId, listChildren } from './_lib/driveTree.js';
+import { findOrCreateContact, type ContactInput } from './_lib/contacts.js';
 import {
   readOverviewSection,
   readFloorPlanSection,
@@ -17,9 +18,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const { driveFolderUrl, projectName } = (req.body ?? {}) as {
+  const {
+    driveFolderUrl,
+    projectName,
+    propertyOwnerId,
+    address,
+    province,
+    ward,
+    contact
+  } = (req.body ?? {}) as {
     driveFolderUrl?: string;
     projectName?: string;
+    propertyOwnerId?: string;
+    address?: string;
+    province?: string;
+    ward?: string;
+    contact?: ContactInput;
   };
 
   if (typeof driveFolderUrl !== 'string' || !driveFolderUrl.trim()) {
@@ -63,6 +77,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       rightBanner: banners.rightBanner
     };
 
+    // Đầu mối được tra trước khi ghi dự án: số đã có thì dùng lại bản ghi cũ,
+    // nhờ vậy hai dự án cùng một người liên hệ không sinh hai bản ghi.
+    let contactResult: {id: string;reused: boolean;} | null = null;
+    if (propertyOwnerId && contact) {
+      contactResult = await findOrCreateContact(propertyOwnerId, contact);
+    }
+
     const supabase = getSupabaseClient();
     const { data, error } = await supabase.
     from('projects').
@@ -71,6 +92,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         drive_folder_id: rootFolderId,
         drive_folder_url: driveFolderUrl.trim(),
         project_name: projectName.trim(),
+        property_owner_id: propertyOwnerId ?? null,
+        address: address?.trim() || null,
+        province: province?.trim() || null,
+        ward: ward?.trim() || null,
+        contact_id: contactResult?.id ?? null,
         content
       },
       { onConflict: 'drive_folder_id' }
@@ -82,7 +108,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       throw new Error(`Lưu vào Supabase thất bại: ${error.message}`);
     }
 
-    res.status(200).json({ projectId: data.id, content });
+    res.status(200).json({
+      projectId: data.id,
+      contactId: contactResult?.id ?? null,
+      contactReused: contactResult?.reused ?? false,
+      content
+    });
   } catch (error) {
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Đồng bộ thất bại.'

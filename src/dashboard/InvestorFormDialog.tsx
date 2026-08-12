@@ -664,7 +664,7 @@ export function InvestorFormDialog({
           </section>
 
           {/* Đầu mối liên hệ — tùy chọn, lưu thành bản ghi dùng chung */}
-          {onCreateContact && !isEditing &&
+          {onCreateContact && (!isEditing || draft.createdBy === currentUserId) &&
           <section className="rounded-lg border border-neutral-200 bg-neutral-50/60 p-4">
               <div className="mb-3">
                 <h3 className="text-xs font-bold text-neutral-800">

@@ -7,9 +7,20 @@ import {
   PlusIcon,
   SearchIcon,
   Trash2Icon,
+  UsersRoundIcon,
+  EyeOffIcon,
   XIcon } from
 'lucide-react';
 import type { Investor } from '../types/investor';
+import type { ProjectContact } from './contactData';
+import type { DashboardProject } from './dashboardData';
+import { InvestorDetailDialog } from './InvestorDetailDialog';
+import {
+  canManageInvestors,
+  canSeeContacts,
+  visibleContacts,
+  type DashboardRole } from
+'./roles';
 import { CURRENT_USER, searchInvestors } from './dashboardData';
 import { matchInvestorName } from './investorMatching';
 import { InvestorFormDialog } from './InvestorFormDialog';
@@ -17,6 +28,12 @@ import { InvestorFormDialog } from './InvestorFormDialog';
 interface InvestorsSectionProps {
   investors: Investor[];
   onChange: (investors: Investor[]) => void;
+  contacts: ProjectContact[];
+  onContactsChange: (contacts: ProjectContact[]) => void;
+  projects: DashboardProject[];
+  role: DashboardRole;
+  userId: string;
+  lineId: string;
 }
 
 /** Logo trống thì dùng chữ cái đầu để danh sách không bị lỗ hổng thị giác. */
@@ -45,7 +62,17 @@ function LogoBadge({
 
 }
 
-export function InvestorsSection({ investors, onChange }: InvestorsSectionProps) {
+export function InvestorsSection({
+  investors,
+  onChange,
+  contacts,
+  onContactsChange,
+  projects,
+  role,
+  userId,
+  lineId
+}: InvestorsSectionProps) {
+  const canManage = canManageInvestors(role);
   const [keyword, setKeyword] = useState('');
   const [onlyMine, setOnlyMine] = useState(false);
   const [suggestions, setSuggestions] = useState<Investor[]>([]);
@@ -57,6 +84,15 @@ export function InvestorsSection({ investors, onChange }: InvestorsSectionProps)
   const [pendingDelete, setPendingDelete] = useState<Investor | undefined>();
   /** Bản ghi vừa được chọn từ cảnh báo trùng, làm nổi trong vài giây. */
   const [highlightId, setHighlightId] = useState<string | undefined>();
+  const [detail, setDetail] = useState<Investor | undefined>();
+
+  /** Số đầu mối của một chủ đầu tư mà vai trò hiện tại được nhìn thấy. */
+  function contactCount(investor: Investor): number {
+    return visibleContacts(
+      contacts.filter((contact) => contact.investorId === investor.id),
+      { role, userId, lineId, projects }
+    ).length;
+  }
   const searchBoxRef = useRef<HTMLDivElement>(null);
 
   /**
@@ -190,14 +226,16 @@ export function InvestorsSection({ investors, onChange }: InvestorsSectionProps)
             trùng một doanh nghiệp.
           </p>
         </div>
+        {canManage &&
         <button
           type="button"
           onClick={openCreate}
           className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-5 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-orange-600">
           
-          <PlusIcon className="h-5 w-5" />
-          Thêm mới
-        </button>
+            <PlusIcon className="h-5 w-5" />
+            Thêm mới
+          </button>
+        }
       </div>
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -304,10 +342,11 @@ export function InvestorsSection({ investors, onChange }: InvestorsSectionProps)
 
       {/* Danh sách */}
       <div className="mt-5 overflow-hidden rounded-xl border border-neutral-200 bg-white">
-        <div className="hidden grid-cols-[88px_minmax(220px,1.1fr)_2fr_150px] gap-4 border-b border-neutral-200 bg-neutral-50 px-5 py-2.5 text-[11px] font-bold uppercase tracking-wide text-neutral-500 lg:grid">
+        <div className="hidden grid-cols-[72px_minmax(200px,1fr)_1.6fr_110px_140px] gap-4 border-b border-neutral-200 bg-neutral-50 px-5 py-2.5 text-[11px] font-bold uppercase tracking-wide text-neutral-500 lg:grid">
           <span>Logo</span>
           <span>Tên chủ đầu tư</span>
           <span>Mô tả</span>
+          <span className="text-center">Đầu mối</span>
           <span className="text-right">Hành động</span>
         </div>
 
@@ -329,7 +368,7 @@ export function InvestorsSection({ investors, onChange }: InvestorsSectionProps)
             return (
               <li
                 key={investor.id}
-                className={`grid grid-cols-1 gap-4 px-5 py-4 transition-colors lg:grid-cols-[88px_minmax(220px,1.1fr)_2fr_150px] lg:items-center ${
+                className={`grid grid-cols-1 gap-4 px-5 py-4 transition-colors lg:grid-cols-[72px_minmax(200px,1fr)_1.6fr_110px_140px] lg:items-center ${
                 investor.id === highlightId ?
                 'bg-orange-50 ring-2 ring-inset ring-orange-300' :
                 'hover:bg-neutral-50/70'}`
@@ -340,9 +379,13 @@ export function InvestorsSection({ investors, onChange }: InvestorsSectionProps)
                   </div>
 
                   <div className="min-w-0">
-                    <p className="truncate text-[15px] font-bold text-neutral-900">
+                    <button
+                    type="button"
+                    onClick={() => setDetail(investor)}
+                    className="block max-w-full truncate text-left text-[15px] font-bold text-neutral-900 transition-colors hover:text-orange-600">
+                    
                       {investor.name}
-                    </p>
+                    </button>
                     <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-neutral-500">
                       <span className="font-semibold text-neutral-700">
                         {investor.code}
@@ -370,6 +413,27 @@ export function InvestorsSection({ investors, onChange }: InvestorsSectionProps)
                     {investor.description}
                   </p>
 
+                  <div className="lg:text-center">
+                    {canSeeContacts(role) ?
+                  <button
+                    type="button"
+                    onClick={() => setDetail(investor)}
+                    className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-semibold text-neutral-800 transition-colors hover:bg-neutral-100">
+                    
+                        <UsersRoundIcon className="h-3.5 w-3.5 text-neutral-400" />
+                        {contactCount(investor)}
+                      </button> :
+
+                  <span
+                    className="inline-flex items-center gap-1.5 px-2 py-1 text-sm text-neutral-400"
+                    title="Vai trò này không xem được đầu mối liên hệ">
+                    
+                        <EyeOffIcon className="h-3.5 w-3.5" />
+                        —
+                      </span>
+                  }
+                  </div>
+
                   <div className="flex items-center gap-1.5 lg:justify-end">
                     <a
                     href={`/chu-dau-tu/${investor.slug}`}
@@ -380,7 +444,7 @@ export function InvestorsSection({ investors, onChange }: InvestorsSectionProps)
                       <ExternalLinkIcon className="h-4 w-4" />
                       <span className="sr-only">Xem trang công khai</span>
                     </a>
-                    {isMine &&
+                    {isMine && canManage &&
                   <>
                         <button
                       type="button"
@@ -421,12 +485,28 @@ export function InvestorsSection({ investors, onChange }: InvestorsSectionProps)
         initialName={editing ? '' : keyword.trim()}
         existing={investors}
         currentUserId={CURRENT_USER.id}
+        contacts={contacts}
+        onCreateContact={(contact) =>
+        onContactsChange([contact, ...contacts])
+        }
         onClose={() => {
           setIsFormOpen(false);
           setEditing(undefined);
         }}
         onSave={handleSave}
         onUseExisting={useExisting} />
+
+      }
+
+      {detail &&
+      <InvestorDetailDialog
+        investor={detail}
+        contacts={contacts}
+        projects={projects}
+        role={role}
+        userId={userId}
+        lineId={lineId}
+        onClose={() => setDetail(undefined)} />
 
       }
 

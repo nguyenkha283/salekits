@@ -113,6 +113,16 @@ alter table projects
 
 create index if not exists projects_contact_id_idx on projects (contact_id);
 
+-- Địa chỉ khai ở màn Khởi tạo dự án. Đơn vị hành chính HAI CẤP theo Nghị quyết
+-- 202/2025/QH15 — không có cột Quận/Huyện.
+-- ⚠️ FR-08 và phụ lục 7.1 của SRS vẫn ghi ba cấp, cần cập nhật cho khớp.
+alter table projects
+  add column if not exists address text,
+  add column if not exists province text,
+  add column if not exists ward text;
+
+create index if not exists projects_province_idx on projects (province);
+
 
 -- ── 4. Chuyển dữ liệu từ bốn cột cũ sang bảng mới ────────────────────────────
 -- Chỉ chạy khi bốn cột cũ còn tồn tại. Dự án nào chưa có số điện thoại thì bỏ

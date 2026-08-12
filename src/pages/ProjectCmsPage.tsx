@@ -52,6 +52,7 @@ const ROLES: Role[] = [
 'Quản lý giao dịch',
 'Marketing',
 'Trưởng line',
+'Ban lãnh đạo',
 'User khác'];
 
 
@@ -99,7 +100,8 @@ const DEFAULT_STATS = [
 
 
 function toCmsRole(role: Role): CmsRole {
-  if (role === 'Trưởng line') return 'Trưởng line';
+  // Ban lãnh đạo chỉ xem, ánh xạ về vai trò không có quyền sửa cấu hình.
+  if (role === 'Trưởng line' || role === 'Ban lãnh đạo') return 'Trưởng line';
   if (role === 'Quản lý giao dịch') return 'Quản lý bán hàng';
   if (role === 'Marketing') return 'Marketing';
   return 'APM';
