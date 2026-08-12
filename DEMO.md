@@ -386,6 +386,8 @@ Danh sách gồm Logo, Tên CĐT, Mô tả. Bản ghi do người dùng hiện t
 
 Không tìm thấy thì ngay trong ô gợi ý có lối **Thêm mới chủ đầu tư này**, mang theo từ khóa đang gõ sang popup.
 
+**Dò trùng ngay trong popup tạo mới.** Vừa gõ tên là hệ thống dò tiếp bằng đúng ba mức trên và hiện khối cảnh báo vàng ngay dưới ô tên, liệt kê tối đa 4 bản ghi gần giống kèm mã và số dự án. Mỗi dòng có nút **Dùng bản ghi này** — bấm là đóng popup, lọc danh sách về đúng bản ghi đó và làm nổi nó lên vài giây. Đây là chốt chặn cuối của mục đích chống trùng: người dùng đã mở popup nghĩa là họ tin bản ghi chưa tồn tại, nên phải đưa bản ghi giống ra trước mắt thay vì đợi họ đi tìm. Vẫn có nút **Bỏ qua** vì hai doanh nghiệp tên gần giống nhau là chuyện có thật.
+
 **Popup thêm / sửa** có đủ các trường của mục 2.2: tên, mã (tự sinh, khóa lại), mã số thuế, đường dẫn, logo PNG/JPG, mô tả ngắn kèm đếm ký tự và cảnh báo mềm ở mốc 200, tối đa 4 lợi thế cạnh tranh, tối đa 4 con số ấn tượng (con số · nhãn · mô tả), địa chỉ, website, năm thành lập, trạng thái. Sửa đường dẫn thì hiện cảnh báo địa chỉ cũ sẽ mất.
 
 Mã sinh từ tên sau khi bỏ dấu và bỏ tiền tố pháp nhân, trùng thì tự thêm hậu tố số. Trạng thái để ở dạng chỉ đọc vì chỉ Admin đổi được (UC-CDT-05).

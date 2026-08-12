@@ -55,6 +55,8 @@ export function InvestorsSection({ investors, onChange }: InvestorsSectionProps)
   const [editing, setEditing] = useState<Investor | undefined>();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Investor | undefined>();
+  /** Bản ghi vừa được chọn từ cảnh báo trùng, làm nổi trong vài giây. */
+  const [highlightId, setHighlightId] = useState<string | undefined>();
   const searchBoxRef = useRef<HTMLDivElement>(null);
 
   /**
@@ -143,6 +145,19 @@ export function InvestorsSection({ investors, onChange }: InvestorsSectionProps)
   function pickSuggestion(investor: Investor) {
     setKeyword(investor.name);
     setIsSuggestionOpen(false);
+  }
+
+  /**
+   * Người dùng nhận ra bản ghi đã tồn tại: đóng popup, lọc danh sách về đúng
+   * bản ghi đó và làm nổi nó lên trong vài giây để họ thấy ngay.
+   */
+  function useExisting(investor: Investor) {
+    setIsFormOpen(false);
+    setEditing(undefined);
+    setKeyword(investor.name);
+    setIsSuggestionOpen(false);
+    setHighlightId(investor.id);
+    window.setTimeout(() => setHighlightId(undefined), 2600);
   }
 
   function onSearchKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
@@ -314,7 +329,11 @@ export function InvestorsSection({ investors, onChange }: InvestorsSectionProps)
             return (
               <li
                 key={investor.id}
-                className="grid grid-cols-1 gap-4 px-5 py-4 transition-colors hover:bg-neutral-50/70 lg:grid-cols-[88px_minmax(220px,1.1fr)_2fr_150px] lg:items-center">
+                className={`grid grid-cols-1 gap-4 px-5 py-4 transition-colors lg:grid-cols-[88px_minmax(220px,1.1fr)_2fr_150px] lg:items-center ${
+                investor.id === highlightId ?
+                'bg-orange-50 ring-2 ring-inset ring-orange-300' :
+                'hover:bg-neutral-50/70'}`
+                }>
                 
                   <div className="flex items-center gap-3">
                     <LogoBadge investor={investor} />
@@ -406,7 +425,8 @@ export function InvestorsSection({ investors, onChange }: InvestorsSectionProps)
           setIsFormOpen(false);
           setEditing(undefined);
         }}
-        onSave={handleSave} />
+        onSave={handleSave}
+        onUseExisting={useExisting} />
 
       }
 

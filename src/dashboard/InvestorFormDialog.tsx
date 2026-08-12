@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangleIcon,
   ImageIcon,
+  LoaderIcon,
   PlusIcon,
   Trash2Icon,
   XIcon } from
@@ -20,6 +21,7 @@ import {
   suggestInvestorCode,
   suggestInvestorSlug } from
 './investorMatching';
+import { searchInvestors } from './dashboardData';
 
 interface InvestorFormDialogProps {
   /** Bản ghi đang sửa; bỏ trống nghĩa là tạo mới. */
@@ -33,6 +35,8 @@ interface InvestorFormDialogProps {
   canChangeStatus?: boolean;
   onClose: () => void;
   onSave: (investor: Investor) => void;
+  /** Người dùng nhận ra bản ghi đã tồn tại và chọn dùng lại thay vì tạo mới. */
+  onUseExisting?: (investor: Investor) => void;
 }
 
 const LABEL_CLASS = 'mb-1 block text-xs font-semibold text-neutral-700';
@@ -46,7 +50,8 @@ export function InvestorFormDialog({
   currentUserId,
   canChangeStatus = false,
   onClose,
-  onSave
+  onSave,
+  onUseExisting
 }: InvestorFormDialogProps) {
   const isEditing = Boolean(investor);
   const [draft, setDraft] = useState<Investor>(() =>
@@ -56,6 +61,10 @@ export function InvestorFormDialog({
   );
   const [showErrors, setShowErrors] = useState(false);
   const [slugTouched, setSlugTouched] = useState(isEditing);
+  /** Bản ghi có tên gần giống, dò trong lúc người dùng gõ tên. */
+  const [similar, setSimilar] = useState<Investor[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isSimilarDismissed, setIsSimilarDismissed] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -74,6 +83,38 @@ export function InvestorFormDialog({
     () => existing.filter((item) => item.id !== draft.id).map((item) => item.slug),
     [existing, draft.id]
   );
+
+  /**
+   * Dò trùng ngay trong lúc gõ tên. Đây là chốt chặn cuối của mục đích chống
+   * trùng: người dùng đã mở popup tạo mới nghĩa là họ tin bản ghi chưa tồn tại,
+   * nên phải đưa bản ghi giống ra trước mắt họ chứ không đợi họ đi tìm.
+   */
+  useEffect(() => {
+    const trimmed = draft.name.trim();
+    if (trimmed.length < 2) {
+      setSimilar([]);
+      setIsSearching(false);
+      return;
+    }
+    const pool = existing.filter((item) => item.id !== draft.id);
+    const controller = new AbortController();
+    setIsSearching(true);
+    const timer = setTimeout(() => {
+      searchInvestors(trimmed, pool, controller.signal).
+      then((results) => {
+        setSimilar(results.slice(0, 4));
+        setIsSearching(false);
+      }).
+      catch(() => {/* lệnh bị hủy vì người dùng gõ tiếp */});
+    }, 250);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [draft.name, draft.id, existing]);
+
+  const visibleSimilar = isSimilarDismissed ? [] : similar;
 
   /** Mã chỉ sinh khi tạo mới; đã tạo rồi thì không sửa được (FR-CDT-03). */
   const previewCode = isEditing ?
@@ -194,7 +235,10 @@ export function InvestorFormDialog({
               <input
                 id="investor-name"
                 value={draft.name}
-                onChange={(event) => update('name', event.target.value)}
+                onChange={(event) => {
+                  setIsSimilarDismissed(false);
+                  update('name', event.target.value);
+                }}
                 placeholder="Công ty Cổ phần Đầu tư ABC"
                 className={INPUT_CLASS} />
               
@@ -202,6 +246,67 @@ export function InvestorFormDialog({
               <p className="mt-1 text-xs font-medium text-red-600">
                   Nhập tên đầy đủ của pháp nhân.
                 </p>
+              }
+
+              {isSearching && visibleSimilar.length === 0 &&
+              <p className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-neutral-500">
+                  <LoaderIcon className="h-3.5 w-3.5 animate-spin" />
+                  Đang dò các chủ đầu tư có tên gần giống…
+                </p>
+              }
+
+              {visibleSimilar.length > 0 &&
+              <div className="mt-2 overflow-hidden rounded-lg border border-amber-200 bg-amber-50">
+                  <div className="flex items-start gap-2 px-3 py-2.5">
+                    <AlertTriangleIcon className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-amber-900">
+                        {visibleSimilar.length} chủ đầu tư có tên gần giống
+                      </p>
+                      <p className="mt-0.5 text-xs text-amber-800">
+                        Nếu là cùng một doanh nghiệp, hãy dùng bản ghi có sẵn.
+                        Hệ thống chưa gộp được hai bản ghi trùng.
+                      </p>
+                    </div>
+                    <button
+                    type="button"
+                    onClick={() => setIsSimilarDismissed(true)}
+                    className="shrink-0 text-xs font-semibold text-amber-800 underline underline-offset-2 hover:text-amber-900">
+                    
+                      Bỏ qua
+                    </button>
+                  </div>
+                  <ul className="divide-y divide-amber-200 border-t border-amber-200 bg-white/70">
+                    {visibleSimilar.map((item) =>
+                  <li
+                    key={item.id}
+                    className="flex items-center gap-3 px-3 py-2">
+                    
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-semibold text-neutral-900">
+                            {item.name}
+                          </span>
+                          <span className="block truncate text-xs text-neutral-500">
+                            {item.code} ·{' '}
+                            {item.projectCount > 0 ?
+                        `${item.projectCount} dự án` :
+                        'Chưa gắn dự án'}
+                            {item.status === 'Ngừng sử dụng' && ' · Ngừng sử dụng'}
+                          </span>
+                        </span>
+                        {onUseExisting &&
+                    <button
+                      type="button"
+                      onClick={() => onUseExisting(item)}
+                      className="shrink-0 rounded-md border border-neutral-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-neutral-700 transition-colors hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700">
+                      
+                            Dùng bản ghi này
+                          </button>
+                    }
+                      </li>
+                  )}
+                  </ul>
+                </div>
               }
             </div>
 
