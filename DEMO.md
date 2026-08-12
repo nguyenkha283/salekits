@@ -21,7 +21,7 @@ Chỉ khi muốn trình diễn cả phần đồng bộ Drive thật mới cần
 
 ## 2. Kịch bản trình bày cho PO (khoảng 12 phút)
 
-Trang chủ có sẵn **dải điều hướng demo** với ba bước theo đúng thứ tự.
+Vào từ trang chủ: bấm **avatar hoặc tên người dùng** trên thanh đầu → chọn **Dashboard** → mục **Quản lý dự án**. Dải điều hướng demo cũ đã được gỡ.
 
 ### Bước 1 — Khởi tạo dự án · `/khoi-tao-du-an` (2 phút)
 Nhập tên dự án, **chọn loại hình**, dán link thư mục Drive. Nhấn Tạo dự án.
@@ -103,7 +103,8 @@ Từ CMS bấm **Trang công khai** ở thanh trên, hoặc vào thẳng `/du-an
 | **Gỡ toàn bộ link ảnh ngoài** | 9 ảnh vốn hotlink từ `mikland.com.vn` đã chuyển sang ảnh cục bộ trong `public/` |
 | **Vá 4 ảnh thiếu** | Bản design tham chiếu 4 file không có trong gói — đã trỏ lại ảnh có sẵn |
 | Thống nhất chữ | Toàn hệ dùng **Be Vietnam Pro** thay vì hai bộ chữ khác nhau |
-| Dải điều hướng demo | Trên trang chủ, gỡ khi lên bản thật |
+| Gỡ dải điều hướng demo | Trang chủ trở về đúng giao diện thật; đường vào các màn nội bộ nay đi qua Dashboard |
+| **Thêm Dashboard người dùng** | `/dashboard` — hai cột: menu trái, nội dung phải. Xem mục 9 |
 | Bổ sung `.env.example` | Trước đây thiếu ba biến backend bắt buộc |
 
 ---
@@ -324,9 +325,16 @@ src/
     data/inventoryData.ts     dữ liệu bảng hàng mẫu
   pages/
     ProjectDetailPage.tsx     trang công khai
+    DashboardPage.tsx         ← dashboard người dùng, hai cột
     ProjectCmsPage.tsx        ← trang CMS mới
     ProjectCreatedPage.tsx    CMS editor
     KhoiTaoDuAnPage.tsx       khởi tạo dự án
+  dashboard/                  ← MÀN DASHBOARD
+    ProjectsSection.tsx       Dự án của tôi
+    InvestorsSection.tsx      Danh sách chủ đầu tư
+    InvestorFormDialog.tsx    popup thêm / sửa chủ đầu tư
+    investorMatching.ts       so khớp 3 mức, sinh mã và đường dẫn
+    dashboardData.ts          dữ liệu mẫu + hàm gợi ý bất đồng bộ
   components/                 khung CMS
 public/                       13 ảnh cục bộ
 supabase/schema.sql
@@ -340,3 +348,54 @@ supabase/schema.sql
 2. Viết endpoint lưu nội dung — đây là thứ chặn mọi việc còn lại.
 3. Thêm xác thực cho cả năm endpoint, và giới hạn `/api/drive-file` chỉ phục vụ file thuộc dự án đã đăng ký.
 4. Thiết kế lại lược đồ cơ sở dữ liệu: hiện chỉ có một bảng với hai cột JSON.
+
+---
+
+## 9. Dashboard người dùng
+
+Vào bằng cách bấm **avatar hoặc tên người dùng** trên thanh đầu trang chủ, chọn **Dashboard**. Menu tài khoản mở bằng chuột hoặc bàn phím, đóng khi bấm ra ngoài hoặc nhấn `Esc`.
+
+Màn hình chia hai cột: menu người dùng bên trái, nội dung của mục được chọn bên phải. Mục đang chọn ghi vào query string (`?muc=du-an`) nên gửi link cho người khác là mở đúng chỗ.
+
+### Quản lý dự án
+
+Tiêu đề **Dự án của tôi**, nút **Tạo dự án** nổi bật bên phải, ô tìm kiếm theo tên hoặc mã dự án (gõ không dấu vẫn ra). Mỗi dòng gồm bốn cột:
+
+| Cột | Nội dung |
+|---|---|
+| Ảnh đại diện | Ảnh dự án |
+| Tên dự án | Tên, mã dự án, loại hình, ngày tạo |
+| Sản phẩm trong dự án | Danh sách tòa nhà hoặc phân khu |
+| Hành động | **View** mở trang công khai `/du-an`, **Edit** mở CMS `/hoan-tat`, **Xóa** có hộp thoại xác nhận |
+
+### Quản lý chủ đầu tư
+
+Dựng theo *Đặc tả module Quản lý chủ đầu tư v1.0*. Tiêu đề **Danh sách chủ đầu tư**, nút **Thêm mới** bên phải, ô tìm kiếm có gợi ý, và ô tích **CĐT do tôi tạo**.
+
+Danh sách gồm Logo, Tên CĐT, Mô tả. Bản ghi do người dùng hiện tại tạo có thêm nút **Edit** và **Xóa** — đúng FR-CDT-12, chỉ người tạo bản ghi và Admin mới sửa được.
+
+**Gợi ý khi gõ** chạy qua một hàm bất đồng bộ có debounce 180 ms và hủy lệnh cũ, nên khi nối vào endpoint thật chỉ cần thay thân hàm `searchInvestors`. Ba mức so khớp theo mục 3.2 của đặc tả:
+
+| Mức | Quy tắc | Gõ thử với "Công ty Cổ phần Đầu tư Vinhomes" |
+|---|---|---|
+| 1 | Khớp chuỗi con | `Cổ phần Đầu tư Vinhomes` |
+| 2 | Bỏ dấu, bỏ phân biệt hoa thường | `co phan dau tu vinhomes`, `vinhomes` |
+| 3 | Bỏ tiền tố pháp nhân ở cả hai vế | `Công ty CP Vinhomes` |
+
+Đúng như đặc tả ghi nhận, gõ tên viết tắt tự đặt (`VHM`) sẽ không tìm ra — cần thêm trường tên viết tắt, để lại cho phase sau.
+
+Không tìm thấy thì ngay trong ô gợi ý có lối **Thêm mới chủ đầu tư này**, mang theo từ khóa đang gõ sang popup.
+
+**Popup thêm / sửa** có đủ các trường của mục 2.2: tên, mã (tự sinh, khóa lại), mã số thuế, đường dẫn, logo PNG/JPG, mô tả ngắn kèm đếm ký tự và cảnh báo mềm ở mốc 200, tối đa 4 lợi thế cạnh tranh, tối đa 4 con số ấn tượng (con số · nhãn · mô tả), địa chỉ, website, năm thành lập, trạng thái. Sửa đường dẫn thì hiện cảnh báo địa chỉ cũ sẽ mất.
+
+Mã sinh từ tên sau khi bỏ dấu và bỏ tiền tố pháp nhân, trùng thì tự thêm hậu tố số. Trạng thái để ở dạng chỉ đọc vì chỉ Admin đổi được (UC-CDT-05).
+
+Bản ghi đang có dự án tham chiếu thì **không xóa được** — hộp thoại nói rõ lý do và hướng sang trạng thái Ngừng sử dụng, theo FR-CDT-15.
+
+### Chưa có ở màn này
+
+- **Chưa lưu xuống cơ sở dữ liệu.** Toàn bộ chạy bằng dữ liệu mẫu trong `src/dashboard/dashboardData.ts`; thêm, sửa, xóa chỉ tồn tại trong phiên.
+- Chưa có đăng nhập nên người dùng hiện tại được cố định trong `CURRENT_USER`.
+- **Chưa có trang công khai của chủ đầu tư** (FR-CDT-16 đến FR-CDT-18). Nút xem trang mới chỉ là chỗ dành sẵn.
+- Chưa nối ô chọn chủ đầu tư vào màn khởi tạo dự án (UC-CDT-01) và chưa có bốn trường đầu mối liên hệ trên bản ghi dự án (FR-CDT-10).
+- Mục **Dashboard** ở đầu menu mới là bản phác thảo với ba ô số liệu.

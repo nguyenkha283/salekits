@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ChevronDownIcon,
+  LayoutDashboardIcon,
   MenuIcon,
   PlusIcon,
   UserIcon,
@@ -20,6 +21,8 @@ interface HeaderProps {
 }
 export function Header({ variant = 'hero' }: HeaderProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const accountRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const isLight = variant === 'light';
   const foreground = isLight ? 'text-neutral-900' : 'text-white';
@@ -29,6 +32,31 @@ export function Header({ variant = 'hero' }: HeaderProps) {
   function goToCreateProject() {
     setMobileOpen(false);
     navigate('/khoi-tao-du-an');
+  }
+
+  // Đóng menu tài khoản khi bấm ra ngoài hoặc nhấn Esc.
+  useEffect(() => {
+    if (!accountOpen) return;
+    function onPointerDown(event: MouseEvent) {
+      if (!accountRef.current?.contains(event.target as Node)) {
+        setAccountOpen(false);
+      }
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setAccountOpen(false);
+    }
+    window.addEventListener('mousedown', onPointerDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('mousedown', onPointerDown);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [accountOpen]);
+
+  function goToDashboard() {
+    setAccountOpen(false);
+    setMobileOpen(false);
+    navigate('/dashboard');
   }
   return (
     <header
@@ -83,25 +111,51 @@ export function Header({ variant = 'hero' }: HeaderProps) {
             <PlusIcon className="h-4 w-4" />
             Tạo dự án
           </button>
-          <button
-            type="button"
-            className={`hidden items-center gap-2.5 pl-1 text-left sm:flex ${foreground}`}
-            aria-label="Thông tin tài khoản">
-            
-            <span
-              className={`grid h-9 w-9 place-items-center rounded-full ${isLight ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100' : 'bg-white/20 ring-1 ring-white/40'}`}>
+          <div ref={accountRef} className="relative hidden sm:block">
+            <button
+              type="button"
+              onClick={() => setAccountOpen((value) => !value)}
+              className={`flex items-center gap-2.5 rounded-full py-1 pl-1 pr-2 text-left transition-colors sm:flex ${foreground} ${isLight ? 'hover:bg-neutral-100' : 'hover:bg-white/10'}`}
+              aria-label="Thông tin tài khoản"
+              aria-haspopup="menu"
+              aria-expanded={accountOpen}>
               
-              <UserIcon className="h-5 w-5" />
-            </span>
-            <span className="leading-tight">
-              <span className="block text-sm font-semibold">Role APM</span>
               <span
-                className={`block text-xs ${isLight ? 'text-neutral-500' : 'text-white/80'}`}>
+                className={`grid h-9 w-9 place-items-center rounded-full ${isLight ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100' : 'bg-white/20 ring-1 ring-white/40'}`}>
                 
-                2 chức danh
+                <UserIcon className="h-5 w-5" />
               </span>
-            </span>
-          </button>
+              <span className="leading-tight">
+                <span className="block text-sm font-semibold">Role APM</span>
+                <span
+                  className={`block text-xs ${isLight ? 'text-neutral-500' : 'text-white/80'}`}>
+                  
+                  2 chức danh
+                </span>
+              </span>
+              <ChevronDownIcon
+                className={`h-4 w-4 transition-transform ${accountOpen ? 'rotate-180' : ''}`} />
+              
+            </button>
+
+            {accountOpen &&
+            <div
+              role="menu"
+              aria-label="Menu tài khoản"
+              className="absolute right-0 top-[calc(100%+8px)] z-40 w-56 overflow-hidden rounded-xl bg-white py-1.5 shadow-lg ring-1 ring-neutral-200">
+              
+                <button
+                type="button"
+                role="menuitem"
+                onClick={goToDashboard}
+                className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-semibold text-neutral-800 transition-colors hover:bg-orange-50 hover:text-orange-600">
+                
+                  <LayoutDashboardIcon className="h-4 w-4 text-neutral-400" />
+                  Dashboard
+                </button>
+              </div>
+            }
+          </div>
           <button
             type="button"
             className={`grid h-10 w-10 place-items-center rounded-md lg:hidden ${isLight ? 'bg-orange-50 text-orange-600' : 'bg-white/20 text-white'}`}
@@ -133,6 +187,14 @@ export function Header({ variant = 'hero' }: HeaderProps) {
           )}
           </ul>
           <div className="mt-3 flex flex-col gap-2">
+            <button
+            type="button"
+            onClick={goToDashboard}
+            className="flex items-center justify-center gap-2 rounded-full border border-neutral-300 px-5 py-2.5 text-sm font-semibold text-neutral-800">
+            
+              <LayoutDashboardIcon className="h-4 w-4" />
+              Dashboard
+            </button>
             <button
             type="button"
             className="flex items-center justify-center gap-2 rounded-full bg-neutral-900 px-5 py-2.5 text-sm font-semibold text-white">
