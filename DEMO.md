@@ -25,26 +25,21 @@ Vào từ trang chủ: bấm **avatar hoặc tên người dùng** trên thanh �
 
 ### Bước 1 — Khởi tạo dự án · `/khoi-tao-du-an` (3 phút)
 
-Bố cục hai cột: biểu mẫu năm bước bên trái, **thẻ xem trước dính theo màn hình** bên phải hiện ngay ảnh đại diện, tên, địa chỉ đầy đủ, chủ đầu tư và bốn chấm trạng thái của các trường bắt buộc.
+Bố cục hai cột: ba thẻ biểu mẫu bên trái, **thẻ xem trước dính theo màn hình** bên phải hiện ảnh đại diện, tên, địa chỉ đầy đủ, chủ đầu tư và bốn chấm trạng thái. Các trường xếp lưới hai cột nên toàn bộ vừa trong một tới hai màn hình.
 
-| Bước | Trường |
+| Thẻ | Trường |
 |---|---|
-| 1 | Tên dự án · **Loại hình** Cao tầng / Thấp tầng |
-| 2 | **Địa chỉ** nhập tự do · **Tỉnh / Thành phố** · **Phường / Xã** lọc theo tỉnh |
-| 3 | **Chủ đầu tư** — ô tìm có gợi ý, không thấy thì thêm mới ngay tại chỗ |
-| 4 | **Ảnh đại diện dự án** — PNG hoặc JPG, tối đa 5 MB |
-| 5 | Link thư mục Drive |
+| Thông tin dự án | Tên · **Loại hình** Cao tầng / Thấp tầng · **Địa chỉ** tự do · **Tỉnh / Thành phố** · **Phường / Xã** lọc theo tỉnh |
+| Chủ đầu tư | Ô chọn có gợi ý, thêm mới ngay tại chỗ · **Đầu mối liên hệ** |
+| Ảnh đại diện và nội dung | Ảnh đại diện PNG/JPG · Link Drive |
 
 Địa giới dùng **mô hình hai cấp** theo Nghị quyết 202/2025/QH15: 34 tỉnh thành, không còn cấp Quận / Huyện. Đổi tỉnh thì ô phường tự xóa lựa chọn cũ. Tỉnh chưa có danh mục phường trong bản prototype thì ô đó chuyển sang nhập tay.
 
+**Link Drive không bắt buộc.** Bỏ trống thì bấm Tạo dự án là vào thẳng CMS, kèm dải cảnh báo *Chưa liên kết Drive* trên thanh đầu. Các khối vẫn hiện nội dung mẫu để thấy bố cục — gỡ hết nội dung mẫu là việc riêng, cần chốt với PO.
+
+**Đầu mối liên hệ dùng chung.** Số điện thoại là thứ định danh: gõ số trước, hệ thống tra ngay, đã có bản ghi thì hiện tên và nút *Dùng đầu mối này*. Nhờ vậy hai APM của hai dự án cùng chủ đầu tư không tạo ra hai bản ghi cho cùng một người. Số nhập kiểu nào cũng quy về một dạng — `+84 912 345 678`, `0912.345.678` và `912345678` là cùng một số. Khu vực này có ở cả màn Khởi tạo dự án lẫn popup Thêm chủ đầu tư.
+
 Toàn bộ dữ liệu nhập ở đây chảy thẳng sang **Cấu hình dự án** trong CMS, không phải nhập lại lần hai.
-
-| Loại hình | Cấu trúc tab |
-|---|---|
-| **Cao tầng** | Có tab Bảng hàng dạng lưới, định vị căn bằng cặp tầng × trục |
-| **Thấp tầng** | **Không có tab Bảng hàng**. Căn hiển thị ở Quỹ căn dạng phẳng và định vị bằng pin trên Mặt bằng quỹ căn |
-
-> Đối chiếu SRS: UC-02, và giả định mục 2.6 rằng nội dung đã nằm sẵn trên Drive theo quy ước thư mục.
 
 ### Bước 2 — Biên tập trong CMS · `/hoan-tat` (5 phút)
 

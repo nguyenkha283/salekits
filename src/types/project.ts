@@ -51,6 +51,10 @@ export interface ProjectDraft {
   /** Chủ đầu tư — bắt buộc khi khởi tạo dự án (FR-CDT-19). */
   investorId?: string;
   investorName?: string;
+  /** Đầu mối liên hệ — bản ghi dùng chung, tùy chọn (FR-CDT-10). */
+  contactId?: string;
+  contactName?: string;
+  contactPhone?: string;
   /** Ảnh đại diện dự án, dạng data URL trong bản prototype. */
   coverImageUrl?: string;
 }

@@ -22,6 +22,12 @@ import {
   suggestInvestorSlug } from
 './investorMatching';
 import { searchInvestors } from './dashboardData';
+import { CURRENT_USER } from './dashboardData';
+import {
+  isValidPhone,
+  lookupContactByPhone,
+  type ProjectContact } from
+'./contactData';
 
 interface InvestorFormDialogProps {
   /** Bản ghi đang sửa; bỏ trống nghĩa là tạo mới. */
@@ -37,6 +43,9 @@ interface InvestorFormDialogProps {
   onSave: (investor: Investor) => void;
   /** Người dùng nhận ra bản ghi đã tồn tại và chọn dùng lại thay vì tạo mới. */
   onUseExisting?: (investor: Investor) => void;
+  /** Kho đầu mối hiện có, dùng để tra trùng theo số điện thoại. */
+  contacts?: ProjectContact[];
+  onCreateContact?: (contact: ProjectContact) => void;
 }
 
 const LABEL_CLASS = 'mb-1 block text-xs font-semibold text-neutral-700';
@@ -51,7 +60,9 @@ export function InvestorFormDialog({
   canChangeStatus = false,
   onClose,
   onSave,
-  onUseExisting
+  onUseExisting,
+  contacts = [],
+  onCreateContact
 }: InvestorFormDialogProps) {
   const isEditing = Boolean(investor);
   const [draft, setDraft] = useState<Investor>(() =>
@@ -65,6 +76,12 @@ export function InvestorFormDialog({
   const [similar, setSimilar] = useState<Investor[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isSimilarDismissed, setIsSimilarDismissed] = useState(false);
+  /** Đầu mối liên hệ nhập kèm khi tạo chủ đầu tư — tùy chọn. */
+  const [contactPhone, setContactPhone] = useState('');
+  const [contactName, setContactName] = useState('');
+  const [contactDob, setContactDob] = useState('');
+  const [contactNote, setContactNote] = useState('');
+  const [matchedContact, setMatchedContact] = useState<ProjectContact | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -115,6 +132,24 @@ export function InvestorFormDialog({
   }, [draft.name, draft.id, existing]);
 
   const visibleSimilar = isSimilarDismissed ? [] : similar;
+
+  /** Tra số điện thoại đầu mối trong lúc gõ, cùng cơ chế với ContactPicker. */
+  useEffect(() => {
+    if (!isValidPhone(contactPhone)) {
+      setMatchedContact(null);
+      return;
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      lookupContactByPhone(contactPhone, contacts, controller.signal).
+      then(setMatchedContact).
+      catch(() => {/* lệnh bị hủy vì người dùng gõ tiếp */});
+    }, 220);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [contactPhone, contacts]);
 
   /** Mã chỉ sinh khi tạo mới; đã tạo rồi thì không sửa được (FR-CDT-03). */
   const previewCode = isEditing ?
@@ -187,6 +222,24 @@ export function InvestorFormDialog({
         year: 'numeric'
       })
     };
+    // Đầu mối nhập kèm: số đã có thì dùng lại bản ghi cũ, không tạo bản trùng.
+    if (
+    onCreateContact &&
+    !matchedContact &&
+    isValidPhone(contactPhone) &&
+    contactName.trim())
+    {
+      onCreateContact({
+        id: `c-${Date.now()}`,
+        investorId: saved.id,
+        name: contactName.trim(),
+        phone: contactPhone.trim(),
+        dob: contactDob,
+        note: contactNote.trim(),
+        createdBy: CURRENT_USER.id
+      });
+    }
+
     onSave(saved);
   }
 
@@ -609,6 +662,100 @@ export function InvestorFormDialog({
               }
             </div>
           </section>
+
+          {/* Đầu mối liên hệ — tùy chọn, lưu thành bản ghi dùng chung */}
+          {onCreateContact && !isEditing &&
+          <section className="rounded-lg border border-neutral-200 bg-neutral-50/60 p-4">
+              <div className="mb-3">
+                <h3 className="text-xs font-bold text-neutral-800">
+                  Đầu mối liên hệ
+                </h3>
+                <p className="mt-0.5 text-[11px] text-neutral-500">
+                  Người của chủ đầu tư làm việc trực tiếp với dự án. Tùy chọn,
+                  thông tin nội bộ và không lên trang công khai.
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className={LABEL_CLASS} htmlFor="investor-contact-phone">
+                    Số điện thoại
+                  </label>
+                  <input
+                  id="investor-contact-phone"
+                  value={contactPhone}
+                  onChange={(event) => setContactPhone(event.target.value)}
+                  placeholder="0912 345 678"
+                  inputMode="tel"
+                  className={INPUT_CLASS} />
+                
+                  <p className="mt-1 text-[11px] text-neutral-500">
+                    Số điện thoại định danh đầu mối, nhập trước để tra trùng.
+                  </p>
+                </div>
+
+                <div>
+                  <label className={LABEL_CLASS} htmlFor="investor-contact-name">
+                    Tên đại diện
+                  </label>
+                  <input
+                  id="investor-contact-name"
+                  value={contactName}
+                  onChange={(event) => setContactName(event.target.value)}
+                  placeholder="Chị Nguyễn Thanh Lan"
+                  disabled={Boolean(matchedContact)}
+                  className={INPUT_CLASS} />
+                
+                </div>
+              </div>
+
+              {matchedContact &&
+              <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+                  <p className="text-xs font-bold text-emerald-900">
+                    Số này đã có đầu mối: {matchedContact.name}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-emerald-800">
+                    Hệ thống dùng lại bản ghi đã có thay vì tạo bản trùng.
+                  </p>
+                </div>
+              }
+
+              {!matchedContact &&
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className={LABEL_CLASS} htmlFor="investor-contact-dob">
+                      Ngày sinh
+                    </label>
+                    <input
+                  id="investor-contact-dob"
+                  type="date"
+                  value={contactDob}
+                  onChange={(event) => setContactDob(event.target.value)}
+                  className={INPUT_CLASS} />
+                
+                  </div>
+                  <div>
+                    <label className={LABEL_CLASS} htmlFor="investor-contact-note">
+                      Ghi chú
+                    </label>
+                    <input
+                  id="investor-contact-note"
+                  value={contactNote}
+                  onChange={(event) => setContactNote(event.target.value)}
+                  placeholder="Thói quen, cách liên hệ thuận tiện"
+                  className={INPUT_CLASS} />
+                
+                  </div>
+                </div>
+              }
+
+              {contactPhone.trim().length > 0 && !isValidPhone(contactPhone) &&
+              <p className="mt-2 text-xs font-medium text-red-600">
+                  Số điện thoại chưa đúng định dạng.
+                </p>
+              }
+            </section>
+          }
         </div>
 
         <footer className="flex items-center justify-between gap-3 border-t border-neutral-200 px-6 py-4">

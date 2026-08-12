@@ -10,6 +10,7 @@ import {
 import type { Investor } from '../types/investor';
 import { CURRENT_USER, searchInvestors } from './dashboardData';
 import { InvestorFormDialog } from './InvestorFormDialog';
+import type { ProjectContact } from './contactData';
 
 interface InvestorPickerProps {
   /** Toàn bộ bản ghi hiện có. */
@@ -19,6 +20,9 @@ interface InvestorPickerProps {
   onChange: (investor?: Investor) => void;
   /** Bản ghi mới tạo trong popup, để màn cha nạp vào danh sách chung. */
   onCreate: (investor: Investor) => void;
+  /** Kho đầu mối, để popup tạo mới tra trùng theo số điện thoại. */
+  contacts?: ProjectContact[];
+  onCreateContact?: (contact: ProjectContact) => void;
   invalid?: boolean;
 }
 
@@ -34,6 +38,8 @@ export function InvestorPicker({
   value,
   onChange,
   onCreate,
+  contacts = [],
+  onCreateContact,
   invalid = false
 }: InvestorPickerProps) {
   const [keyword, setKeyword] = useState('');
@@ -236,6 +242,8 @@ export function InvestorPicker({
         initialName={keyword.trim()}
         existing={investors}
         currentUserId={CURRENT_USER.id}
+        contacts={contacts}
+        onCreateContact={onCreateContact}
         onClose={() => setIsFormOpen(false)}
         onSave={(investor) => {
           onCreate(investor);

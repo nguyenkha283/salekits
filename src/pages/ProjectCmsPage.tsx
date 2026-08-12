@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import {
   AlertTriangleIcon,
   BoldIcon,
@@ -123,7 +123,12 @@ interface SectionEdits {
 
 export function ProjectCmsPage() {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const projectId = searchParams.get('projectId');
+  /** Dự án tạo không kèm link Drive — vào CMS với nội dung trống. */
+  const isBlankSource = searchParams.get('nguon') === 'trong';
+  /** Thông tin đã khai ở màn Khởi tạo dự án, truyền qua location.state. */
+  const draft = (location.state as {project?: ProjectDraft;} | null)?.project;
   /** Loại hình khai ở bước Khởi tạo dự án; mặc định cao tầng. */
   const projectLayout: ProjectLayout =
   searchParams.get('loaiHinh') === 'thap-tang' ? 'thap-tang' : 'cao-tang';
@@ -156,7 +161,9 @@ export function ProjectCmsPage() {
   const [toolbarRect, setToolbarRect] = useState<DOMRect | null>(null);
   const focusedBlock = useRef<HTMLElement | null>(null);
 
-  const project: ProjectDraft = {
+  const project: ProjectDraft = draft ?
+  { ...draft, name: synced?.project_name ?? draft.name } :
+  {
     hierarchy: '',
     name: synced?.project_name ?? 'IMPERIA SKY PARK',
     propertyType: '',
@@ -559,6 +566,19 @@ export function ProjectCmsPage() {
           </button>
         </div>
       </header>
+
+      {isBlankSource &&
+      <div className="flex flex-wrap items-center gap-2 border-b border-[#e3c79f] bg-[#fdf3e2] px-4 py-2.5 text-xs text-[#8a6a3f]">
+          <span className="rounded bg-[#f5921f] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white">
+            Chưa liên kết Drive
+          </span>
+          <span>
+            Dự án tạo không kèm link Google Drive nên chưa có ảnh và tài liệu
+            nào. Các khối đang hiển thị nội dung mẫu để bạn hình dung bố cục —
+            liên kết Drive rồi bấm Đồng bộ để nạp nội dung thật.
+          </span>
+        </div>
+      }
 
       {/* ── Canvas ─────────────────────────────────────────────── */}
       <main className="min-w-0 flex-1 overflow-y-auto bg-[#f3ece1]">
