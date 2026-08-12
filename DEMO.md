@@ -23,8 +23,21 @@ Chỉ khi muốn trình diễn cả phần đồng bộ Drive thật mới cần
 
 Vào từ trang chủ: bấm **avatar hoặc tên người dùng** trên thanh đầu → chọn **Dashboard** → mục **Quản lý dự án**. Dải điều hướng demo cũ đã được gỡ.
 
-### Bước 1 — Khởi tạo dự án · `/khoi-tao-du-an` (2 phút)
-Nhập tên dự án, **chọn loại hình**, dán link thư mục Drive. Nhấn Tạo dự án.
+### Bước 1 — Khởi tạo dự án · `/khoi-tao-du-an` (3 phút)
+
+Bố cục hai cột: biểu mẫu năm bước bên trái, **thẻ xem trước dính theo màn hình** bên phải hiện ngay ảnh đại diện, tên, địa chỉ đầy đủ, chủ đầu tư và bốn chấm trạng thái của các trường bắt buộc.
+
+| Bước | Trường |
+|---|---|
+| 1 | Tên dự án · **Loại hình** Cao tầng / Thấp tầng |
+| 2 | **Địa chỉ** nhập tự do · **Tỉnh / Thành phố** · **Phường / Xã** lọc theo tỉnh |
+| 3 | **Chủ đầu tư** — ô tìm có gợi ý, không thấy thì thêm mới ngay tại chỗ |
+| 4 | **Ảnh đại diện dự án** — PNG hoặc JPG, tối đa 5 MB |
+| 5 | Link thư mục Drive |
+
+Địa giới dùng **mô hình hai cấp** theo Nghị quyết 202/2025/QH15: 34 tỉnh thành, không còn cấp Quận / Huyện. Đổi tỉnh thì ô phường tự xóa lựa chọn cũ. Tỉnh chưa có danh mục phường trong bản prototype thì ô đó chuyển sang nhập tay.
+
+Toàn bộ dữ liệu nhập ở đây chảy thẳng sang **Cấu hình dự án** trong CMS, không phải nhập lại lần hai.
 
 | Loại hình | Cấu trúc tab |
 |---|---|

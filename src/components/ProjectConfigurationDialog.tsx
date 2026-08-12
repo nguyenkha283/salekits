@@ -13,6 +13,7 @@ import {
   UsersRoundIcon,
   XIcon } from
 'lucide-react';
+import { PROVINCES, getWards } from '../data/administrativeUnits';
 import {
   ConfigTeamRole,
   ProjectConfiguration,
@@ -150,108 +151,7 @@ const DEMO_PARTNERS = [
 'Newtecons Construction',
 'Tập đoàn Xây dựng Hưng Thịnh Incons'];
 
-const WARDS_BY_PROVINCE: Record<string, string[]> = {
-  'Hà Nội': [
-  'Phường Ba Đình',
-  'Phường Cầu Giấy',
-  'Phường Tây Hồ',
-  'Phường Hoàn Kiếm'],
 
-  'TP. Hồ Chí Minh': [
-  'Phường Bến Thành',
-  'Phường Thảo Điền',
-  'Phường Tân Định',
-  'Phường An Khánh'],
-
-  'Đà Nẵng': [
-  'Phường Hải Châu',
-  'Phường An Hải',
-  'Phường Hòa Xuân',
-  'Phường Mỹ An'],
-
-  'Hải Phòng': [
-  'Phường Lê Chân',
-  'Phường Ngô Quyền',
-  'Phường Hồng Bàng',
-  'Phường Hải An'],
-
-  'Quảng Ninh': [
-  'Phường Hạ Long',
-  'Phường Bãi Cháy',
-  'Phường Móng Cái',
-  'Phường Cẩm Phả']
-
-};
-const PROVINCES = [
-'An Giang',
-'Bà Rịa - Vũng Tàu',
-'Bắc Giang',
-'Bắc Kạn',
-'Bạc Liêu',
-'Bắc Ninh',
-'Bến Tre',
-'Bình Định',
-'Bình Dương',
-'Bình Phước',
-'Bình Thuận',
-'Cà Mau',
-'Cần Thơ',
-'Cao Bằng',
-'Đà Nẵng',
-'Đắk Lắk',
-'Đắk Nông',
-'Điện Biên',
-'Đồng Nai',
-'Đồng Tháp',
-'Gia Lai',
-'Hà Giang',
-'Hà Nam',
-'Hà Nội',
-'Hà Tĩnh',
-'Hải Dương',
-'Hải Phòng',
-'Hậu Giang',
-'TP. Hồ Chí Minh',
-'Hòa Bình',
-'Hưng Yên',
-'Khánh Hòa',
-'Kiên Giang',
-'Kon Tum',
-'Lai Châu',
-'Lâm Đồng',
-'Lạng Sơn',
-'Lào Cai',
-'Long An',
-'Nam Định',
-'Nghệ An',
-'Ninh Bình',
-'Ninh Thuận',
-'Phú Thọ',
-'Phú Yên',
-'Quảng Bình',
-'Quảng Nam',
-'Quảng Ngãi',
-'Quảng Ninh',
-'Quảng Trị',
-'Sóc Trăng',
-'Sơn La',
-'Tây Ninh',
-'Thái Bình',
-'Thái Nguyên',
-'Thanh Hóa',
-'Huế',
-'Tiền Giang',
-'Trà Vinh',
-'Tuyên Quang',
-'Vĩnh Long',
-'Vĩnh Phúc',
-'Yên Bái'];
-
-const DEFAULT_WARDS = [
-'Phường Trung tâm',
-'Phường 1',
-'Phường An Phú',
-'Xã Tân Lập'];
 
 const TEAM_ROLES: ConfigTeamRole[] = ['APM', 'Quản lý bán hàng', 'Marketing'];
 const NAVIGATION: Array<{
@@ -289,15 +189,17 @@ export function createProjectConfiguration(
 project: ProjectDraft)
 : ProjectConfiguration {
   return {
-    avatarUrl: '',
+    // Nhận lại những gì đã nhập ở màn Khởi tạo dự án — màn đó là nguồn, ở đây
+    // chỉ sửa lại, để cùng một dữ liệu không phải nhập hai lần.
+    avatarUrl: project.coverImageUrl ?? '',
     seoTitle: '',
     seoKeywords: '',
     seoDescription: '',
     projectCode: '',
     projectType: project.propertyType,
-    address: '',
+    address: project.address,
     province: project.province,
-    ward: project.district,
+    ward: project.ward,
     salesStatus: project.status,
     segment: '',
     category: '',
@@ -388,9 +290,8 @@ export function ProjectConfigurationDialog({
     item.name.toLowerCase().includes(codeQuery)
   ).slice(0, 5) :
   [];
-  const wards = configuration.province ?
-  WARDS_BY_PROVINCE[configuration.province] ?? DEFAULT_WARDS :
-  [];
+  // Danh mục hành chính hai cấp dùng chung với màn Khởi tạo dự án.
+  const wards = getWards(configuration.province);
   const canEdit = role === 'APM';
   function patchConfiguration(patch: Partial<ProjectConfiguration>) {
     if (!canEdit) return;

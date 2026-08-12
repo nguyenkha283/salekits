@@ -32,7 +32,9 @@ const FALLBACK_PROJECT: ProjectDraft = {
   hierarchy: '',
   name: '',
   propertyType: '',
+  address: '',
   province: '',
+  ward: '',
   district: '',
   status: ''
 };

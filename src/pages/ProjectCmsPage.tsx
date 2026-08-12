@@ -160,7 +160,9 @@ export function ProjectCmsPage() {
     hierarchy: '',
     name: synced?.project_name ?? 'IMPERIA SKY PARK',
     propertyType: '',
+    address: '',
     province: '',
+    ward: '',
     district: '',
     status: ''
   };
