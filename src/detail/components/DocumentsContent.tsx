@@ -1,21 +1,8 @@
 import React from 'react';
 import { ExternalLinkIcon, InfoIcon } from 'lucide-react';
+import { EmptySlot } from './EmptySlot';
 
 /** Thứ tự hiển thị theo cột: 1–4 cột trái, 5–8 cột giữa, 9–12 cột phải. */
-const DEFAULT_DOCUMENTS = [
-{ label: 'File đào tạo', href: '#' },
-{ label: 'TMB', href: '#' },
-{ label: 'Mặt bằng tầng', href: '#' },
-{ label: 'Layout căn hộ', href: '#' },
-{ label: 'Hình ảnh', href: '#' },
-{ label: 'Video', href: '#' },
-{ label: 'Ảnh thực tế', href: '#' },
-{ label: 'Trục căn', href: '#' },
-{ label: 'Nhà mẫu', href: '#' },
-{ label: 'Bản đồ vị trí', href: '#' },
-{ label: 'Nhận diện thương hiệu', href: '#' },
-{ label: 'Tiêu chuẩn bàn giao', href: '#' }];
-
 
 const ROWS_PER_COLUMN = 4;
 
@@ -25,7 +12,7 @@ interface DocumentsContentProps {
 }
 
 export function DocumentsContent({ documents }: DocumentsContentProps = {}) {
-  const DOCUMENTS = documents?.length ? documents : DEFAULT_DOCUMENTS;
+  const DOCUMENTS = documents ?? [];
   return (
     <section data-cms-section="documents" data-cms-label="Tài liệu dự án" aria-label="Tài liệu dự án">
       <header className="text-center">
@@ -33,6 +20,16 @@ export function DocumentsContent({ documents }: DocumentsContentProps = {}) {
         <span className="mx-auto mt-3 block h-1 w-24 bg-[#f5921f]" aria-hidden="true" />
       </header>
 
+      {DOCUMENTS.length === 0 &&
+      <EmptySlot
+        variant="content"
+        label="Tải tài liệu lên"
+        source="07. Tài liệu"
+        className="mt-10 min-h-[220px] rounded-lg" />
+
+      }
+
+      {DOCUMENTS.length > 0 &&
       <ul className="mt-10 grid grid-cols-1 overflow-hidden rounded-lg border border-stone-200 bg-white lg:grid-flow-col lg:grid-cols-3 lg:grid-rows-4">
         {DOCUMENTS.map((document, index) => {
           const isLastColumn = index >= DOCUMENTS.length - ROWS_PER_COLUMN;
@@ -62,6 +59,7 @@ export function DocumentsContent({ documents }: DocumentsContentProps = {}) {
 
         })}
       </ul>
+      }
 
       <p className="mt-6 flex items-start gap-2.5 rounded-md border-l-4 border-[#f5921f] bg-[#fdf8ee] px-4 py-3.5 text-sm leading-6 text-[#5f5347]">
         <InfoIcon className="mt-0.5 h-4 w-4 shrink-0 text-[#f5921f]" />

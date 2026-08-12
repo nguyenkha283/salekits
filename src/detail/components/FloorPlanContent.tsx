@@ -1,19 +1,24 @@
 import React, { useState } from 'react';
 import { ImageIcon, MapIcon, MapPinIcon } from 'lucide-react';
+import { EmptySlot } from './EmptySlot';
 
 type MapMode = 'satellite' | 'static';
 
-const STATIC_PLAN_URL = '/688da3c2-8d95-4650-9f33-bb0bfb6d4692.jpg';
 const SATELLITE_MAP_URL = 'https://www.google.com/maps?q=21.010388308184133,105.72401667701425&z=18&t=k&output=embed';
 
 interface FloorPlanContentProps {
   /** Ảnh mặt bằng tổng thể đồng bộ từ thư mục "03. Mặt bằng". */
   planImage?: string;
+  /** Tên dự án hiển thị trên ghim bản đồ. */
+  projectName?: string;
 }
 
-export function FloorPlanContent({ planImage }: FloorPlanContentProps = {}) {
+export function FloorPlanContent({
+  planImage,
+  projectName
+}: FloorPlanContentProps = {}) {
+  // Chưa có ảnh mặt bằng thì mở thẳng bản đồ vệ tinh, đỡ phải nhìn ô trống.
   const [mode, setMode] = useState<MapMode>('satellite');
-  const planUrl = planImage || STATIC_PLAN_URL;
 
   return (
     <section data-cms-section="plan" data-cms-label="Mặt bằng dự án" className="w-full bg-[#f7f4ef]" aria-label="Mặt bằng dự án">
@@ -25,14 +30,22 @@ export function FloorPlanContent({ planImage }: FloorPlanContentProps = {}) {
 
         {mode === 'satellite' ?
         <div className="absolute inset-0">
-            <iframe title="Bản đồ vệ tinh Imperia Sky Park" src={SATELLITE_MAP_URL} className="h-full w-full border-0" loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
+            <iframe title={`Bản đồ vệ tinh ${projectName ?? 'dự án'}`} src={SATELLITE_MAP_URL} className="h-full w-full border-0" loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
             <div className="pointer-events-none absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-white/95 px-4 py-2 text-xs font-semibold text-[#3b2c1d] shadow-lg backdrop-blur-sm">
-              <MapPinIcon className="h-4 w-4 text-[#e35d43]" /> Imperia Sky Park
+              <MapPinIcon className="h-4 w-4 text-[#e35d43]" /> {projectName ?? 'Vị trí dự án'}
             </div>
           </div> :
 
-        <div className="min-h-[100dvh] w-full bg-[#131b21]">
-            <img src={planUrl} alt="Mặt bằng tổng thể dự án" className="block h-auto w-full" />
+        <div className="flex min-h-[100dvh] w-full items-center justify-center bg-[#131b21]">
+            {planImage ?
+          <img src={planImage} alt="Mặt bằng tổng thể dự án" className="block h-auto w-full" /> :
+
+          <EmptySlot
+            label="Tải hình ảnh mặt bằng lên"
+            source="03. Mặt bằng"
+            className="m-6 min-h-[320px] w-full max-w-2xl rounded-lg" />
+
+          }
           </div>
         }
       </div>

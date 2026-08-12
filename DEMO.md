@@ -35,7 +35,7 @@ Bố cục hai cột: ba thẻ biểu mẫu bên trái, **thẻ xem trước dí
 
 Địa giới dùng **mô hình hai cấp** theo Nghị quyết 202/2025/QH15: 34 tỉnh thành, không còn cấp Quận / Huyện. Đổi tỉnh thì ô phường tự xóa lựa chọn cũ. Tỉnh chưa có danh mục phường trong bản prototype thì ô đó chuyển sang nhập tay.
 
-**Link Drive không bắt buộc.** Bỏ trống thì bấm Tạo dự án là vào thẳng CMS, kèm dải cảnh báo *Chưa liên kết Drive* trên thanh đầu. Các khối vẫn hiện nội dung mẫu để thấy bố cục — gỡ hết nội dung mẫu là việc riêng, cần chốt với PO.
+**Link Drive không bắt buộc.** Bỏ trống thì bấm Tạo dự án là vào thẳng CMS trắng, kèm dải cảnh báo *Chưa liên kết Drive* trên thanh đầu. Khung bố cục giữ nguyên, mỗi mục hiện chỗ trống ghi **Tải hình ảnh lên** hoặc **Tải nội dung lên** kèm tên thư mục Drive cần bỏ file vào.
 
 **Đầu mối liên hệ dùng chung.** Chọn xong chủ đầu tư là ô số điện thoại hiện ra ngay. Gõ đủ 10–11 số, hệ thống tra: trùng thì hiện luôn thông tin đầu mối đã có và chốt lại; chưa có mới mở các trường Tên đại diện, Ngày sinh, Ghi chú. Nhờ vậy hai APM của hai dự án cùng chủ đầu tư không tạo ra hai bản ghi cho cùng một người. Số nhập kiểu nào cũng quy về một dạng — `+84 912 345 678`, `0912.345.678` và `912345678` là cùng một số. Khu vực này có ở cả màn Khởi tạo dự án lẫn popup Thêm chủ đầu tư.
 
@@ -153,7 +153,7 @@ Bấm **Đồng bộ lại** (thanh trên hoặc trong ngăn kéo). Hệ thống
 | Thư viện ảnh có phân trang, tab Tiến độ | `06. Tiến độ` |
 | Lưới 12 ô, tab Tài liệu | `07. Tài liệu` |
 
-Mục nào Drive chưa có thì section đó tự động giữ dữ liệu mẫu, nên trang không bao giờ trống.
+Mục nào Drive chưa có thì section đó hiện khối chỗ trống ghi rõ cần tải gì lên và lấy từ thư mục Drive nào — không còn dữ liệu mẫu ở bất kỳ đâu.
 
 Trang công khai `/du-an?projectId=...` dùng chung dữ liệu này, nên biên tập xong xem trước là thấy đúng ảnh vừa đồng bộ.
 

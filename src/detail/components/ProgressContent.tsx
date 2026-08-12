@@ -1,35 +1,9 @@
 import React, { useMemo, useState } from 'react';
+import { EmptySlot } from './EmptySlot';
 import { ChevronLeftIcon, ChevronRightIcon, ChevronsLeftIcon, ChevronsRightIcon, ExternalLinkIcon, EyeIcon, PlusCircleIcon } from 'lucide-react';
-
-const GALLERY_IMAGES = [
-'/af90a9a2-cfa1-4e06-bf16-c3467b5c5fff.jpg',
-'/622df78d-e579-4f25-aef4-6c31185313c8.jpg',
-'/ebd3240e-6608-4c50-8739-cfe41926dd74.jpg',
-'/85bed7b1-ee07-4e5d-ae92-d9ea75fb82be.jpg',
-'/73dda9ab-a667-4bd9-a168-fc13267d6901.jpg',
-'/af1ffc9b-36a7-4608-9ff1-165cbcf660be.jpg'];
-
-
-/** Số ảnh tiến độ của từng đợt cập nhật. */
-const DEFAULT_PROGRESS_MONTHS = [
-{ key: '2026-07', label: 'Tháng 7.2026', total: 63 },
-{ key: '2026-06', label: 'Tháng 6.2026', total: 41 },
-{ key: '2026-05', label: 'Tháng 5.2026', total: 28 },
-{ key: '2026-04', label: 'Tháng 4.2026', total: 20 },
-{ key: '2026-03', label: 'Tháng 3.2026', total: 17 },
-{ key: '2026-02', label: 'Tháng 2.2026', total: 9 }];
-
 
 const COLLAPSED_MONTHS = 3;
 const PAGE_SIZE_OPTIONS = [20, 40, 60];
-
-function buildPhotos(monthLabel: string, total: number) {
-  return Array.from({ length: total }, (_, index) => ({
-    id: `${monthLabel}-${index}`,
-    src: GALLERY_IMAGES[index % GALLERY_IMAGES.length],
-    alt: `Hình ảnh tiến độ ${monthLabel} — ảnh ${index + 1}`
-  }));
-}
 
 /** Danh sách số trang hiển thị, chèn '…' khi có quá nhiều trang. */
 function buildPageList(current: number, total: number): Array<number | 'gap'> {
@@ -53,15 +27,15 @@ export function ProgressContent({ photos: syncedPhotos }: ProgressContentProps =
   const hasSynced = Boolean(syncedPhotos && syncedPhotos.length);
   const PROGRESS_MONTHS = hasSynced ?
   [{ key: 'drive', label: 'Đồng bộ từ Drive', total: syncedPhotos!.length }] :
-  DEFAULT_PROGRESS_MONTHS;
+  [];
 
-  const [activeMonth, setActiveMonth] = useState(PROGRESS_MONTHS[0].key);
+  const [activeMonth, setActiveMonth] = useState(PROGRESS_MONTHS[0]?.key ?? '');
   const [showAllMonths, setShowAllMonths] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  const month = PROGRESS_MONTHS.find((item) => item.key === activeMonth) ?? PROGRESS_MONTHS[0];
-  const photos = useMemo(() => hasSynced ? syncedPhotos! : buildPhotos(month.label, month.total), [hasSynced, syncedPhotos, month.label, month.total]);
+  const month = PROGRESS_MONTHS.find((item) => item.key === activeMonth);
+  const photos = useMemo(() => hasSynced ? syncedPhotos! : [], [hasSynced, syncedPhotos]);
   const visibleMonths = showAllMonths ? PROGRESS_MONTHS : PROGRESS_MONTHS.slice(0, COLLAPSED_MONTHS);
 
   const totalPages = Math.max(1, Math.ceil(photos.length / pageSize));
@@ -109,7 +83,7 @@ export function ProgressContent({ photos: syncedPhotos }: ProgressContentProps =
                       <EyeIcon className="h-4 w-4" />
                     </button>
                     <a
-                      href={GALLERY_IMAGES[0]}
+                      href={photos[0]?.src ?? '#'}
                       target="_blank"
                       rel="noopener noreferrer"
                       aria-label={`Mở ảnh tiến độ ${item.label} trong tab mới`}
@@ -146,15 +120,16 @@ export function ProgressContent({ photos: syncedPhotos }: ProgressContentProps =
           <figure key={photo.id} className="group relative overflow-hidden rounded-sm bg-stone-100">
                 <img src={photo.src} alt={photo.alt} loading="lazy" className="aspect-[4/3] w-full object-cover transition duration-500 group-hover:scale-105" />
                 <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 to-transparent px-3 pb-2.5 pt-8 text-[11px] font-medium uppercase tracking-wide text-white">
-                  Cập nhật tiến độ {month.label}
+                  Cập nhật tiến độ {month?.label ?? ''}
                 </figcaption>
               </figure>
           )}
           </div> :
 
-        <p className="mt-6 rounded-md border border-stone-200 bg-white px-4 py-16 text-center text-sm text-stone-500">
-            Chưa có ảnh tiến độ cho đợt cập nhật này.
-          </p>}
+        <EmptySlot
+          label="Tải ảnh tiến độ lên"
+          source="06. Tiến độ"
+          className="mt-6 min-h-[320px] rounded-lg" />}
 
 
         {/* Phân trang */}

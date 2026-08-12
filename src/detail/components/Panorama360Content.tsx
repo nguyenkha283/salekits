@@ -1,12 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { EmptySlot } from './EmptySlot';
 import { CompassIcon, MaximizeIcon, PauseIcon, PlayIcon, RotateCcwIcon, ZoomInIcon, ZoomOutIcon } from 'lucide-react';
-
-const DEFAULT_SCENES = [
-{ key: 'sanh', label: 'Sảnh đón', image: '/bc3b6fbd-aac1-4c49-be3b-976b35aa7a67.jpg' },
-{ key: 'canho', label: 'Căn hộ mẫu', image: '/07cbf50c-5744-4f14-b5ff-5cc571eb8411.jpg' },
-{ key: 'canh-quan', label: 'Cảnh quan nội khu', image: '/af1ffc9b-36a7-4608-9ff1-165cbcf660be.jpg' },
-{ key: 'toan-canh', label: 'Toàn cảnh dự án', image: '/622df78d-e579-4f25-aef4-6c31185313c8.jpg' }];
-
 
 const MIN_ZOOM = 100;
 const MAX_ZOOM = 260;
@@ -18,9 +12,9 @@ interface Panorama360ContentProps {
 }
 
 export function Panorama360Content({ scenes }: Panorama360ContentProps = {}) {
-  const SCENES = scenes?.length ? scenes : DEFAULT_SCENES;
+  const SCENES = scenes ?? [];
 
-  const [sceneKey, setSceneKey] = useState(SCENES[0].key);
+  const [sceneKey, setSceneKey] = useState(SCENES[0]?.key ?? '');
   const [offset, setOffset] = useState(0);
   const [zoom, setZoom] = useState(140);
   const [isAutoRotating, setIsAutoRotating] = useState(false);
@@ -30,6 +24,7 @@ export function Panorama360Content({ scenes }: Panorama360ContentProps = {}) {
   const dragStart = useRef({ pointerX: 0, offset: 0 });
 
   const scene = SCENES.find((item) => item.key === sceneKey) ?? SCENES[0];
+  const hasScenes = SCENES.length > 0;
 
   // Tự động xoay
   useEffect(() => {
@@ -90,16 +85,27 @@ export function Panorama360Content({ scenes }: Panorama360ContentProps = {}) {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Trải nghiệm thực tế</p>
-          <h2 className="mt-2 text-2xl font-bold text-[#4a3728]">Ảnh 360° — {scene.label}</h2>
+          <h2 className="mt-2 text-2xl font-bold text-[#4a3728]">
+            Ảnh 360°{scene ? ` — ${scene.label}` : ''}
+          </h2>
         </div>
         <p className="text-sm text-stone-500">Kéo chuột để xoay, dùng phím ← → hoặc nút phóng to để quan sát kỹ hơn.</p>
       </div>
 
+      {!hasScenes &&
+      <EmptySlot
+        label="Tải ảnh 360° lên"
+        source="04. Ảnh 360"
+        className="mt-6 aspect-[16/9] w-full rounded-lg" />
+
+      }
+
       {/* Khung xem 360 */}
+      {hasScenes &&
       <div
         ref={viewportRef}
         role="application"
-        aria-label={`Khung xem 360 độ: ${scene.label}`}
+        aria-label={`Khung xem 360 độ: ${scene?.label ?? ''}`}
         tabIndex={0}
         onKeyDown={handleKeyDown}
         onPointerDown={handlePointerDown}
@@ -112,7 +118,7 @@ export function Panorama360Content({ scenes }: Panorama360ContentProps = {}) {
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: `url(${scene.image})`,
+            backgroundImage: scene ? `url(${scene.image})` : undefined,
             backgroundRepeat: 'repeat-x',
             backgroundSize: `auto ${zoom}%`,
             backgroundPosition: `${offset}px center`
@@ -148,8 +154,10 @@ export function Panorama360Content({ scenes }: Panorama360ContentProps = {}) {
           </ViewerButton>
         </div>
       </div>
+      }
 
       {/* Chọn điểm nhìn */}
+      {hasScenes &&
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {SCENES.map((item) => {
           const isActive = item.key === sceneKey;
@@ -170,10 +178,13 @@ export function Panorama360Content({ scenes }: Panorama360ContentProps = {}) {
 
         })}
       </div>
+      }
 
+      {hasScenes &&
       <p className="mt-5 rounded-md border-l-4 border-[#f5921f] bg-[#fdf8ee] px-4 py-3 text-sm leading-6 text-[#5f5347]">
-        Bản demo dùng ảnh thường để minh hoạ thao tác xoay. Khi thay bằng ảnh panorama 360° (tỉ lệ 2:1, dạng equirectangular), điểm đầu và cuối ảnh sẽ nối liền và góc nhìn xoay trọn vòng.
+        Ảnh panorama 360° cần tỉ lệ 2:1, dạng equirectangular thì điểm đầu và cuối ảnh mới nối liền và góc nhìn xoay trọn vòng.
       </p>
+      }
     </section>);
 
 }

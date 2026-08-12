@@ -1,3 +1,4 @@
+import { EmptySlot } from './EmptySlot';
 import React from 'react';
 import { BedDoubleIcon, CheckSquareIcon, ChevronRightIcon, ExpandIcon, HeartIcon, MessageCircleIcon, RulerIcon, Share2Icon, XIcon } from 'lucide-react';
 export type UnitStatus = 'Còn hàng' | 'Đã bán' | 'Đã lock' | 'Đã cọc';
@@ -77,7 +78,11 @@ export function UnitDetailModal({
         <div className="grid lg:grid-cols-[42%_58%]">
           <aside className="border-b border-stone-100 bg-[#fafafa] lg:border-b-0 lg:border-r">
             <div className="relative aspect-[4/3] overflow-hidden bg-[#4a3728]">
-              <img src="/ffbb15b7-c56b-4b5d-b7e3-ed3affc9fd36.jpg" alt="Không gian căn hộ mẫu" className="h-full w-full object-cover" />
+              <EmptySlot
+                label="Tải hình ảnh căn hộ lên"
+                source="07. Tài liệu / Layout căn hộ"
+                className="h-full w-full"
+                compact />
               <div className="absolute inset-x-0 top-0 bg-[#3a2b1e]/80 p-5 text-white">
                 <p className="text-[10px] font-medium tracking-[0.2em]">IMPERIA SKY PARK</p>
                 <p className="mt-3 text-xs font-semibold">TRỤC CĂN</p>

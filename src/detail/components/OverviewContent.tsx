@@ -13,6 +13,7 @@ import {
 'lucide-react';
 import { InlineRichText, InlineText } from './InlineRichText';
 import { HIERARCHY_OPTIONS } from '../sectionRegistry';
+import { EmptySlot } from './EmptySlot';
 
 interface OverviewContentProps {
   tabs: React.ReactNode;
@@ -37,73 +38,15 @@ interface OverviewContentProps {
     onFocusBlock?: (element: HTMLElement | null) => void;
   };
   floorPlans?: {key: string;label: string;title: string;image: string;}[];
+  /** Nhóm sản phẩm — soạn tay trong CMS, không lấy từ Drive. */
+  products?: {image: string;title: string;description: string;}[];
+  /** Dòng địa chỉ hiển thị trên ảnh vị trí. */
+  locationLabel?: string;
 }
 
-const IMAGES = {
-  hero: '/af90a9a2-cfa1-4e06-bf16-c3467b5c5fff.jpg',
-  heroSeries: '/f757d0c2-1880-4786-9ade-d83bdf5ffd51.jpg',
-  heroBanner: '/f04fab1e-81cd-4b76-9643-996fa55133e2.jpg',
-  overview: '/bc3b6fbd-aac1-4c49-be3b-976b35aa7a67.jpg',
-  location: '/73dda9ab-a667-4bd9-a168-fc13267d6901.jpg',
-  lakeside: "/73dda9ab-a667-4bd9-a168-fc13267d6901.jpg",
-  communityLounge: "/07cbf50c-5744-4f14-b5ff-5cc571eb8411.jpg",
-  infinityPool: "/fe21ba4f-5222-446a-beea-10c7a3640e0f.jpg",
-  gardenWalk: "/688da3c2-8d95-4650-9f33-bb0bfb6d4692.jpg",
-  hotelLobby: "/ebd3240e-6608-4c50-8739-cfe41926dd74.jpg",
-  skyLounge: "/85bed7b1-ee07-4e5d-ae92-d9ea75fb82be.jpg",
-  fitnessYoga: "/ffbb15b7-c56b-4b5d-b7e3-ed3affc9fd36.jpg",
-  kidsPlay: "/622df78d-e579-4f25-aef4-6c31185313c8.jpg",
-  bbqGarden: "/af1ffc9b-36a7-4608-9ff1-165cbcf660be.jpg"
-};
-
-const DEFAULT_HERO_SLIDES = [
-IMAGES.hero,
-IMAGES.heroSeries,
-IMAGES.heroBanner];
-
-
-const PRODUCTS = [
-{ image: IMAGES.overview, title: 'Căn hộ Studio', description: 'Thiết kế tối ưu cho nhịp sống trẻ trung, riêng tư và linh hoạt.' },
-{ image: IMAGES.hero, title: 'Căn hộ 2 phòng ngủ', description: 'Không gian cân bằng cho một gia đình hiện đại, luôn đầy ắp ánh sáng.' },
-{ image: IMAGES.heroSeries, title: 'Căn hộ 3 phòng ngủ', description: 'Một chốn về rộng rãi, tinh tế, mở ra những khoảnh khắc sum vầy.' },
-{ image: IMAGES.heroBanner, title: 'Căn hộ Dual Key', description: 'Hai không gian độc lập trong một căn hộ, linh hoạt ở và cho thuê.' },
-{ image: IMAGES.skyLounge, title: 'Căn hộ Sky Villa', description: 'Đặc quyền trên cao với tầm nhìn toàn cảnh và không gian mở rộng rãi.' },
-{ image: IMAGES.lakeside, title: 'Căn hộ Duplex', description: 'Hai tầng thông nhau, tôn vinh chiều cao và ánh sáng tự nhiên.' }];
-
-
-const DEFAULT_FEATURED_STATS = [
-{ value: '150+', label: 'Căn hộ bàn giao' },
-{ value: '100+', label: 'Tiện ích nội khu' },
-{ value: '200+', label: 'Khách hàng hài lòng' }];
-
-
-/** Mặt bằng từng tầng — thay `image` bằng file bản vẽ thật khi có. */
-const DEFAULT_FLOOR_PLANS = [
-{ key: 'sky2', label: 'SKY 2', title: 'Mặt bằng tầng điển hình — Sky 2', image: '/ebd3240e-6608-4c50-8739-cfe41926dd74.jpg' },
-{ key: 'sky2-t30', label: 'SKY 2 TẦNG 30', title: 'Mặt bằng tầng điển hình — Sky 2, tầng 30', image: '/85bed7b1-ee07-4e5d-ae92-d9ea75fb82be.jpg' },
-{ key: 'sky2-t31', label: 'SKY 2 TẦNG 31', title: 'Mặt bằng tầng điển hình — Sky 2, tầng 31', image: '/fe21ba4f-5222-446a-beea-10c7a3640e0f.jpg' }];
-
-
-/** Tiện ích — hiển thị 7 ô đầu, phần còn lại gộp vào lớp phủ ở ô cuối. */
-const DEFAULT_AMENITIES = [
-{ image: IMAGES.lakeside, title: 'Không gian xanh bên hồ' },
-{ image: IMAGES.communityLounge, title: 'Sảnh sinh hoạt cộng đồng' },
-{ image: IMAGES.infinityPool, title: 'Bể bơi vô cực' },
-{ image: IMAGES.gardenWalk, title: 'Vườn dạo bộ nội khu' },
-{ image: IMAGES.hotelLobby, title: 'Sảnh đón chuẩn khách sạn' },
-{ image: IMAGES.skyLounge, title: 'Sky lounge tầng thượng' },
-{ image: IMAGES.fitnessYoga, title: 'Phòng gym & yoga' },
-{ image: IMAGES.kidsPlay, title: 'Khu vui chơi trẻ em' },
-{ image: IMAGES.lakeside, title: 'Công viên trung tâm' },
-{ image: IMAGES.bbqGarden, title: 'Khu BBQ ngoài trời' }];
-
-
+/** Tiện ích hiển thị 7 ô đầu, phần còn lại gộp vào lớp phủ ở ô cuối. */
 const VISIBLE_AMENITIES = 7;
 
-const DEFAULT_OVERVIEW_TEXT =
-'Imperia Sky Park hướng tới một chuẩn sống cân bằng: không gian riêng tư đủ tĩnh tại, những kết nối đủ đầy và cảnh quan xanh len vào từng nhịp sống.';
-const DEFAULT_LOCATION_TEXT =
-'Tọa lạc tại Minh Khai, Imperia Sky Park đưa bạn đến gần hơn với nhịp sống trung tâm, đồng thời gìn giữ một khoảng riêng yên bình để trở về.';
 
 /** Vị trí từng ô trong lưới mosaic ở breakpoint lg (4 cột × 6 hàng). */
 const MOSAIC_POSITIONS = [
@@ -130,6 +73,8 @@ export function OverviewContent({
   locationHtml,
   amenities,
   floorPlans,
+  products,
+  locationLabel,
   stats,
   hierarchy = 'DỰ ÁN',
   projectName = 'Imperia Sky Park',
@@ -139,29 +84,21 @@ export function OverviewContent({
   const canEdit = Boolean(editing?.enabled);
   const emit = (field: string) => (value: string) => editing?.onChange(field, value);
   const onFocusBlock = editing?.onFocusBlock;
-  // Dữ liệu Drive được ưu tiên; thiếu mục nào thì mục đó dùng dữ liệu mẫu.
-  const HERO_SLIDES = useMemo(
-    () => heroSlides?.length ? heroSlides : DEFAULT_HERO_SLIDES,
-    [heroSlides]
-  );
-  const AMENITIES = useMemo(
-    () => amenities?.length ? amenities : DEFAULT_AMENITIES,
-    [amenities]
-  );
-  const FLOOR_PLANS = useMemo(
-    () => floorPlans?.length ? floorPlans : DEFAULT_FLOOR_PLANS,
-    [floorPlans]
-  );
-  const FEATURED_STATS = stats?.length ? stats : DEFAULT_FEATURED_STATS;
-  const heroImage = overviewImage || IMAGES.overview;
-  const mapImage = locationImage || IMAGES.location;
+  // Không còn dữ liệu mẫu: mục nào Drive chưa có thì hiện khối chỗ trống, để
+  // người dùng biết chính xác còn thiếu gì và phải bỏ file vào thư mục nào.
+  const HERO_SLIDES = useMemo(() => heroSlides ?? [], [heroSlides]);
+  const AMENITIES = useMemo(() => amenities ?? [], [amenities]);
+  const FLOOR_PLANS = useMemo(() => floorPlans ?? [], [floorPlans]);
+  const PRODUCTS = products ?? [];
+  const FEATURED_STATS = stats ?? [];
 
   const productsRef = useRef<HTMLDivElement>(null);
   const [activeHero, setActiveHero] = useState(0);
-  const [activeFloor, setActiveFloor] = useState(FLOOR_PLANS[0].key);
+  const [activeFloor, setActiveFloor] = useState(FLOOR_PLANS[0]?.key ?? '');
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const activePlan = FLOOR_PLANS.find((plan) => plan.key === activeFloor) ?? FLOOR_PLANS[0];
+  const hasHero = HERO_SLIDES.length > 0;
   const hiddenAmenityCount = Math.max(0, AMENITIES.length - VISIBLE_AMENITIES);
 
   const closeLightbox = useCallback(() => setLightboxIndex(null), []);
@@ -192,8 +129,14 @@ export function OverviewContent({
 
   return (
     <div className="w-full overflow-x-clip bg-[#f5f1e8] font-['Be_Vietnam_Pro'] text-[#302922]">
-      <section data-cms-section="hero" data-cms-label="Băng ảnh đầu trang" className="relative min-h-[87dvh] overflow-hidden bg-[#4b4035]" aria-label="Banner dự án Imperia Sky Park">
-        {HERO_SLIDES.map((image, index) => <img key={image} src={image} alt="Phối cảnh Imperia Sky Park" className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${index === activeHero ? 'opacity-100' : 'opacity-0'}`} />)}
+      <section data-cms-section="hero" data-cms-label="Băng ảnh đầu trang" className="relative min-h-[87dvh] overflow-hidden bg-[#4b4035]" aria-label={`Banner dự án ${projectName}`}>
+        {HERO_SLIDES.map((image, index) => <img key={image} src={image} alt={`Phối cảnh ${projectName}`} className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${index === activeHero ? 'opacity-100' : 'opacity-0'}`} />)}
+        {!hasHero &&
+        <EmptySlot
+          label="Tải băng ảnh đầu trang lên"
+          source="01. Tổng quan / Ảnh hero banner"
+          className="absolute inset-0 border-0 bg-[#4b4035]" />
+        }
         <div className="absolute inset-0 bg-[#2e261e]/35" aria-hidden="true" />
         <div className="relative mx-auto flex min-h-[87dvh] w-[90vw] flex-col pb-16 pt-7 text-white">
           <div className="mt-auto max-w-3xl pt-32 sm:pt-44">
@@ -232,9 +175,9 @@ export function OverviewContent({
             </p>
           </div>
           <div className="absolute bottom-6 right-0 flex items-center gap-3">
-            <button type="button" onClick={() => setActiveHero((current) => (current - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)} className="rounded-full border border-white/60 p-2 text-white transition-colors hover:bg-white hover:text-[#302922]" aria-label="Banner trước"><ChevronLeftIcon className="h-4 w-4" /></button>
+            {hasHero && <button type="button" onClick={() => setActiveHero((current) => (current - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)} className="rounded-full border border-white/60 p-2 text-white transition-colors hover:bg-white hover:text-[#302922]" aria-label="Banner trước"><ChevronLeftIcon className="h-4 w-4" /></button>}
             <div className="flex gap-2" aria-label="Chọn banner">{HERO_SLIDES.map((_, index) => <button key={index} type="button" onClick={() => setActiveHero(index)} aria-label={`Banner ${index + 1}`} aria-current={activeHero === index} className={`h-2 rounded-full transition-all ${activeHero === index ? 'w-7 bg-white' : 'w-2 bg-white/55 hover:bg-white'}`} />)}</div>
-            <button type="button" onClick={() => setActiveHero((current) => (current + 1) % HERO_SLIDES.length)} className="rounded-full border border-white/60 p-2 text-white transition-colors hover:bg-white hover:text-[#302922]" aria-label="Banner tiếp theo"><ChevronRightIcon className="h-4 w-4" /></button>
+            {hasHero && <button type="button" onClick={() => setActiveHero((current) => (current + 1) % HERO_SLIDES.length)} className="rounded-full border border-white/60 p-2 text-white transition-colors hover:bg-white hover:text-[#302922]" aria-label="Banner tiếp theo"><ChevronRightIcon className="h-4 w-4" /></button>}
           </div>
         </div>
       </section>
@@ -245,7 +188,8 @@ export function OverviewContent({
         <div className="max-w-md">
           <h2 className="text-4xl font-semibold leading-tight tracking-[-0.04em] sm:text-5xl">Tổng quan dự án</h2>
           <InlineRichText
-            html={overviewHtml || DEFAULT_OVERVIEW_TEXT}
+            html={overviewHtml ?? ''}
+            placeholder="Tải nội dung tổng quan lên — lấy từ thư mục 01. Tổng quan trên Drive"
             editable={canEdit}
             label="Mô tả tổng quan"
             onChange={emit('overviewHtml')}
@@ -254,12 +198,22 @@ export function OverviewContent({
           <a href="#location" className="mt-7 inline-flex items-center gap-2 border-b border-[#302922] pb-1 text-xs font-semibold uppercase tracking-[0.1em] transition-opacity hover:opacity-60">Khám phá dự án <ArrowRightIcon className="h-4 w-4" /></a>
         </div>
         <div className="aspect-[16/10] overflow-hidden bg-stone-100">
-          <img src={heroImage} alt="Phối cảnh dự án" className="h-full w-full object-cover" />
+          {overviewImage ?
+          <img src={overviewImage} alt="Phối cảnh dự án" className="h-full w-full object-cover" /> :
+
+          <EmptySlot source="01. Tổng quan" className="h-full w-full" />
+          }
         </div>
       </section>
 
       <section data-cms-section="stats" data-cms-label="Số liệu nổi bật" aria-label="Số liệu nổi bật" className="border-y border-[#ded6ca] py-16 sm:py-20">
         <div className="mx-auto w-[90vw]">
+          {FEATURED_STATS.length === 0 &&
+          <EmptySlot
+            variant="content"
+            label="Tải số liệu nổi bật lên"
+            className="min-h-[140px]" />
+          }
           <div className="grid grid-cols-1 gap-10 sm:grid-cols-3 sm:gap-6">
             {FEATURED_STATS.map((stat, index) =>
             <div key={index} className="text-center">
@@ -291,11 +245,20 @@ export function OverviewContent({
         <div className="grid items-stretch lg:grid-cols-2">
           {/* Cột ảnh: tràn hết chiều rộng cột và cao bằng cột text, không giới hạn trong container */}
           <div className="relative flex min-h-[320px] items-center justify-center bg-[#1c2c47] sm:min-h-[440px] lg:min-h-0">
-            <img src={mapImage} alt="Vị trí dự án" className="h-auto w-full object-contain" />
+            {locationImage ?
+            <img src={locationImage} alt="Vị trí dự án" className="h-auto w-full object-contain" /> :
+
+            <EmptySlot
+              label="Tải hình ảnh vị trí lên"
+              source="01. Tổng quan"
+              className="m-6 min-h-[260px] w-full rounded-lg border-white/25 bg-transparent text-white/70" />
+            }
+            {locationLabel &&
             <span className="absolute bottom-4 left-4 inline-flex items-center gap-2 bg-[#251c16]/80 px-3 py-2 text-xs font-medium backdrop-blur-sm sm:bottom-6 sm:left-6">
               <MapPinIcon className="h-4 w-4 text-[#f5921f]" />
-              Minh Khai, Hai Bà Trưng, Hà Nội
+              {locationLabel}
             </span>
+            }
           </div>
 
           {/* Cột nội dung: padding phải bám theo mép trong của container max-w-7xl */}
@@ -304,7 +267,8 @@ export function OverviewContent({
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#d0bda5]">Kết nối thuận tiện</p>
               <h2 className="mt-5 text-4xl font-semibold leading-tight tracking-[-0.04em] sm:text-5xl">Vị trí dự án</h2>
               <InlineRichText
-                html={locationHtml || DEFAULT_LOCATION_TEXT}
+                html={locationHtml ?? ''}
+                placeholder="Tải nội dung vị trí lên — lấy từ thư mục 01. Tổng quan trên Drive"
                 editable={canEdit}
                 label="Mô tả vị trí"
                 onChange={emit('locationHtml')}
@@ -332,7 +296,15 @@ export function OverviewContent({
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#847768]">Thiết kế chi tiết các tầng</p>
           <h2 className="mt-4 text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Mặt bằng dự án</h2>
 
+          {FLOOR_PLANS.length === 0 &&
+          <EmptySlot
+            label="Tải bản vẽ mặt bằng lên"
+            source="03. Mặt bằng"
+            className="mt-10 min-h-[360px] rounded-lg" />
+          }
+
           {/* Thanh chọn tầng */}
+          {FLOOR_PLANS.length > 0 &&
           <div className="no-scrollbar mt-10 flex overflow-x-auto" role="tablist" aria-label="Chọn mặt bằng tầng">
             {FLOOR_PLANS.map((plan) => {
               const isActive = plan.key === activeFloor;
@@ -352,8 +324,10 @@ export function OverviewContent({
 
             })}
           </div>
+          }
 
           {/* Khung bản vẽ */}
+          {activePlan &&
           <figure className="border border-[#ded6ca] bg-white p-4 sm:p-8">
             <figcaption className="text-center">
               <h3 className="text-lg font-semibold tracking-[-0.02em] text-[#302922] sm:text-xl">{activePlan.title}</h3>
@@ -363,6 +337,7 @@ export function OverviewContent({
               Thông số, bản vẽ mang tính chất tham khảo và có thể được điều chỉnh mà không cần báo trước. Thông tin chính thức của từng căn sẽ được quy định tại văn bản ký kết giữa Bên bán và Bên mua.
             </p>
           </figure>
+          }
         </div>
       </section>
 
@@ -372,6 +347,12 @@ export function OverviewContent({
             <div><h2 className="text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Sản phẩm nổi bật.</h2></div>
             <CarouselControls onPrevious={() => scrollCarousel(productsRef.current, -1)} onNext={() => scrollCarousel(productsRef.current, 1)} />
           </div>
+          {PRODUCTS.length === 0 &&
+          <EmptySlot
+            variant="content"
+            label="Tải nội dung sản phẩm nổi bật lên"
+            className="mt-10 min-h-[320px] rounded-lg" />
+          }
           <div ref={productsRef} className="mt-10 flex snap-x snap-mandatory gap-6 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {PRODUCTS.map((product) =>
             <article key={product.title} className="w-[82%] shrink-0 snap-start sm:w-[48%] lg:w-[31.8%]">
@@ -390,6 +371,12 @@ export function OverviewContent({
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#847768]">Không gian sống</p>
           <h2 className="mt-4 text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Tiện ích dự án</h2>
 
+          {AMENITIES.length === 0 &&
+          <EmptySlot
+            label="Tải hình ảnh tiện ích lên"
+            source="01. Tổng quan / Tiện ích"
+            className="mt-10 min-h-[360px] rounded-lg" />
+          }
           <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:h-[660px] lg:grid-rows-6">
             {AMENITIES.slice(0, VISIBLE_AMENITIES).map((amenity, index) => {
               const isLastTile = index === VISIBLE_AMENITIES - 1;

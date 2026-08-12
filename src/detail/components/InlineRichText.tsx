@@ -28,7 +28,7 @@ export function InlineRichText({
   onFocusBlock,
   className = '',
   style,
-  placeholder = 'Nhập nội dung…',
+  placeholder = 'Tải nội dung lên',
   label
 }: InlineRichTextProps) {
   const ref = useRef<HTMLDivElement>(null);
@@ -41,6 +41,18 @@ export function InlineRichText({
   }, [html]);
 
   if (!editable) {
+    // Không sửa được mà cũng chưa có nội dung: hiện chỗ trống thay vì khoảng
+    // trắng, để người xem biết mục này còn thiếu chứ không phải lỗi hiển thị.
+    if (!html.trim()) {
+      return (
+        <p
+          className={`${className} rounded-md border border-dashed border-[#d8cab4] bg-[#faf6ef] px-4 py-3 text-[13px] font-semibold text-[#8a6a3f]`}
+          style={style}>
+          
+          {placeholder}
+        </p>);
+
+    }
     return (
       <div
         className={className}

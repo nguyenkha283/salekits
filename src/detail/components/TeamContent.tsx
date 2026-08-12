@@ -1,5 +1,6 @@
 import React from 'react';
 import { MailIcon, PhoneIcon } from 'lucide-react';
+import { EmptySlot } from './EmptySlot';
 
 interface TeamMember {
   id: string;
@@ -10,35 +11,13 @@ interface TeamMember {
   initials: string;
 }
 
-/** Đội ngũ mẫu — bản thật lấy từ HRM theo mục 2.4 của SRS. */
-const TEAM: TeamMember[] = [
-{
-  id: 'apm', name: 'Nguyễn Thị An', title: 'APM — Quản lý dự án',
-  phone: '0912 448 207', email: 'an.nguyen@cenhomes.vn', initials: 'NA'
-},
-{
-  id: 'gd', name: 'Lê Minh Hoàng', title: 'Quản lý giao dịch',
-  phone: '0983 112 640', email: 'hoang.le@cenhomes.vn', initials: 'LH'
-},
-{
-  id: 'tro-ly', name: 'Phạm Thu Trang', title: 'Trợ lý dự án',
-  phone: '0977 305 118', email: 'trang.pham@cenhomes.vn', initials: 'PT'
-},
-{
-  id: 'mkt', name: 'Đỗ Quang Huy', title: 'Marketing dự án',
-  phone: '0968 774 921', email: 'huy.do@cenhomes.vn', initials: 'ĐH'
-},
-{
-  id: 'hc', name: 'Vũ Hải Yến', title: 'Hành chính dự án',
-  phone: '0932 660 507', email: 'yen.vu@cenhomes.vn', initials: 'VY'
-},
-{
-  id: 'line', name: 'Trần Đức Thắng', title: 'Trưởng line 2',
-  phone: '0905 218 334', email: 'thang.tran@cenhomes.vn', initials: 'TT'
-}];
+interface TeamContentProps {
+  /** Đội ngũ lấy từ HRM theo mục 2.4 của SRS. */
+  members?: TeamMember[];
+}
 
-
-export function TeamContent() {
+export function TeamContent({ members }: TeamContentProps = {}) {
+  const TEAM = members ?? [];
   return (
     <section
       data-cms-section="team"
@@ -55,6 +34,15 @@ export function TeamContent() {
         Thông tin đồng bộ từ HRM. Chỉ hiển thị với người dùng nội bộ.
       </p>
 
+      {TEAM.length === 0 &&
+      <EmptySlot
+        variant="content"
+        label="Chưa có thành viên nào"
+        className="mt-6 min-h-[180px] rounded-lg" />
+
+      }
+
+      {TEAM.length > 0 &&
       <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {TEAM.map((member) =>
         <article
@@ -89,6 +77,7 @@ export function TeamContent() {
           </article>
         )}
       </div>
+      }
     </section>);
 
 }

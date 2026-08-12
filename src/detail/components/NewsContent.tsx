@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowRightIcon, CalendarIcon, ClockIcon } from 'lucide-react';
+import { EmptySlot } from './EmptySlot';
 
 interface Article {
   id: string;
@@ -13,95 +14,17 @@ interface Article {
 
 const CATEGORIES = ['Tất cả', 'Tiến độ', 'Chính sách', 'Thị trường', 'Sự kiện'];
 
-const FEATURED: Article = {
-  id: 'featured',
-  category: 'Tiến độ',
-  title: 'Imperia Sky Park cất nóc tòa Sky 2, vượt tiến độ 3 tuần',
-  excerpt:
-  'Toàn bộ phần thô tòa Sky 2 đã hoàn thiện đến tầng 31, sớm hơn kế hoạch ba tuần. Nhà thầu bắt đầu thi công hạng mục hoàn thiện mặt ngoài và lắp đặt hệ thống kỹ thuật từ đầu tháng 8.',
-  image: '/af90a9a2-cfa1-4e06-bf16-c3467b5c5fff.jpg',
-  date: '18/07/2026',
-  readingTime: '4 phút đọc'
-};
-
-const ARTICLES: Article[] = [
-{
-  id: 'a1',
-  category: 'Chính sách',
-  title: 'Cập nhật chính sách bán hàng quý III/2026',
-  excerpt: 'Chiết khấu thanh toán sớm tăng lên 9%, bổ sung gói hỗ trợ lãi suất 24 tháng cho khách mua căn 3 phòng ngủ.',
-  image: '/73dda9ab-a667-4bd9-a168-fc13267d6901.jpg',
-  date: '12/07/2026',
-  readingTime: '3 phút đọc'
-},
-{
-  id: 'a2',
-  category: 'Thị trường',
-  title: 'Nguồn cung căn hộ phía Tây Hà Nội phục hồi rõ nét',
-  excerpt: 'Lượng mở bán mới trong quý II tăng 27% so với cùng kỳ, giá sơ cấp trung bình đạt 78 triệu đồng mỗi m².',
-  image: '/85bed7b1-ee07-4e5d-ae92-d9ea75fb82be.jpg',
-  date: '08/07/2026',
-  readingTime: '6 phút đọc'
-},
-{
-  id: 'a3',
-  category: 'Sự kiện',
-  title: 'Lễ ra quân dự án quy tụ hơn 600 chuyên viên kinh doanh',
-  excerpt: 'Sự kiện công bố giỏ hàng đợt 2 và trao thưởng cho các đơn vị phân phối dẫn đầu doanh số nửa đầu năm.',
-  image: '/f757d0c2-1880-4786-9ade-d83bdf5ffd51.jpg',
-  date: '02/07/2026',
-  readingTime: '2 phút đọc'
-},
-{
-  id: 'a4',
-  category: 'Tiến độ',
-  title: 'Hoàn thành hệ cảnh quan hồ điều hòa trung tâm',
-  excerpt: 'Hạng mục cảnh quan 3.000 m² quanh hồ điều hòa đã bàn giao, chuẩn bị cho giai đoạn trồng cây hoàn thiện.',
-  image: '/af1ffc9b-36a7-4608-9ff1-165cbcf660be.jpg',
-  date: '28/06/2026',
-  readingTime: '3 phút đọc'
-},
-{
-  id: 'a5',
-  category: 'Chính sách',
-  title: 'Ngân hàng MBV nâng hạn mức cho vay lên 75% giá trị căn hộ',
-  excerpt: 'Khách hàng được ân hạn nợ gốc 18 tháng, lãi suất cố định 7,5% trong hai năm đầu kể từ ngày giải ngân.',
-  image: '/07cbf50c-5744-4f14-b5ff-5cc571eb8411.jpg',
-  date: '21/06/2026',
-  readingTime: '4 phút đọc'
-},
-{
-  id: 'a6',
-  category: 'Thị trường',
-  title: 'Đại lộ Thăng Long mở rộng, rút ngắn 12 phút vào trung tâm',
-  excerpt: 'Dự án mở rộng trục giao thông huyết mạch dự kiến thông xe cuối năm, tác động tích cực tới bất động sản khu vực.',
-  image: '/ebd3240e-6608-4c50-8739-cfe41926dd74.jpg',
-  date: '15/06/2026',
-  readingTime: '5 phút đọc'
-},
-{
-  id: 'a7',
-  category: 'Sự kiện',
-  title: 'Mở cửa nhà mẫu căn 2 phòng ngủ từ ngày 20/06',
-  excerpt: 'Khách hàng có thể tham quan trực tiếp nhà mẫu tại sảnh Sky 1 hoặc đặt lịch trải nghiệm ảnh 360° trực tuyến.',
-  image: '/fe21ba4f-5222-446a-beea-10c7a3640e0f.jpg',
-  date: '10/06/2026',
-  readingTime: '2 phút đọc'
-},
-{
-  id: 'a8',
-  category: 'Tiến độ',
-  title: 'Lắp đặt hệ thống thang máy tốc độ cao cho tòa Sky 1',
-  excerpt: 'Tám thang máy tiêu chuẩn châu Âu được lắp đặt, tốc độ 4 m/s, dự kiến chạy thử trong tháng 9.',
-  image: '/ffbb15b7-c56b-4b5d-b7e3-ed3affc9fd36.jpg',
-  date: '04/06/2026',
-  readingTime: '3 phút đọc'
-}];
-
-
 const PAGE_STEP = 6;
 
-export function NewsContent() {
+interface NewsContentProps {
+  /** Tin tức soạn tay trong CMS — tab này không lấy nội dung từ Drive. */
+  articles?: Article[];
+  featured?: Article;
+}
+
+export function NewsContent({ articles, featured }: NewsContentProps = {}) {
+  const ARTICLES = articles ?? [];
+  const FEATURED = featured;
   const [category, setCategory] = useState('Tất cả');
   const [visibleCount, setVisibleCount] = useState(PAGE_STEP);
 
@@ -119,6 +42,15 @@ export function NewsContent() {
   return (
     <div>
       {/* Tin nổi bật */}
+      {!FEATURED &&
+      <EmptySlot
+        variant="content"
+        label="Tải nội dung tin nổi bật lên"
+        className="min-h-[240px] rounded-lg" />
+
+      }
+
+      {FEATURED &&
       <article className="grid gap-6 lg:grid-cols-2 lg:gap-10">
         <a href="#" className="group block overflow-hidden rounded-lg bg-stone-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f5921f]">
           <img src={FEATURED.image} alt={FEATURED.title} className="aspect-[16/10] w-full object-cover transition duration-500 group-hover:scale-105" />
@@ -137,6 +69,7 @@ export function NewsContent() {
           </a>
         </div>
       </article>
+      }
 
       {/* Bộ lọc chuyên mục */}
       <div className="mt-12 flex flex-wrap items-center gap-2 border-b border-stone-200 pb-4">
@@ -181,9 +114,10 @@ export function NewsContent() {
         )}
         </div> :
 
-      <p className="mt-8 rounded-lg border border-stone-200 bg-white px-4 py-16 text-center text-sm text-stone-500">
-          Chưa có bài viết trong chuyên mục này.
-        </p>}
+      <EmptySlot
+        variant="content"
+        label="Tải nội dung bài viết lên"
+        className="mt-8 min-h-[280px] rounded-lg" />}
 
 
       {visibleCount < filtered.length &&

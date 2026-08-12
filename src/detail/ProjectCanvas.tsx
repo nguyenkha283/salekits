@@ -316,7 +316,7 @@ export function ProjectCanvas({
 
         }
 
-        {activeTab === 'mat-bang' && <FloorPlanContent planImage={planImage} />}
+        {activeTab === 'mat-bang' && <FloorPlanContent planImage={planImage} projectName={projectName} />}
         {activeTab === 'anh-360' && <Panorama360Content scenes={scenes360} />}
         {activeTab === 'chinh-sach' &&
         <PolicyContent coverImage={policyCover} groups={policyFileGroups} />
@@ -341,7 +341,7 @@ export function ProjectCanvas({
           onResynced={(source) => onImportInventory?.(source)} />
 
         }
-        {activeTab === 'toa-nha' && inventoryData && <BuildingsContent data={inventoryData} />}
+        {activeTab === 'toa-nha' && inventoryData && <BuildingsContent data={inventoryData} projectName={projectName} />}
         {activeTab === 'bang-hang' && projectLayout !== 'thap-tang' && inventoryData &&
         <InventoryTable
           role={role}

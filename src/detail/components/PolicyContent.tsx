@@ -1,8 +1,6 @@
 import React from 'react';
 import { ExternalLinkIcon, FileTextIcon } from 'lucide-react';
-
-/** Ảnh chính sách bán hàng mẫu — dùng khi Drive chưa có nội dung. */
-const POLICY_IMAGE = '/bc3b6fbd-aac1-4c49-be3b-976b35aa7a67.jpg';
+import { EmptySlot } from './EmptySlot';
 
 interface PolicyGroup {
   id: string;
@@ -20,10 +18,27 @@ interface PolicyContentProps {
 export function PolicyContent({ coverImage, groups = [] }: PolicyContentProps = {}) {
   return (
     <section data-cms-section="policy" data-cms-label="Chính sách bán hàng" aria-label="Chính sách bán hàng" className="w-full space-y-8">
+      {coverImage ?
       <img
-        src={coverImage || POLICY_IMAGE}
+        src={coverImage}
         alt="Chính sách bán hàng dự án"
-        className="block w-full rounded-lg border border-stone-200" />
+        className="block w-full rounded-lg border border-stone-200" /> :
+
+
+      <EmptySlot
+        source="05. Chính sách bán hàng"
+        className="min-h-[280px] rounded-lg" />
+
+      }
+
+      {groups.length === 0 && !coverImage &&
+      <EmptySlot
+        variant="content"
+        label="Tải nội dung lên"
+        source="05. Chính sách bán hàng"
+        className="min-h-[120px] rounded-lg" />
+
+      }
 
       {groups.map((group) =>
       <div key={group.id}>

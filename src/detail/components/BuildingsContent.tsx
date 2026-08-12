@@ -1,8 +1,8 @@
 import React from 'react';
 import { ArrowUpRightIcon, Building2Icon } from 'lucide-react';
 import type { InventoryData } from '../inventoryParser';
+import { EmptySlot } from './EmptySlot';
 
-const BUILDING_IMAGES = ["/af90a9a2-cfa1-4e06-bf16-c3467b5c5fff.jpg", "/bc3b6fbd-aac1-4c49-be3b-976b35aa7a67.jpg", "/f757d0c2-1880-4786-9ade-d83bdf5ffd51.jpg", "/f04fab1e-81cd-4b76-9643-996fa55133e2.jpg"];
 
 
 
@@ -27,9 +27,16 @@ function statsOf(data: InventoryData, tower: string) {
 
 interface BuildingsContentProps {
   data: InventoryData;
+  /** Ảnh phối cảnh từng tòa, khớp theo tên tòa. */
+  towerImages?: Record<string, string>;
+  projectName?: string;
 }
 
-export function BuildingsContent({ data }: BuildingsContentProps) {
+export function BuildingsContent({
+  data,
+  towerImages = {},
+  projectName
+}: BuildingsContentProps) {
   return (
     <section data-cms-section="products-tab" data-cms-label="Danh sách sản phẩm" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8" aria-labelledby="buildings-title">
       <div className="max-w-2xl">
@@ -39,14 +46,24 @@ export function BuildingsContent({ data }: BuildingsContentProps) {
       </div>
 
       <div className="mt-10 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        {data.towers.map((tower, index) => {
+        {data.towers.map((tower) => {
           const stats = statsOf(data, tower);
           return (
             <article key={tower} className="group overflow-hidden border border-stone-200 bg-white shadow-sm">
               <div className="relative aspect-[4/5] overflow-hidden bg-stone-100">
-                <img src={BUILDING_IMAGES[index % BUILDING_IMAGES.length]} alt={`Phối cảnh ${tower}`} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                {towerImages[tower] ?
+              <img src={towerImages[tower]} alt={`Phối cảnh ${tower}`} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /> :
+
+              <EmptySlot
+                label="Tải hình ảnh lên"
+                source="01. Tổng quan"
+                className="h-full w-full" />
+
+              }
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 to-transparent p-5 text-white">
-                  <p className="text-xs font-medium uppercase tracking-[0.14em] text-white/75">Imperia Sky Park</p>
+                  {projectName &&
+              <p className="text-xs font-medium uppercase tracking-[0.14em] text-white/75">{projectName}</p>
+              }
                   <h2 className="mt-1 text-2xl font-semibold">{tower}</h2>
                 </div>
               </div>
