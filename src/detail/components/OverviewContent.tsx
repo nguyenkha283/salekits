@@ -644,7 +644,9 @@ function ProductCard({ product, editable, onChange, onRemove }: ProductCardProps
   return (
     <article className="group/product relative">
       {editable ?
-      <label className="relative block aspect-[4/5] w-full cursor-pointer overflow-hidden">
+      <label
+        data-cms-interactive
+        className="relative block aspect-[4/5] w-full cursor-pointer overflow-hidden">
           {product.image ?
         <img src={product.image} alt={product.title} className="h-full w-full object-cover" /> :
 

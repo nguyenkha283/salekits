@@ -27,16 +27,28 @@ set
 
 
 -- ── Chính sách truy cập ──────────────────────────────────────────────────────
--- Ghi chỉ đi qua backend bằng Service Role Key (bỏ qua RLS), nên không cần
--- policy ghi cho anon. Chỉ cần cho phép đọc công khai.
+--
+-- KHÔNG đặt policy SELECT cho bucket này, và đây là chủ ý.
+--
+-- Ảnh hiển thị trên trang đi qua đường công khai
+-- /storage/v1/object/public/project-images/... — đường này chạy được chỉ nhờ
+-- cờ public trên bucket, không đụng tới RLS.
+--
+-- Thêm policy `for select using (bucket_id = 'project-images')` sẽ mở thêm
+-- Storage API cho anon key, tức là ai cũng gọi được list() và lấy về danh sách
+-- TOÀN BỘ file trong bucket. Tên file sinh ngẫu nhiên là lớp bảo vệ duy nhất
+-- đang có; liệt kê được danh sách là xóa sạch lớp đó, kể cả với bản vẽ và tài
+-- liệu của dự án còn ở trạng thái Nháp hay chờ duyệt.
+--
+-- Ghi ảnh đi qua backend bằng Service Role Key nên bỏ qua RLS, không cần policy.
 
 drop policy if exists "project_images_public_read" on storage.objects;
-create policy "project_images_public_read"
-on storage.objects
-for select
-to public
-using (bucket_id = 'project-images');
 
+
+-- ⚠️ Bucket vẫn là công khai: ai có đúng đường dẫn thì xem được mà không cần
+-- đăng nhập. Tên file ngẫu nhiên chỉ làm khó việc đoán, không phải cơ chế bảo
+-- mật. Nếu nghiệp vụ yêu cầu tài liệu dự án chưa xuất bản phải kín thật thì
+-- phải chuyển sang bucket riêng tư và ký URL có hạn.
 
 -- ⚠️ Chưa có cơ chế dọn ảnh mồ côi: xóa một sản phẩm hay gỡ một ảnh khỏi băng
 -- ảnh chỉ bỏ đường dẫn trong dữ liệu, file vẫn nằm lại trong bucket. Với bản

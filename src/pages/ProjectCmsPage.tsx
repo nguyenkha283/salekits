@@ -353,8 +353,16 @@ export function ProjectCmsPage() {
       showNotice(`Vai trò ${role} không có quyền sửa tab này`);
       return;
     }
-    // Không chặn thao tác thật của người dùng trên các phần tử tương tác
-    if (target.closest('a, button, input, select, textarea, iframe')) return;
+    // Không chặn thao tác thật của người dùng trên các phần tử tương tác.
+    //
+    // Phải có 'label' trong danh sách này: nút tải ảnh là một <label> bọc
+    // <input type="file"> ẩn, và event.preventDefault() bên dưới sẽ hủy luôn
+    // hành vi mặc định của label, khiến hộp chọn file không bao giờ mở ra.
+    if (
+    target.closest(
+      'a, button, input, select, textarea, iframe, label, [data-cms-interactive]'
+    ))
+    return;
     // Bấm vào khối chữ thì đặt con trỏ để gõ, không chuyển sang chọn section.
     if (target.closest('[contenteditable="true"]')) return;
     event.preventDefault();

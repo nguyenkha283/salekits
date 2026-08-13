@@ -154,7 +154,9 @@ export function EditableImage({
   /** Nút tải lên đặt giữa khung trống, ngay dưới dòng chỉ thư mục Drive. */
   const uploadInEmpty =
   editable && !emptyCompact ?
-  <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-[#d8cab4] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#6D3A18] transition-colors hover:bg-white/70">
+  <label
+    data-cms-interactive
+    className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-[#d8cab4] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#6D3A18] transition-colors hover:bg-white/70">
       <UploadIcon className="h-3.5 w-3.5" />
       Tải ảnh từ máy
       <input
@@ -199,7 +201,9 @@ export function EditableImage({
             Hoàn tác
           </button>
         }
-        <label className="pointer-events-auto inline-flex cursor-pointer items-center gap-1 rounded-md bg-white/95 px-2 py-1.5 text-[11px] font-semibold text-neutral-700 shadow-sm transition-colors hover:bg-white">
+        <label
+          data-cms-interactive
+          className="pointer-events-auto inline-flex cursor-pointer items-center gap-1 rounded-md bg-white/95 px-2 py-1.5 text-[11px] font-semibold text-neutral-700 shadow-sm transition-colors hover:bg-white">
           <UploadIcon className="h-3.5 w-3.5" />
           Đổi ảnh
           <input
@@ -235,6 +239,7 @@ export function ImageUploadButton({
 
   return (
     <label
+      data-cms-interactive
       className={`inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-[#d8cab4] bg-white px-3 py-2 text-xs font-semibold text-[#6D3A18] transition-colors hover:bg-[#faf6ef] ${className}`}>
       
       <ImagePlusIcon className="h-4 w-4" />
