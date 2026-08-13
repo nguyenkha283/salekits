@@ -83,11 +83,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       rightBanner: banners.rightBanner
     };
 
+    // Đầu mối và chủ đầu tư gắn qua khóa UUID. Chủ đầu tư dùng để demo có id
+    // dạng "i-001" (chỉ tồn tại ở frontend, chưa ghi vào bảng property_owners),
+    // nên phải kiểm tra trước: id không phải UUID thì bỏ qua việc gắn thay vì để
+    // Postgres từ chối và làm hỏng cả luồng tạo dự án.
+    const UUID_RE =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const ownerId =
+    typeof propertyOwnerId === 'string' && UUID_RE.test(propertyOwnerId) ?
+    propertyOwnerId :
+    null;
+    const ownerSkipped = Boolean(propertyOwnerId) && ownerId === null;
+
     // Đầu mối được tra trước khi ghi dự án: số đã có thì dùng lại bản ghi cũ,
-    // nhờ vậy hai dự án cùng một người liên hệ không sinh hai bản ghi.
+    // nhờ vậy hai dự án cùng một người liên hệ không sinh hai bản ghi. Chỉ tạo
+    // đầu mối khi có chủ đầu tư hợp lệ, vì đầu mối là người của chủ đầu tư.
     let contactResult: {id: string;reused: boolean;} | null = null;
-    if (propertyOwnerId && contact) {
-      contactResult = await findOrCreateContact(propertyOwnerId, contact);
+    if (ownerId && contact) {
+      contactResult = await findOrCreateContact(ownerId, contact);
     }
 
     const supabase = getSupabaseClient();
@@ -104,7 +117,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         aliases.map((item) => item.trim()).filter(Boolean) :
         [],
         slogan: slogan?.trim() || null,
-        property_owner_id: propertyOwnerId ?? null,
+        property_owner_id: ownerId,
         address: address?.trim() || null,
         province: province?.trim() || null,
         ward: ward?.trim() || null,
@@ -124,6 +137,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       projectId: data.id,
       contactId: contactResult?.id ?? null,
       contactReused: contactResult?.reused ?? false,
+      // Báo về client để hiện cảnh báo mềm thay vì âm thầm bỏ chủ đầu tư.
+      ownerSkipped,
       content
     });
   } catch (error) {

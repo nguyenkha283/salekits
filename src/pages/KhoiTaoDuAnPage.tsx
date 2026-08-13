@@ -618,7 +618,7 @@ export function KhoiTaoDuAnPage() {
                       kết Drive và đồng bộ sau cũng được.
                     </p>
                   }
-                  {isWebAppConfigured && hasDriveLink &&
+                  {isWebAppConfigured &&
                   <p className="mt-1.5 text-[11px] text-neutral-500">
                       Chưa có folder?{' '}
                       <a
