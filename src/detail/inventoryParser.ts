@@ -719,6 +719,8 @@ export interface InventoryData {
   towers: string[];
   warnings: string[];
   sheetNames: string[];
+  /** Loại hình suy ra từ dữ liệu bảng hàng, không phụ thuộc query string. */
+  detectedLayout: SheetLayout;
   /** Căn thông tầng / thông căn suy từ ô gộp — dùng để tự gộp ô trên lưới. */
   spanHints: SpanHint[];
 }
@@ -807,6 +809,10 @@ priceIndex = 0)
   const towers = [...new Set(units.map((unit) => unit.tower))].filter(Boolean).sort();
   const spanHints = inventorySheets.flatMap((sheet) => sheet.analysis.spanHints);
   const priceFields = inventorySheets[0]?.analysis.priceFields ?? [];
+  // Loại hình lấy từ chính dữ liệu bảng hàng: sheet không có cột Tầng nhưng có
+  // DT đất, DT xây dựng là thấp tầng. Không phụ thuộc query string trên URL.
+  const detectedLayout: SheetLayout =
+  inventorySheets[0]?.analysis.detection.layout ?? 'khong-ro';
 
   return {
     units,
@@ -816,6 +822,7 @@ priceIndex = 0)
     towers,
     warnings,
     sheetNames: sheets.map((sheet) => sheet.name),
+    detectedLayout,
     spanHints
   };
 }

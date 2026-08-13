@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  CheckIcon,
   ChevronDownIcon,
   LayoutDashboardIcon,
   MenuIcon,
@@ -9,7 +10,26 @@ import {
 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { NotificationBell } from './NotificationBell';
-import { isCreatorRole, useWorkflow } from '../app/workflowStore';
+import {
+  isCreatorRole,
+  setRole as setWorkflowRole,
+  useWorkflow,
+  type WorkflowRole } from
+'../app/workflowStore';
+
+/** Danh sách vai trò để đổi ngay trên trang chủ; khớp dropdown ở dashboard. */
+const ROLES: WorkflowRole[] = [
+'APM',
+'Trợ lý dự án',
+'Hành chính dự án',
+'Quản lý giao dịch',
+'Trưởng phòng QLGD',
+'Marketing',
+'Trưởng phòng Marketing',
+'Trưởng line',
+'Ban lãnh đạo',
+'User khác'];
+
 const NAV_ITEMS = [
 'Kho dự án',
 'Nhà bán lẻ',
@@ -26,6 +46,7 @@ export function Header({ variant = 'hero' }: HeaderProps) {
   const [accountOpen, setAccountOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
   const { role } = useWorkflow();
+  const onRoleChange = (next: WorkflowRole) => setWorkflowRole(next);
   /** Chỉ nhóm Người tạo dự án mới thấy nút Tạo dự án (SRS mục 2.5). */
   const canCreate = isCreatorRole(role);
   const navigate = useNavigate();
@@ -139,7 +160,7 @@ export function Header({ variant = 'hero' }: HeaderProps) {
                 <span
                   className={`block text-xs ${isLight ? 'text-neutral-500' : 'text-white/80'}`}>
                   
-                  2 chức danh
+                  Đổi vai trò
                 </span>
               </span>
               <ChevronDownIcon
@@ -151,17 +172,45 @@ export function Header({ variant = 'hero' }: HeaderProps) {
             <div
               role="menu"
               aria-label="Menu tài khoản"
-              className="absolute right-0 top-[calc(100%+8px)] z-40 w-56 overflow-hidden rounded-xl bg-white py-1.5 shadow-lg ring-1 ring-neutral-200">
+              className="absolute right-0 top-[calc(100%+8px)] z-40 w-64 overflow-hidden rounded-xl bg-white py-1.5 shadow-lg ring-1 ring-neutral-200">
               
+                <p className="px-4 pb-1 pt-1.5 text-[11px] font-bold uppercase tracking-wide text-neutral-400">
+                  Đổi vai trò
+                </p>
+                <div className="max-h-64 overflow-y-auto px-1.5 pb-1.5">
+                  {ROLES.map((item) =>
                 <button
-                type="button"
-                role="menuitem"
-                onClick={goToDashboard}
-                className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-semibold text-neutral-800 transition-colors hover:bg-orange-50 hover:text-orange-600">
-                
-                  <LayoutDashboardIcon className="h-4 w-4 text-neutral-400" />
-                  Dashboard
-                </button>
+                  key={item}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={role === item}
+                  onClick={() => {
+                    onRoleChange(item);
+                    setAccountOpen(false);
+                  }}
+                  className={`flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left text-sm transition-colors ${
+                  role === item ?
+                  'bg-orange-50 font-semibold text-orange-600' :
+                  'text-neutral-700 hover:bg-neutral-50'}`
+                  }>
+                  
+                      {item}
+                      {role === item && <CheckIcon className="h-4 w-4" />}
+                    </button>
+                )}
+                </div>
+
+                <div className="border-t border-neutral-100 pt-1">
+                  <button
+                  type="button"
+                  role="menuitem"
+                  onClick={goToDashboard}
+                  className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-semibold text-neutral-800 transition-colors hover:bg-orange-50 hover:text-orange-600">
+                  
+                    <LayoutDashboardIcon className="h-4 w-4 text-neutral-400" />
+                    Dashboard
+                  </button>
+                </div>
               </div>
             }
           </div>

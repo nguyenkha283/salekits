@@ -107,6 +107,7 @@ Các thành phần tương tác vẫn hoạt động bình thường khi đang b
 
 Ba thứ nên chỉ vào:
 
+- **Đổi vai trò ngay trên trang chủ**: bấm vào ô tài khoản góc phải để chọn một trong mười vai trò; vai trò dùng chung với dashboard và CMS qua sessionStorage.
 - **Bộ chọn vai trò** trên thanh đầu, gồm cả **Ban lãnh đạo** — vai trò này xem được toàn bộ tab nhưng không sửa nội dung nào. Đổi sang *Trưởng line* — thanh trên báo không sửa được tab nào, đúng với việc vai trò này chỉ duyệt. Đổi sang *Quản lý giao dịch* — chỉ Mặt bằng, Bảng hàng, Quỹ căn mở ra.
 - **Bấm vào khối *Tổng quan dự án*** rồi gõ vài chữ trong ngăn kéo — chữ trên trang đổi ngay.
 - **Nút Đồng bộ lại** — ảnh từ Drive chảy thẳng vào đúng section, xem mục 4 bên dưới.
@@ -281,7 +282,7 @@ Bộ cột đổi theo loại hình dự án:
 - **Cao tầng** — Mã căn, Giá niêm yết, Loại hình, Hướng, View, DT tim tường, DT thông thủy, Tầng, Trục căn, Tòa nhà, Tình trạng.
 - **Thấp tầng** — Mã sản phẩm, Loại hình, DT đất (m²), DT xây dựng (m²), Giá bán, Trạng thái. Không có Tầng, Trục căn, DT thông thủy vì mỗi căn là một lô đất riêng; thay vào đó là hai cột diện tích đất và diện tích xây dựng đọc thẳng từ bảng hàng.
 
-Hệ thống tự nhận loại hình từ bảng hàng: file không có cột Tầng (chỉ có DT đất, DT xây dựng) là thấp tầng.
+Hệ thống tự nhận loại hình từ **chính dữ liệu bảng hàng** sau khi đồng bộ: file không có cột Tầng nhưng có DT đất và DT xây dựng thì tab Quỹ căn tự chuyển sang bộ cột thấp tầng — không phụ thuộc tham số trên URL.
 
 **Loại giá đang hiển thị** ghi trong dải xanh ngay trên bảng.
 

@@ -115,7 +115,11 @@ export function FundInventory({
   layout = 'cao-tang',
   showNotice = false
 }: FundInventoryProps) {
-  const isLowRise = layout === 'thap-tang';
+  // Ưu tiên loại hình suy từ chính bảng hàng; chỉ dùng prop khi dữ liệu chưa
+  // đủ căn cứ. Nhờ vậy tab đổi đúng cột kể cả khi URL không mang tham số loaiHinh.
+  const isLowRise =
+  data.detectedLayout === 'thap-tang' ||
+  data.detectedLayout === 'khong-ro' && layout === 'thap-tang';
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   /**
