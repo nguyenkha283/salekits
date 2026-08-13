@@ -52,11 +52,13 @@ Vào tab **Đội ngũ** trong CMS. Tiêu đề nhỏ *Đội ngũ dự án*, ti
 | Nhóm | Cách điền |
 |---|---|
 | **Trưởng line** | Gắn sẵn từ HRM theo line của dự án, không sửa được |
-| **APM · Trợ lý dự án · Hành chính dự án** | Nhập **mã nhân viên**, hệ thống tra HRM và điền tên, chức danh, số điện thoại, email. Thử với `NV-1042`, `NV-2087`, `NV-3155` |
-| **Quản lý giao dịch** | Cây phòng ban: trưởng phòng ở trên, nhân viên bên dưới, mỗi người có nút **Gán vào dự án** |
-| **Marketing** | Cấu trúc giống Quản lý giao dịch |
+| **APM · Trợ lý dự án · Hành chính dự án** | Nhập **mã nhân viên**, hệ thống tra HRM và điền tên, chức danh, số điện thoại, email. Thử APM `NV-1042`, Trợ lý `NV-2093` hoặc `NV-2101`, Hành chính `NV-3168` hoặc `NV-3172` |
+| **Quản lý giao dịch** | Cây phòng ban do **Trưởng phòng QLGD** gán; nhân viên (và cả trưởng phòng) có nút **Gán vào dự án**, cạnh tag **Đã gán** có nút thùng rác để loại bỏ. Một dự án có nhiều QLGD |
+| **Marketing** | Cấu trúc giống QLGD, do **Trưởng phòng Marketing** gán |
 
-Xong bấm **Gửi duyệt** trên thanh đầu. Hệ thống kiểm điều kiện tối thiểu của UC-16 trước — thiếu APM, chưa gán Quản lý giao dịch nào, chưa có tên dự án, chưa có ảnh băng đầu trang hay chưa có nội dung Tổng quan thì liệt kê cụ thể chỗ thiếu và không cho gửi.
+Một dự án bắt buộc đủ **1 APM, 1 Trợ lý dự án, 1 Hành chính dự án, ít nhất 1 QLGD và ít nhất 1 Marketing**. APM gán nhóm phụ trách (bằng mã nhân viên); hai trưởng phòng gán nhân sự phòng mình. Vai trò chỉ xem chỉ thấy những người **đã được gán**, không thấy cả phòng.
+
+Xong bấm **Gửi duyệt** trên thanh đầu. Hệ thống kiểm điều kiện tối thiểu của UC-16 trước — thiếu bất kỳ vai trò bắt buộc nào, chưa có tên dự án, chưa có ảnh băng đầu trang hay chưa có nội dung Tổng quan thì liệt kê cụ thể chỗ thiếu và không cho gửi.
 
 **Đổi vai trò sang Trưởng line** trên thanh đầu: chuông hiện số chưa đọc, dải thông báo báo *"Có dự án mới cần duyệt"*, và nút Gửi duyệt đổi thành **Duyệt**.
 

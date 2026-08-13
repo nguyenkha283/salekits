@@ -12,7 +12,9 @@ export type DashboardRole =
 'Trợ lý dự án' |
 'Hành chính dự án' |
 'Quản lý giao dịch' |
+'Trưởng phòng QLGD' |
 'Marketing' |
+'Trưởng phòng Marketing' |
 'Trưởng line' |
 'Ban lãnh đạo' |
 'User khác';
@@ -22,7 +24,9 @@ export const DASHBOARD_ROLES: DashboardRole[] = [
 'Trợ lý dự án',
 'Hành chính dự án',
 'Quản lý giao dịch',
+'Trưởng phòng QLGD',
 'Marketing',
+'Trưởng phòng Marketing',
 'Trưởng line',
 'Ban lãnh đạo',
 'User khác'];

@@ -94,6 +94,9 @@ export function canEditTab(role: Role, tabId: string): boolean {
   // Ban lãnh đạo xem toàn bộ nhưng không sửa nội dung nào.
   if (role === 'Trưởng line' || role === 'Ban lãnh đạo' || role === 'User khác')
   return false;
+  // Trưởng phòng QLGD và Marketing chỉ vào tab Đội ngũ để gán nhân sự phòng mình.
+  if (role === 'Trưởng phòng QLGD' || role === 'Trưởng phòng Marketing')
+  return tabId === 'doi-ngu';
   if (role === 'Quản lý giao dịch')
   return ['bang-hang', 'quy-can', 'mat-bang'].includes(tabId);
   if (role === 'Marketing') return tabId === 'tin-tuc';
@@ -142,7 +145,10 @@ interface ProjectCanvasProps {
   syncedMedia?: SyncedMedia;
   /** Đội ngũ dự án — đồng bộ từ HRM, gán trong tab Đội ngũ. */
   team?: TeamAssignment;
-  teamEditable?: boolean;
+  /** APM sửa nhóm phụ trách; hai trưởng phòng gán nhân sự phòng mình. */
+  canEditRoster?: boolean;
+  canAssignSales?: boolean;
+  canAssignMarketing?: boolean;
   onTeamChange?: (patch: Partial<TeamAssignment>) => void;
   onToggleAssignment?: (
   group: 'salesCodes' | 'marketingCodes',
@@ -182,7 +188,9 @@ export function ProjectCanvas({
   editing,
   syncedMedia = {},
   team,
-  teamEditable = false,
+  canEditRoster = false,
+  canAssignSales = false,
+  canAssignMarketing = false,
   onTeamChange,
   onToggleAssignment,
   products,
@@ -389,7 +397,9 @@ export function ProjectCanvas({
         <TeamContent
           projectName={projectName}
           team={team}
-          editable={teamEditable}
+          canEditRoster={canEditRoster}
+          canAssignSales={canAssignSales}
+          canAssignMarketing={canAssignMarketing}
           onChange={(patch) => onTeamChange?.(patch)}
           onToggleAssignment={(group, code) => onToggleAssignment?.(group, code)} />
         }

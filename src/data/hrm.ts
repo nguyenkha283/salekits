@@ -95,6 +95,42 @@ export const EMPLOYEES: Employee[] = [
   title: 'APM',
   department: 'Phòng kinh doanh dự án 5',
   lineId: 'line-5'
+},
+{
+  code: 'NV-2093',
+  name: 'Hoàng Diệu Linh',
+  phone: '0983 447 220',
+  email: 'linh.hd@cenhomes.vn',
+  title: 'Trợ lý dự án',
+  department: 'Phòng kinh doanh dự án 2',
+  lineId: 'line-2'
+},
+{
+  code: 'NV-2101',
+  name: 'Cao Việt Bách',
+  phone: '0971 336 508',
+  email: 'bach.cv@cenhomes.vn',
+  title: 'Trợ lý dự án',
+  department: 'Phòng kinh doanh dự án 5',
+  lineId: 'line-5'
+},
+{
+  code: 'NV-3168',
+  name: 'Tô Thanh Hằng',
+  phone: '0912 550 774',
+  email: 'hang.tt@cenhomes.vn',
+  title: 'Hành chính dự án',
+  department: 'Phòng hành chính dự án',
+  lineId: 'line-2'
+},
+{
+  code: 'NV-3172',
+  name: 'Dương Quốc Đạt',
+  phone: '0968 220 913',
+  email: 'dat.dq@cenhomes.vn',
+  title: 'Hành chính dự án',
+  department: 'Phòng hành chính dự án',
+  lineId: 'line-5'
 }];
 
 

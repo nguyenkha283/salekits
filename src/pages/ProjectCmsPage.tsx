@@ -73,7 +73,9 @@ const ROLES: Role[] = [
 'Trợ lý dự án',
 'Hành chính dự án',
 'Quản lý giao dịch',
+'Trưởng phòng QLGD',
 'Marketing',
+'Trưởng phòng Marketing',
 'Trưởng line',
 'Ban lãnh đạo',
 'User khác'];
@@ -754,7 +756,9 @@ export function ProjectCmsPage() {
             products={products}
             onProductsChange={setProducts}
             team={workflow.team}
-            teamEditable={editable && isCreatorRole(role as WorkflowRole)}
+            canEditRoster={editable && role === 'APM'}
+            canAssignSales={editable && role === 'Trưởng phòng QLGD'}
+            canAssignMarketing={editable && role === 'Trưởng phòng Marketing'}
             onTeamChange={updateTeam}
             onToggleAssignment={toggleAssignment}
             imageSlots={{

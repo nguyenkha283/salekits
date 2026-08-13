@@ -20,7 +20,9 @@ export type WorkflowRole =
 'Trợ lý dự án' |
 'Hành chính dự án' |
 'Quản lý giao dịch' |
+'Trưởng phòng QLGD' |
 'Marketing' |
+'Trưởng phòng Marketing' |
 'Trưởng line' |
 'Ban lãnh đạo' |
 'User khác';
@@ -200,10 +202,20 @@ code: string)
 export function teamReadyIssues(team: TeamAssignment): string[] {
   const issues: string[] = [];
   if (!team.apm) issues.push('Chưa có APM phụ trách');
+  if (!team.assistant) issues.push('Chưa có Trợ lý dự án');
+  if (!team.admin) issues.push('Chưa có Hành chính dự án');
   if (team.salesCodes.length === 0) {
     issues.push('Chưa gán Quản lý giao dịch nào vào dự án');
   }
+  if (team.marketingCodes.length === 0) {
+    issues.push('Chưa gán Marketing nào vào dự án');
+  }
   return issues;
+}
+
+/** Trưởng phòng QLGD và Marketing gán nhân sự phòng mình vào dự án. */
+export function isDeptHeadRole(role: WorkflowRole): boolean {
+  return role === 'Trưởng phòng QLGD' || role === 'Trưởng phòng Marketing';
 }
 
 export function submitForApproval(projectName: string, projectCode: string) {

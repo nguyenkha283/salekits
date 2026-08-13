@@ -5,6 +5,7 @@ import {
   MailIcon,
   PhoneIcon,
   PlusIcon,
+  Trash2Icon,
   UserRoundIcon,
   XIcon } from
 'lucide-react';
@@ -20,8 +21,12 @@ import type { TeamAssignment } from '../../app/workflowStore';
 interface TeamContentProps {
   projectName: string;
   team: TeamAssignment;
-  /** Vai trò hiện tại có quyền sửa đội ngũ hay không. */
-  editable: boolean;
+  /** APM sửa được nhóm phụ trách dự án (APM, Trợ lý, Hành chính). */
+  canEditRoster: boolean;
+  /** Trưởng phòng QLGD gán được nhân sự phòng Quản lý giao dịch. */
+  canAssignSales: boolean;
+  /** Trưởng phòng Marketing gán được nhân sự phòng Marketing. */
+  canAssignMarketing: boolean;
   onChange: (patch: Partial<TeamAssignment>) => void;
   onToggleAssignment: (
   group: 'salesCodes' | 'marketingCodes',
@@ -33,17 +38,26 @@ interface TeamContentProps {
  * Đội ngũ dự án — UC-05.
  *
  * Trưởng line gắn tự động từ HRM theo line của dự án. APM, Trợ lý dự án và
- * Hành chính dự án nhập bằng mã nhân viên rồi hệ thống tự điền thông tin.
- * Quản lý giao dịch và Marketing hiển thị dạng cây theo phòng, gán từng người
- * vào dự án.
+ * Hành chính dự án nhập bằng mã nhân viên rồi hệ thống tự điền thông tin; APM
+ * sửa nhóm này. Quản lý giao dịch và Marketing hiển thị dạng cây theo phòng;
+ * người gán là trưởng phòng tương ứng, mỗi người chỉ gán trong phòng mình.
+ *
+ * Vai trò chỉ xem không thấy cây phòng ban đầy đủ — chỉ thấy những người đã
+ * được gán vào dự án.
  */
 export function TeamContent({
   projectName,
   team,
-  editable,
+  canEditRoster,
+  canAssignSales,
+  canAssignMarketing,
   onChange,
   onToggleAssignment
 }: TeamContentProps) {
+  // Nhóm phụ trách: người chỉ xem chỉ thấy vị trí đã có người.
+  const rosterVisible =
+  canEditRoster || team.apm || team.assistant || team.admin;
+
   return (
     <section
       data-cms-section="team"
@@ -68,43 +82,52 @@ export function TeamContent({
         <PersonCard person={team.lineLeader} locked />
       </TeamGroup>
 
+      {rosterVisible &&
       <TeamGroup
         title="Người phụ trách dự án"
-        note="Nhập mã nhân viên, hệ thống tự điền thông tin từ HRM">
+        note={
+        canEditRoster ?
+        'Nhập mã nhân viên, hệ thống tự điền thông tin từ HRM' :
+        undefined
+        }>
         
         <div className="grid gap-3 lg:grid-cols-3">
+          {(canEditRoster || team.apm) &&
           <EmployeeSlot
             label="APM"
             person={team.apm}
-            editable={editable}
+            editable={canEditRoster}
             onPick={(person) => onChange({ apm: person })} />
-          
+          }
+          {(canEditRoster || team.assistant) &&
           <EmployeeSlot
             label="Trợ lý dự án"
             person={team.assistant}
-            editable={editable}
+            editable={canEditRoster}
             onPick={(person) => onChange({ assistant: person })} />
-          
+          }
+          {(canEditRoster || team.admin) &&
           <EmployeeSlot
             label="Hành chính dự án"
             person={team.admin}
-            editable={editable}
+            editable={canEditRoster}
             onPick={(person) => onChange({ admin: person })} />
-          
+          }
         </div>
       </TeamGroup>
+      }
 
       <DepartmentTree
         department={SALES_DEPARTMENT}
         assigned={team.salesCodes}
-        editable={editable}
+        canAssign={canAssignSales}
         onToggle={(code) => onToggleAssignment('salesCodes', code)} />
       
 
       <DepartmentTree
         department={MARKETING_DEPARTMENT}
         assigned={team.marketingCodes}
-        editable={editable}
+        canAssign={canAssignMarketing}
         onToggle={(code) => onToggleAssignment('marketingCodes', code)} />
       
     </section>);
@@ -302,51 +325,70 @@ function EmployeeSlot({ label, person, editable, onPick }: EmployeeSlotProps) {
 interface DepartmentTreeProps {
   department: Department;
   assigned: string[];
-  editable: boolean;
+  /** Trưởng phòng của phòng này gán được nhân sự vào dự án. */
+  canAssign: boolean;
   onToggle: (code: string) => void;
 }
 
-/** Cây phòng ban: trưởng phòng ở trên, nhân viên bên dưới kèm nút gán. */
+/**
+ * Cây phòng ban: trưởng phòng ở trên, nhân viên bên dưới.
+ *
+ * Trưởng phòng cũng có thể tự gán mình vào dự án. Người có quyền gán thấy toàn
+ * bộ phòng để chọn; người chỉ xem chỉ thấy những ai đã được gán.
+ */
 function DepartmentTree({
   department,
   assigned,
-  editable,
+  canAssign,
   onToggle
 }: DepartmentTreeProps) {
+  const managerAssigned = assigned.includes(department.manager.code);
+  const visibleStaff = canAssign ?
+  department.staff :
+  department.staff.filter((person) => assigned.includes(person.code));
+  const showManagerRow = canAssign || managerAssigned;
+
+  // Người chỉ xem mà phòng chưa có ai được gán thì không hiện cây rỗng.
+  if (!showManagerRow && visibleStaff.length === 0) return null;
+
   return (
     <TeamGroup
       title={department.name}
       note={`${assigned.length} người đã gán vào dự án`}>
       
       <div className="overflow-hidden rounded-lg border border-[#e9e1d5] bg-white">
-        {/* Trưởng phòng */}
+        {/* Trưởng phòng — cũng gán được vào dự án */}
+        {showManagerRow &&
         <div className="flex items-center gap-3 border-b border-[#e9e1d5] bg-[#faf6ef] px-4 py-3">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#6D3A18] text-xs font-bold text-white">
-            {initialsOf(department.manager.name)}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-bold text-[#3b2c1d]">
-              {department.manager.name}
-            </p>
-            <p className="text-xs text-stone-500">
-              {department.manager.title} · {department.manager.phone}
-            </p>
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#6D3A18] text-xs font-bold text-white">
+              {initialsOf(department.manager.name)}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-bold text-[#3b2c1d]">
+                {department.manager.name}
+              </p>
+              <p className="text-xs text-stone-500">
+                {department.manager.title} · {department.manager.phone}
+              </p>
+            </div>
+            <AssignControl
+            isAssigned={managerAssigned}
+            canAssign={canAssign}
+            onToggle={() => onToggle(department.manager.code)} />
+          
           </div>
-        </div>
+        }
 
         {/* Nhân viên trong phòng */}
         <ul className="divide-y divide-[#f0e9de]">
-          {department.staff.map((person) => {
+          {visibleStaff.map((person) => {
             const isAssigned = assigned.includes(person.code);
             return (
               <li
                 key={person.code}
                 className="flex items-center gap-3 py-3 pl-8 pr-4">
                 
-                <span
-                  className="text-stone-300"
-                  aria-hidden="true">
-                  
+                <span className="text-stone-300" aria-hidden="true">
                   └
                 </span>
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#f3ece1] text-[11px] font-bold text-[#8a6a3f]">
@@ -360,42 +402,68 @@ function DepartmentTree({
                     {person.title} · {person.code} · {person.phone}
                   </p>
                 </div>
-
-                {editable ?
-                <button
-                  type="button"
-                  onClick={() => onToggle(person.code)}
-                  className={`inline-flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  isAssigned ?
-                  'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' :
-                  'border border-[#d8cab4] text-[#6D3A18] hover:bg-[#faf6ef]'}`
-                  }>
-                  
-                    {isAssigned ?
-                  <>
-                        <CheckIcon className="h-3.5 w-3.5" />
-                        Đã gán
-                      </> :
-
-                  <>
-                        <PlusIcon className="h-3.5 w-3.5" />
-                        Gán vào dự án
-                      </>
-                  }
-                  </button> :
-
-                isAssigned &&
-                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                    <UserRoundIcon className="h-3.5 w-3.5" />
-                    Trong đội ngũ
-                  </span>
-
-                }
+                <AssignControl
+                  isAssigned={isAssigned}
+                  canAssign={canAssign}
+                  onToggle={() => onToggle(person.code)} />
+                
               </li>);
 
           })}
         </ul>
       </div>
     </TeamGroup>);
+
+}
+
+/**
+ * Nút gán và tag trạng thái của một người trong phòng ban.
+ *
+ * Người gán thấy: nút Gán vào dự án khi chưa gán, hoặc tag Đã gán kèm nút thùng
+ * rác để loại bỏ. Người chỉ xem thấy tag Trong đội ngũ, không thao tác được.
+ * Người đã loại bỏ vẫn gán lại được vì nút Gán quay lại ngay sau đó.
+ */
+function AssignControl({
+  isAssigned,
+  canAssign,
+  onToggle
+}: {isAssigned: boolean;canAssign: boolean;onToggle: () => void;}) {
+  if (!canAssign) {
+    if (!isAssigned) return null;
+    return (
+      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+        <UserRoundIcon className="h-3.5 w-3.5" />
+        Trong đội ngũ
+      </span>);
+
+  }
+
+  if (isAssigned) {
+    return (
+      <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-emerald-50 py-1 pl-2.5 pr-1 text-xs font-semibold text-emerald-700">
+        <CheckIcon className="h-3.5 w-3.5" />
+        Đã gán
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label="Loại khỏi dự án"
+          title="Loại khỏi dự án"
+          className="ml-0.5 grid h-6 w-6 place-items-center rounded text-emerald-700 transition-colors hover:bg-red-100 hover:text-red-600">
+          
+          <Trash2Icon className="h-3.5 w-3.5" />
+        </button>
+      </span>);
+
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#d8cab4] px-3 py-1.5 text-xs font-semibold text-[#6D3A18] transition-colors hover:bg-[#faf6ef]">
+      
+      <PlusIcon className="h-3.5 w-3.5" />
+      Gán vào dự án
+    </button>);
 
 }
