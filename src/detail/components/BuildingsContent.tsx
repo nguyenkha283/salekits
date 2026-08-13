@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowUpRightIcon, Building2Icon } from 'lucide-react';
 import type { InventoryData } from '../inventoryParser';
-import { EmptySlot } from './EmptySlot';
+import { EditableImage } from './EditableImage';
 
 
 
@@ -51,15 +51,14 @@ export function BuildingsContent({
           return (
             <article key={tower} className="group overflow-hidden border border-stone-200 bg-white shadow-sm">
               <div className="relative aspect-[4/5] overflow-hidden bg-stone-100">
-                {towerImages[tower] ?
-              <img src={towerImages[tower]} alt={`Phối cảnh ${tower}`} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /> :
-
-              <EmptySlot
-                label="Tải hình ảnh lên"
-                source="01. Tổng quan"
-                className="h-full w-full" />
-
-              }
+                <EditableImage
+                slotKey={`tower-${tower}`}
+                src={towerImages[tower]}
+                alt={`Phối cảnh ${tower}`}
+                className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                wrapperClassName="relative h-full w-full"
+                emptySource="01. Tổng quan"
+                emptyClassName="h-full w-full" />
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 to-transparent p-5 text-white">
                   {projectName &&
               <p className="text-xs font-medium uppercase tracking-[0.14em] text-white/75">{projectName}</p>

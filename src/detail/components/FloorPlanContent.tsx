@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ImageIcon, MapIcon, MapPinIcon } from 'lucide-react';
-import { EmptySlot } from './EmptySlot';
+import { EditableImage } from './EditableImage';
 
 type MapMode = 'satellite' | 'static';
 
@@ -37,15 +37,15 @@ export function FloorPlanContent({
           </div> :
 
         <div className="flex min-h-[100dvh] w-full items-center justify-center bg-[#131b21]">
-            {planImage ?
-          <img src={planImage} alt="Mặt bằng tổng thể dự án" className="block h-auto w-full" /> :
-
-          <EmptySlot
-            label="Tải hình ảnh mặt bằng lên"
-            source="03. Mặt bằng"
-            className="m-6 min-h-[320px] w-full max-w-2xl rounded-lg" />
-
-          }
+            <EditableImage
+            slotKey="floorplan-overall"
+            src={planImage}
+            alt="Mặt bằng tổng thể dự án"
+            className="block h-auto w-full"
+            wrapperClassName="relative w-full"
+            emptyLabel="Tải hình ảnh mặt bằng lên"
+            emptySource="03. Mặt bằng"
+            emptyClassName="m-6 min-h-[320px] w-full max-w-2xl rounded-lg" />
           </div>
         }
       </div>

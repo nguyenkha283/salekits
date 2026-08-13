@@ -21,6 +21,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const {
     driveFolderUrl,
     projectName,
+    projectCode,
+    aliases,
+    slogan,
     propertyOwnerId,
     address,
     province,
@@ -29,6 +32,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } = (req.body ?? {}) as {
     driveFolderUrl?: string;
     projectName?: string;
+    projectCode?: string;
+    aliases?: string[];
+    slogan?: string;
     propertyOwnerId?: string;
     address?: string;
     province?: string;
@@ -92,6 +98,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         drive_folder_id: rootFolderId,
         drive_folder_url: driveFolderUrl.trim(),
         project_name: projectName.trim(),
+        project_code: projectCode?.trim() || null,
+        // Nhiều tên gọi nhưng vẫn dùng chung một mã dự án.
+        aliases: Array.isArray(aliases) ?
+        aliases.map((item) => item.trim()).filter(Boolean) :
+        [],
+        slogan: slogan?.trim() || null,
         property_owner_id: propertyOwnerId ?? null,
         address: address?.trim() || null,
         province: province?.trim() || null,

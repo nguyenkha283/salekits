@@ -1,6 +1,6 @@
 import React from 'react';
 import { ExternalLinkIcon, FileTextIcon } from 'lucide-react';
-import { EmptySlot } from './EmptySlot';
+import { EditableImage } from './EditableImage';
 
 interface PolicyGroup {
   id: string;
@@ -18,27 +18,14 @@ interface PolicyContentProps {
 export function PolicyContent({ coverImage, groups = [] }: PolicyContentProps = {}) {
   return (
     <section data-cms-section="policy" data-cms-label="Chính sách bán hàng" aria-label="Chính sách bán hàng" className="w-full space-y-8">
-      {coverImage ?
-      <img
+      <EditableImage
+        slotKey="policy-cover"
         src={coverImage}
         alt="Chính sách bán hàng dự án"
-        className="block w-full rounded-lg border border-stone-200" /> :
+        className="block w-full rounded-lg border border-stone-200"
+        emptySource="05. Chính sách bán hàng"
+        emptyClassName="min-h-[280px] rounded-lg" />
 
-
-      <EmptySlot
-        source="05. Chính sách bán hàng"
-        className="min-h-[280px] rounded-lg" />
-
-      }
-
-      {groups.length === 0 && !coverImage &&
-      <EmptySlot
-        variant="content"
-        label="Tải nội dung lên"
-        source="05. Chính sách bán hàng"
-        className="min-h-[120px] rounded-lg" />
-
-      }
 
       {groups.map((group) =>
       <div key={group.id}>

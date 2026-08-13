@@ -14,6 +14,12 @@ import {
 import { InlineRichText, InlineText } from './InlineRichText';
 import { HIERARCHY_OPTIONS } from '../sectionRegistry';
 import { EmptySlot } from './EmptySlot';
+import {
+  EditableImage,
+  ImageUploadButton,
+  useExtraImages,
+  useImageSlots } from
+'./EditableImage';
 
 interface OverviewContentProps {
   tabs: React.ReactNode;
@@ -43,6 +49,21 @@ interface OverviewContentProps {
   /** Dòng địa chỉ hiển thị trên ảnh vị trí. */
   locationLabel?: string;
 }
+
+/**
+ * Sản phẩm nổi bật — dữ liệu mẫu tạm thời, chờ mô tả nghiệp vụ.
+ *
+ * ⚠️ Đây là ngoại lệ có chủ đích với FR-33c (hệ thống không dùng dữ liệu mẫu ở
+ * bất kỳ mục nội dung nào). Gỡ khi có nguồn dữ liệu thật cho mục này.
+ */
+const DEFAULT_PRODUCTS = [
+{ image: '/bc3b6fbd-aac1-4c49-be3b-976b35aa7a67.jpg', title: 'Căn hộ Studio', description: 'Thiết kế tối ưu cho nhịp sống trẻ trung, riêng tư và linh hoạt.' },
+{ image: '/af90a9a2-cfa1-4e06-bf16-c3467b5c5fff.jpg', title: 'Căn hộ 2 phòng ngủ', description: 'Không gian cân bằng cho một gia đình hiện đại, luôn đầy ắp ánh sáng.' },
+{ image: '/f757d0c2-1880-4786-9ade-d83bdf5ffd51.jpg', title: 'Căn hộ 3 phòng ngủ', description: 'Một chốn về rộng rãi, tinh tế, mở ra những khoảnh khắc sum vầy.' },
+{ image: '/f04fab1e-81cd-4b76-9643-996fa55133e2.jpg', title: 'Căn hộ Dual Key', description: 'Hai không gian độc lập trong một căn hộ, linh hoạt ở và cho thuê.' },
+{ image: '/85bed7b1-ee07-4e5d-ae92-d9ea75fb82be.jpg', title: 'Căn hộ Sky Villa', description: 'Đặc quyền trên cao với tầm nhìn toàn cảnh và không gian mở rộng rãi.' },
+{ image: '/73dda9ab-a667-4bd9-a168-fc13267d6901.jpg', title: 'Căn hộ Duplex', description: 'Hai tầng thông nhau, tôn vinh chiều cao và ánh sáng tự nhiên.' }];
+
 
 /** Tiện ích hiển thị 7 ô đầu, phần còn lại gộp vào lớp phủ ở ô cuối. */
 const VISIBLE_AMENITIES = 7;
@@ -78,7 +99,7 @@ export function OverviewContent({
   stats,
   hierarchy = 'DỰ ÁN',
   projectName = 'Imperia Sky Park',
-  tagline = 'Tuyệt tác trên tầm cao.',
+  tagline = '',
   editing
 }: OverviewContentProps) {
   const canEdit = Boolean(editing?.enabled);
@@ -86,10 +107,38 @@ export function OverviewContent({
   const onFocusBlock = editing?.onFocusBlock;
   // Không còn dữ liệu mẫu: mục nào Drive chưa có thì hiện khối chỗ trống, để
   // người dùng biết chính xác còn thiếu gì và phải bỏ file vào thư mục nào.
-  const HERO_SLIDES = useMemo(() => heroSlides ?? [], [heroSlides]);
-  const AMENITIES = useMemo(() => amenities ?? [], [amenities]);
-  const FLOOR_PLANS = useMemo(() => floorPlans ?? [], [floorPlans]);
-  const PRODUCTS = products ?? [];
+  const uploadedHero = useExtraImages('hero');
+  const uploadedAmenities = useExtraImages('amenity');
+  const uploadedPlans = useExtraImages('plan-preview');
+  const { editable: canUploadImages } = useImageSlots();
+
+  const HERO_SLIDES = useMemo(
+    () => [...heroSlides ?? [], ...uploadedHero],
+    [heroSlides, uploadedHero]
+  );
+  const AMENITIES = useMemo(
+    () => [
+    ...amenities ?? [],
+    ...uploadedAmenities.map((image, index) => ({
+      image,
+      title: `Tiện ích tải lên ${index + 1}`
+    }))],
+
+    [amenities, uploadedAmenities]
+  );
+  const FLOOR_PLANS = useMemo(
+    () => [
+    ...floorPlans ?? [],
+    ...uploadedPlans.map((image, index) => ({
+      key: `upload-${index}`,
+      label: `Bản vẽ tải lên ${index + 1}`,
+      title: `Bản vẽ tải lên ${index + 1}`,
+      image
+    }))],
+
+    [floorPlans, uploadedPlans]
+  );
+  const PRODUCTS = products?.length ? products : DEFAULT_PRODUCTS;
   const FEATURED_STATS = stats ?? [];
 
   const productsRef = useRef<HTMLDivElement>(null);
@@ -178,6 +227,7 @@ export function OverviewContent({
             {hasHero && <button type="button" onClick={() => setActiveHero((current) => (current - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)} className="rounded-full border border-white/60 p-2 text-white transition-colors hover:bg-white hover:text-[#302922]" aria-label="Banner trước"><ChevronLeftIcon className="h-4 w-4" /></button>}
             <div className="flex gap-2" aria-label="Chọn banner">{HERO_SLIDES.map((_, index) => <button key={index} type="button" onClick={() => setActiveHero(index)} aria-label={`Banner ${index + 1}`} aria-current={activeHero === index} className={`h-2 rounded-full transition-all ${activeHero === index ? 'w-7 bg-white' : 'w-2 bg-white/55 hover:bg-white'}`} />)}</div>
             {hasHero && <button type="button" onClick={() => setActiveHero((current) => (current + 1) % HERO_SLIDES.length)} className="rounded-full border border-white/60 p-2 text-white transition-colors hover:bg-white hover:text-[#302922]" aria-label="Banner tiếp theo"><ChevronRightIcon className="h-4 w-4" /></button>}
+            <ImageUploadButton collectionKey="hero" label="Tải băng ảnh từ máy" className="ml-2" />
           </div>
         </div>
       </section>
@@ -198,11 +248,15 @@ export function OverviewContent({
           <a href="#location" className="mt-7 inline-flex items-center gap-2 border-b border-[#302922] pb-1 text-xs font-semibold uppercase tracking-[0.1em] transition-opacity hover:opacity-60">Khám phá dự án <ArrowRightIcon className="h-4 w-4" /></a>
         </div>
         <div className="aspect-[16/10] overflow-hidden bg-stone-100">
-          {overviewImage ?
-          <img src={overviewImage} alt="Phối cảnh dự án" className="h-full w-full object-cover" /> :
-
-          <EmptySlot source="01. Tổng quan" className="h-full w-full" />
-          }
+          <EditableImage
+            slotKey="overview-image"
+            src={overviewImage}
+            alt="Phối cảnh dự án"
+            className="h-full w-full object-cover"
+            wrapperClassName="relative h-full w-full"
+            emptySource="01. Tổng quan"
+            emptyClassName="h-full w-full" />
+          
         </div>
       </section>
 
@@ -245,14 +299,15 @@ export function OverviewContent({
         <div className="grid items-stretch lg:grid-cols-2">
           {/* Cột ảnh: tràn hết chiều rộng cột và cao bằng cột text, không giới hạn trong container */}
           <div className="relative flex min-h-[320px] items-center justify-center bg-[#1c2c47] sm:min-h-[440px] lg:min-h-0">
-            {locationImage ?
-            <img src={locationImage} alt="Vị trí dự án" className="h-auto w-full object-contain" /> :
-
-            <EmptySlot
-              label="Tải hình ảnh vị trí lên"
-              source="01. Tổng quan"
-              className="m-6 min-h-[260px] w-full rounded-lg border-white/25 bg-transparent text-white/70" />
-            }
+            <EditableImage
+              slotKey="location-image"
+              src={locationImage}
+              alt="Vị trí dự án"
+              className="h-auto w-full object-contain"
+              wrapperClassName="relative w-full"
+              emptyLabel="Tải hình ảnh vị trí lên"
+              emptySource="01. Tổng quan"
+              emptyClassName="m-6 min-h-[260px] w-full rounded-lg border-white/25 bg-transparent text-white/70" />
             {locationLabel &&
             <span className="absolute bottom-4 left-4 inline-flex items-center gap-2 bg-[#251c16]/80 px-3 py-2 text-xs font-medium backdrop-blur-sm sm:bottom-6 sm:left-6">
               <MapPinIcon className="h-4 w-4 text-[#f5921f]" />
@@ -275,13 +330,6 @@ export function OverviewContent({
                 onFocusBlock={onFocusBlock}
                 className="prose-cen prose-cen-invert mt-6 text-sm leading-7 text-white/80 sm:text-base" />
 
-              <div className="mt-8 grid grid-cols-2 gap-6 border-t border-white/20 pt-8 text-sm">
-                <div><NavigationIcon className="h-4 w-4 text-[#f5921f]" /><p className="mt-2 text-white/65">Kết nối nhanh</p><p className="mt-1 font-semibold">Tới trung tâm</p></div>
-                <div><TreesIcon className="h-4 w-4 text-[#f5921f]" /><p className="mt-2 text-white/65">Không gian xanh</p><p className="mt-1 font-semibold">Sát hồ điều hòa</p></div>
-                <div><RulerIcon className="h-4 w-4 text-[#f5921f]" /><p className="mt-2 text-white/65">Quy hoạch</p><p className="mt-1 font-semibold">Đồng bộ tiện ích</p></div>
-                <div><MapPinIcon className="h-4 w-4 text-[#f5921f]" /><p className="mt-2 text-white/65">Khu vực</p><p className="mt-1 font-semibold">Hai Bà Trưng</p></div>
-              </div>
-
               <a href="https://www.google.com/maps/search/?api=1&query=Minh+Khai,+Hai+Ba+Trung,+Ha+Noi" target="_blank" rel="noopener noreferrer" className="mt-9 inline-flex items-center gap-2 rounded-md bg-[#f5921f] px-6 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-[#e08315] focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#332920]">
                 <MapPinIcon className="h-4 w-4" />
                 Xem trên Google Map
@@ -301,6 +349,11 @@ export function OverviewContent({
             label="Tải bản vẽ mặt bằng lên"
             source="03. Mặt bằng"
             className="mt-10 min-h-[360px] rounded-lg" />
+          }
+          {canUploadImages &&
+          <div className="mt-4">
+            <ImageUploadButton collectionKey="plan-preview" label="Tải bản vẽ từ máy" />
+          </div>
           }
 
           {/* Thanh chọn tầng */}
@@ -332,7 +385,14 @@ export function OverviewContent({
             <figcaption className="text-center">
               <h3 className="text-lg font-semibold tracking-[-0.02em] text-[#302922] sm:text-xl">{activePlan.title}</h3>
             </figcaption>
-            <img src={activePlan.image} alt={activePlan.title} className="mt-6 max-h-[640px] w-full object-contain" />
+            <EditableImage
+              slotKey={`plan-${activePlan.key}`}
+              src={activePlan.image}
+              alt={activePlan.title}
+              className="mt-6 max-h-[640px] w-full object-contain"
+              wrapperClassName="relative w-full"
+              emptySource="03. Mặt bằng"
+              emptyClassName="mt-6 min-h-[320px] w-full rounded-lg" />
             <p className="mt-6 text-center text-[11px] leading-5 text-[#847768] sm:text-xs">
               Thông số, bản vẽ mang tính chất tham khảo và có thể được điều chỉnh mà không cần báo trước. Thông tin chính thức của từng căn sẽ được quy định tại văn bản ký kết giữa Bên bán và Bên mua.
             </p>
@@ -356,7 +416,14 @@ export function OverviewContent({
           <div ref={productsRef} className="mt-10 flex snap-x snap-mandatory gap-6 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {PRODUCTS.map((product) =>
             <article key={product.title} className="w-[82%] shrink-0 snap-start sm:w-[48%] lg:w-[31.8%]">
-                <img src={product.image} alt={product.title} className="aspect-[4/5] w-full object-cover" />
+                <EditableImage
+                  slotKey={`product-${product.title}`}
+                  src={product.image}
+                  alt={product.title}
+                  className="aspect-[4/5] w-full object-cover"
+                  wrapperClassName="relative w-full"
+                  emptySource="01. Tổng quan"
+                  emptyClassName="aspect-[4/5] w-full" />
                 <h3 className="mt-4 text-xl font-semibold tracking-[-0.02em]">{product.title}</h3>
                 <p className="mt-2 text-sm leading-6 text-[#675e56]">{product.description}</p>
                 <a href="#products" className="mt-4 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.1em] underline underline-offset-4">Tìm hiểu thêm <ArrowRightIcon className="h-3.5 w-3.5" /></a>
@@ -376,6 +443,11 @@ export function OverviewContent({
             label="Tải hình ảnh tiện ích lên"
             source="01. Tổng quan / Tiện ích"
             className="mt-10 min-h-[360px] rounded-lg" />
+          }
+          {canUploadImages &&
+          <div className="mt-4">
+            <ImageUploadButton collectionKey="amenity" label="Tải ảnh tiện ích từ máy" />
+          </div>
           }
           <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:h-[660px] lg:grid-rows-6">
             {AMENITIES.slice(0, VISIBLE_AMENITIES).map((amenity, index) => {

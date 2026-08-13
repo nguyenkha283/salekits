@@ -31,6 +31,9 @@ interface ProjectEditorLocationState {
 const FALLBACK_PROJECT: ProjectDraft = {
   hierarchy: '',
   name: '',
+  code: '',
+  aliases: [],
+  slogan: '',
   propertyType: '',
   address: '',
   province: '',

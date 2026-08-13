@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { EmptySlot } from './EmptySlot';
+import { ImageUploadButton, useExtraImages } from './EditableImage';
 import { CompassIcon, MaximizeIcon, PauseIcon, PlayIcon, RotateCcwIcon, ZoomInIcon, ZoomOutIcon } from 'lucide-react';
 
 const MIN_ZOOM = 100;
@@ -12,7 +13,18 @@ interface Panorama360ContentProps {
 }
 
 export function Panorama360Content({ scenes }: Panorama360ContentProps = {}) {
-  const SCENES = scenes ?? [];
+  const uploaded = useExtraImages('scene-360');
+  const SCENES = useMemo(
+    () => [
+    ...scenes ?? [],
+    ...uploaded.map((image, index) => ({
+      key: `upload-${index}`,
+      label: `Ảnh tải lên ${index + 1}`,
+      image
+    }))],
+
+    [scenes, uploaded]
+  );
 
   const [sceneKey, setSceneKey] = useState(SCENES[0]?.key ?? '');
   const [offset, setOffset] = useState(0);
@@ -99,6 +111,10 @@ export function Panorama360Content({ scenes }: Panorama360ContentProps = {}) {
         className="mt-6 aspect-[16/9] w-full rounded-lg" />
 
       }
+
+      <div className="mt-4">
+        <ImageUploadButton collectionKey="scene-360" label="Tải ảnh 360° từ máy" />
+      </div>
 
       {/* Khung xem 360 */}
       {hasScenes &&

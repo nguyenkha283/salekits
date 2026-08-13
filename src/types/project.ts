@@ -38,6 +38,12 @@ export interface ProjectConfiguration {
 export interface ProjectDraft {
   hierarchy: string;
   name: string;
+  /** Mã dự án — sinh từ tên, sửa được trước khi xuất bản (FR-07, FR-08). */
+  code: string;
+  /** Tên gọi khác của dự án; nhiều tên nhưng vẫn dùng chung một mã. */
+  aliases: string[];
+  /** Slogan hiển thị dưới tên dự án trên băng ảnh đầu trang. */
+  slogan: string;
   propertyType: string;
   /** Địa chỉ nhập tự do — số nhà, tên đường, tên khu. */
   address: string;

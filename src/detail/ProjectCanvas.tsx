@@ -14,6 +14,7 @@ import { NewsContent } from './components/NewsContent';
 import { BuildingsContent } from './components/BuildingsContent';
 import { FloorPlanContent } from './components/FloorPlanContent';
 import { TeamContent } from './components/TeamContent';
+import { ImageSlotProvider, type ImageSlotState } from './components/EditableImage';
 import { InventorySetup, type InventorySource } from './components/InventorySetup';
 import { buildInventory, type InventoryData } from './inventoryParser';
 import type { ProjectLayout } from './parseWorkbook';
@@ -137,6 +138,8 @@ interface ProjectCanvasProps {
   };
   /** Ảnh và tài liệu đã đồng bộ, gom theo tab. */
   syncedMedia?: SyncedMedia;
+  /** Ảnh tải tay từ máy, đè lên ảnh Drive ở cùng vị trí. */
+  imageSlots?: ImageSlotState;
   /** Ẩn breadcrumb và nút chia sẻ khi hiển thị bên trong CMS. */
   chrome?: boolean;
 }
@@ -165,8 +168,14 @@ export function ProjectCanvas({
   onGridsChange,
   editing,
   syncedMedia = {},
+  imageSlots,
   chrome = true
 }: ProjectCanvasProps) {
+  const slots: ImageSlotState = imageSlots ?? {
+    editable: false,
+    overrides: {},
+    extras: {}
+  };
   const isOverview = activeTab === 'tong-quan';
   const isInventoryTab = ['toa-nha', 'bang-hang', 'quy-can'].includes(activeTab);
   const inventoryReady = inventorySource === undefined || Boolean(inventorySource);
@@ -244,7 +253,7 @@ export function ProjectCanvas({
   }));
 
   return (
-    <>
+    <ImageSlotProvider value={slots}>
       {!isOverview &&
       <>
           {chrome &&
@@ -358,6 +367,6 @@ export function ProjectCanvas({
         {activeTab === 'doi-ngu' && canViewRestricted(role) && <TeamContent />}
         {!CANVAS_TABS.some((entry) => entry.id === activeTab) && <ProjectContent />}
       </div>
-    </>);
+    </ImageSlotProvider>);
 
 }

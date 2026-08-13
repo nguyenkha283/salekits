@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { EmptySlot } from './EmptySlot';
+import { ImageUploadButton, useExtraImages } from './EditableImage';
 import { ChevronLeftIcon, ChevronRightIcon, ChevronsLeftIcon, ChevronsRightIcon, ExternalLinkIcon, EyeIcon, PlusCircleIcon } from 'lucide-react';
 
 const COLLAPSED_MONTHS = 3;
@@ -24,6 +25,7 @@ interface ProgressContentProps {
 }
 
 export function ProgressContent({ photos: syncedPhotos }: ProgressContentProps = {}) {
+  const uploaded = useExtraImages('progress');
   const hasSynced = Boolean(syncedPhotos && syncedPhotos.length);
   const PROGRESS_MONTHS = hasSynced ?
   [{ key: 'drive', label: 'Đồng bộ từ Drive', total: syncedPhotos!.length }] :
@@ -35,7 +37,17 @@ export function ProgressContent({ photos: syncedPhotos }: ProgressContentProps =
   const [pageSize, setPageSize] = useState(20);
 
   const month = PROGRESS_MONTHS.find((item) => item.key === activeMonth);
-  const photos = useMemo(() => hasSynced ? syncedPhotos! : [], [hasSynced, syncedPhotos]);
+  const photos = useMemo(
+    () => [
+    ...hasSynced ? syncedPhotos! : [],
+    ...uploaded.map((src, index) => ({
+      id: `upload-${index}`,
+      src,
+      alt: `Ảnh tiến độ tải lên ${index + 1}`
+    }))],
+
+    [hasSynced, syncedPhotos, uploaded]
+  );
   const visibleMonths = showAllMonths ? PROGRESS_MONTHS : PROGRESS_MONTHS.slice(0, COLLAPSED_MONTHS);
 
   const totalPages = Math.max(1, Math.ceil(photos.length / pageSize));
@@ -110,9 +122,12 @@ export function ProgressContent({ photos: syncedPhotos }: ProgressContentProps =
 
       {/* Thư viện ảnh tiến độ */}
       <section>
-        <h3 className="inline-block border-b-2 border-[#f5921f] pb-2 text-base font-semibold text-[#4a3728]">
-          Hình ảnh tiến độ
-        </h3>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h3 className="inline-block border-b-2 border-[#f5921f] pb-2 text-base font-semibold text-[#4a3728]">
+            Hình ảnh tiến độ
+          </h3>
+          <ImageUploadButton collectionKey="progress" label="Tải ảnh tiến độ từ máy" />
+        </div>
 
         {pagePhotos.length > 0 ?
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

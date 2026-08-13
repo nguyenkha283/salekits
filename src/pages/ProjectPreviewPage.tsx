@@ -13,6 +13,9 @@ import { ProjectDraft } from '../types/project';
 const FALLBACK_PROJECT: ProjectDraft = {
   hierarchy: '',
   name: '',
+  code: '',
+  aliases: [],
+  slogan: '',
   propertyType: '',
   address: '',
   province: '',

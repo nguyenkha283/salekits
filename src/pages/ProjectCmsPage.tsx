@@ -157,6 +157,9 @@ export function ProjectCmsPage() {
   const [accessLost, setAccessLost] = useState(false);
   const [synced, setSynced] = useState<SyncedProject | null>(null);
   const [edits, setEdits] = useState<SectionEdits>({});
+  /** Ảnh tải tay từ máy, đè lên ảnh Drive ở cùng vị trí (song song với đồng bộ). */
+  const [imageOverrides, setImageOverrides] = useState<Record<string, string>>({});
+  const [imageExtras, setImageExtras] = useState<Record<string, string[]>>({});
   const [isResyncing, setIsResyncing] = useState(false);
   const [notice, setNotice] = useState('');
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -168,6 +171,9 @@ export function ProjectCmsPage() {
   {
     hierarchy: '',
     name: synced?.project_name ?? 'IMPERIA SKY PARK',
+    code: '',
+    aliases: [],
+    slogan: '',
     propertyType: '',
     address: '',
     province: '',
@@ -211,7 +217,8 @@ export function ProjectCmsPage() {
   const stats = edits.stats ?? DEFAULT_STATS;
   const hierarchy = edits.hierarchy ?? 'Dự án';
   const heroName = edits.projectName ?? project.name;
-  const tagline = edits.tagline ?? 'Tuyệt tác trên tầm cao.';
+  // Slogan khai ở màn Khởi tạo dự án; sửa lại được ngay trên canvas.
+  const tagline = edits.tagline ?? project.slogan ?? '';
 
   // Nhận thay đổi từ các khối chữ sửa trực tiếp trên trang.
   const handleInlineChange = useCallback((field: string, value: string) => {
@@ -608,6 +615,31 @@ export function ProjectCmsPage() {
             projectLayout={projectLayout}
             grids={grids}
             onGridsChange={setGrids}
+            imageSlots={{
+              editable,
+              overrides: imageOverrides,
+              extras: imageExtras,
+              onUpload: (slotKey, dataUrl) =>
+              setImageOverrides((current) => ({ ...current, [slotKey]: dataUrl })),
+              onClear: (slotKey) =>
+              setImageOverrides((current) => {
+                const next = { ...current };
+                delete next[slotKey];
+                return next;
+              }),
+              onAddMany: (collectionKey, dataUrls) =>
+              setImageExtras((current) => ({
+                ...current,
+                [collectionKey]: [...current[collectionKey] ?? [], ...dataUrls]
+              })),
+              onRemoveExtra: (collectionKey, index) =>
+              setImageExtras((current) => ({
+                ...current,
+                [collectionKey]: (current[collectionKey] ?? []).filter(
+                  (_, position) => position !== index
+                )
+              }))
+            }}
             onImportInventory={(source) => {
               const isFirst = !inventorySource;
               setInventorySource(source);

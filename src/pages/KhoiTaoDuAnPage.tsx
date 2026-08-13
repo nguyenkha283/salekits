@@ -6,6 +6,7 @@ import {
   ExternalLinkIcon,
   ImageIcon,
   MapPinIcon,
+  PlusIcon,
   Trash2Icon } from
 'lucide-react';
 import { ProjectDraft } from '../types/project';
@@ -15,6 +16,7 @@ import { InvestorPicker } from '../dashboard/InvestorPicker';
 import { ContactPicker } from '../dashboard/ContactPicker';
 import { DEMO_CONTACTS, type ProjectContact } from '../dashboard/contactData';
 import { DASHBOARD_INVESTORS } from '../dashboard/dashboardData';
+import { suggestProjectCode } from '../utils/projectCode';
 
 /**
  * URL Web App Apps Script, lấy từ biến môi trường VITE_DRIVE_WEBAPP_URL.
@@ -56,6 +58,12 @@ function Card({
 export function KhoiTaoDuAnPage() {
   const navigate = useNavigate();
   const [tenDuAn, setTenDuAn] = useState('');
+  const [maDuAn, setMaDuAn] = useState('');
+  /** Người dùng đã tự sửa mã thì thôi sinh lại theo tên. */
+  const [maTuSua, setMaTuSua] = useState(false);
+  /** Tên gọi khác — nhiều tên nhưng vẫn dùng chung một mã dự án. */
+  const [tenKhac, setTenKhac] = useState<string[]>([]);
+  const [slogan, setSlogan] = useState('');
   const [driveLink, setDriveLink] = useState('');
   /** Cao tầng có tab Bảng hàng dạng lưới; thấp tầng chỉ có Quỹ căn (FR-40a). */
   const [loaiHinh, setLoaiHinh] = useState<'cao-tang' | 'thap-tang'>('cao-tang');
@@ -77,6 +85,8 @@ export function KhoiTaoDuAnPage() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState('');
 
+  const maGoiY = maTuSua ? maDuAn : suggestProjectCode(tenDuAn);
+
   const wards = useMemo(() => getWards(province), [province]);
   const wardIsFreeText = province.length > 0 && !hasWardData(province);
 
@@ -87,6 +97,7 @@ export function KhoiTaoDuAnPage() {
   /** Link Drive KHÔNG bắt buộc — bỏ trống thì vào CMS trắng, liên kết sau. */
   const missing = {
     name: tenDuAn.trim().length === 0,
+    code: maGoiY.trim().length === 0,
     province: province.length === 0,
     investor: !investor
   };
@@ -129,6 +140,9 @@ export function KhoiTaoDuAnPage() {
     return {
       hierarchy: '',
       name: tenDuAn.trim(),
+      code: maGoiY.trim().toUpperCase(),
+      aliases: tenKhac.map((item) => item.trim()).filter(Boolean),
+      slogan: slogan.trim(),
       propertyType: loaiHinh === 'cao-tang' ? 'Cao tầng' : 'Thấp tầng',
       address: address.trim(),
       province,
@@ -168,6 +182,9 @@ export function KhoiTaoDuAnPage() {
         body: JSON.stringify({
           driveFolderUrl: trimmedDriveLink,
           projectName: tenDuAn.trim(),
+          projectCode: maGoiY.trim().toUpperCase(),
+          aliases: tenKhac.map((item) => item.trim()).filter(Boolean),
+          slogan: slogan.trim(),
           propertyOwnerId: investor?.id,
           address: address.trim(),
           province,
@@ -240,23 +257,127 @@ export function KhoiTaoDuAnPage() {
           <div className="space-y-5">
             <Card title="Thông tin dự án">
               <div className="grid gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-2 grid gap-4 sm:grid-cols-[1fr_180px]">
+                  <div>
+                    <label className={LABEL} htmlFor="ten-du-an">
+                      Tên dự án <span className="text-orange-600">*</span>
+                    </label>
+                    <input
+                      id="ten-du-an"
+                      value={tenDuAn}
+                      onChange={(event) => setTenDuAn(event.target.value)}
+                      placeholder="Imperia Sky Park"
+                      disabled={isSyncing}
+                      className={FIELD} />
+                    
+                    {showErrors && missing.name &&
+                    <p className="mt-1 text-xs font-medium text-red-600">
+                        Nhập tên dự án.
+                      </p>
+                    }
+                  </div>
+
+                  <div>
+                    <label className={LABEL} htmlFor="ma-du-an">
+                      Mã dự án <span className="text-orange-600">*</span>
+                    </label>
+                    <input
+                      id="ma-du-an"
+                      value={maGoiY}
+                      onChange={(event) => {
+                        setMaTuSua(true);
+                        setMaDuAn(event.target.value.toUpperCase());
+                      }}
+                      placeholder="ISP"
+                      disabled={isSyncing}
+                      className={`${FIELD} font-mono uppercase`} />
+                    
+                    <p className="mt-1 text-[11px] text-neutral-500">
+                      {maTuSua ?
+                      'Bạn đang tự đặt mã. ' :
+                      'Sinh từ tên dự án. '}
+                      Sửa được cho tới khi xuất bản.
+                      {maTuSua &&
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMaTuSua(false);
+                          setMaDuAn('');
+                        }}
+                        className="ml-1 font-semibold text-orange-600 hover:underline">
+                        
+                          Sinh lại
+                        </button>
+                      }
+                    </p>
+                  </div>
+                </div>
+
                 <div className="sm:col-span-2">
-                  <label className={LABEL} htmlFor="ten-du-an">
-                    Tên dự án <span className="text-orange-600">*</span>
+                  <span className={LABEL}>Tên gọi khác</span>
+                  {tenKhac.length > 0 &&
+                  <div className="mb-2 space-y-2">
+                      {tenKhac.map((item, index) =>
+                    <div key={index} className="flex items-center gap-2">
+                          <input
+                        value={item}
+                        onChange={(event) =>
+                        setTenKhac((current) =>
+                        current.map((value, position) =>
+                        position === index ? event.target.value : value
+                        )
+                        )
+                        }
+                        placeholder="Tên thương mại, tên cũ, tên viết tắt…"
+                        disabled={isSyncing}
+                        className={FIELD} />
+                      
+                          <button
+                        type="button"
+                        aria-label={`Xóa tên gọi khác ${index + 1}`}
+                        onClick={() =>
+                        setTenKhac((current) =>
+                        current.filter((_, position) => position !== index)
+                        )
+                        }
+                        className="grid h-10 w-10 shrink-0 place-items-center rounded-md text-neutral-400 transition-colors hover:bg-red-50 hover:text-red-600">
+                        
+                            <Trash2Icon className="h-4 w-4" />
+                          </button>
+                        </div>
+                    )}
+                    </div>
+                  }
+                  <button
+                    type="button"
+                    onClick={() => setTenKhac((current) => [...current, ''])}
+                    disabled={isSyncing}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-700 transition-colors hover:bg-neutral-50 disabled:opacity-60">
+                    
+                    <PlusIcon className="h-3.5 w-3.5" />
+                    Thêm tên gọi khác
+                  </button>
+                  <p className="mt-1.5 text-[11px] text-neutral-500">
+                    Dùng cho tìm kiếm. Dự án vẫn chỉ có một mã duy nhất dù có bao
+                    nhiêu tên gọi.
+                  </p>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className={LABEL} htmlFor="slogan">
+                    Slogan dự án
                   </label>
                   <input
-                    id="ten-du-an"
-                    value={tenDuAn}
-                    onChange={(event) => setTenDuAn(event.target.value)}
-                    placeholder="Imperia Sky Park"
+                    id="slogan"
+                    value={slogan}
+                    onChange={(event) => setSlogan(event.target.value)}
+                    placeholder="Tuyệt tác trên tầm cao."
                     disabled={isSyncing}
                     className={FIELD} />
                   
-                  {showErrors && missing.name &&
-                  <p className="mt-1 text-xs font-medium text-red-600">
-                      Nhập tên dự án.
-                    </p>
-                  }
+                  <p className="mt-1 text-[11px] text-neutral-500">
+                    Hiển thị ngay dưới tên dự án trên băng ảnh đầu trang.
+                  </p>
                 </div>
 
                 <div className="sm:col-span-2">
@@ -540,6 +661,21 @@ export function KhoiTaoDuAnPage() {
                 <p className="text-base font-bold text-neutral-900">
                   {tenDuAn.trim() || 'Tên dự án'}
                 </p>
+                {maGoiY &&
+                <p className="mt-0.5 font-mono text-xs font-semibold text-neutral-500">
+                  {maGoiY}
+                </p>
+                }
+                {slogan.trim() &&
+                <p className="mt-1 text-xs italic text-neutral-600">
+                  “{slogan.trim()}”
+                </p>
+                }
+                {tenKhac.filter(Boolean).length > 0 &&
+                <p className="mt-1 text-[11px] text-neutral-500">
+                  Còn gọi là {tenKhac.filter(Boolean).join(', ')}
+                </p>
+                }
 
                 <p className="mt-2 flex items-start gap-1.5 text-xs text-neutral-600">
                   <MapPinIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-neutral-400" />
@@ -554,6 +690,7 @@ export function KhoiTaoDuAnPage() {
                 <ul className="mt-4 space-y-1.5 border-t border-neutral-100 pt-3">
                   {[
                   { label: 'Tên dự án', done: !missing.name },
+                  { label: 'Mã dự án', done: !missing.code },
                   { label: 'Tỉnh / Thành phố', done: !missing.province },
                   { label: 'Chủ đầu tư', done: !missing.investor },
                   {

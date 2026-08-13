@@ -29,11 +29,13 @@ Bố cục hai cột: ba thẻ biểu mẫu bên trái, **thẻ xem trước dí
 
 | Thẻ | Trường |
 |---|---|
-| Thông tin dự án | Tên · **Loại hình** Cao tầng / Thấp tầng · **Địa chỉ** tự do · **Tỉnh / Thành phố** · **Phường / Xã** lọc theo tỉnh |
+| Thông tin dự án | Tên + **Mã dự án** cùng dòng · **Tên gọi khác** dạng repeater · **Slogan** · **Loại hình** Cao tầng / Thấp tầng · **Địa chỉ** tự do · **Tỉnh / Thành phố** · **Phường / Xã** lọc theo tỉnh |
 | Chủ đầu tư | Ô chọn có gợi ý, thêm mới ngay tại chỗ · **Đầu mối liên hệ** |
 | Ảnh đại diện và nội dung | Ảnh đại diện PNG/JPG · Link Drive |
 
 Địa giới dùng **mô hình hai cấp** theo Nghị quyết 202/2025/QH15: 34 tỉnh thành, không còn cấp Quận / Huyện. Đổi tỉnh thì ô phường tự xóa lựa chọn cũ. Tỉnh chưa có danh mục phường trong bản prototype thì ô đó chuyển sang nhập tay.
+
+**Mã dự án** sinh từ tên — "Imperia Sky Park" thành `ISP`, "Vinhomes Ocean Park 3" thành `VOP3`, từ nối như "khu đô thị" bị bỏ. Sửa tay được, có nút Sinh lại. **Tên gọi khác** nhập bao nhiêu cũng được nhưng mã dự án vẫn là một.
 
 **Link Drive không bắt buộc.** Bỏ trống thì bấm Tạo dự án là vào thẳng CMS trắng, kèm dải cảnh báo *Chưa liên kết Drive* trên thanh đầu. Khung bố cục giữ nguyên, mỗi mục hiện chỗ trống ghi **Tải hình ảnh lên** hoặc **Tải nội dung lên** kèm tên thư mục Drive cần bỏ file vào.
 
@@ -153,7 +155,9 @@ Bấm **Đồng bộ lại** (thanh trên hoặc trong ngăn kéo). Hệ thống
 | Thư viện ảnh có phân trang, tab Tiến độ | `06. Tiến độ` |
 | Lưới 12 ô, tab Tài liệu | `07. Tài liệu` |
 
-Mục nào Drive chưa có thì section đó hiện khối chỗ trống ghi rõ cần tải gì lên và lấy từ thư mục Drive nào — không còn dữ liệu mẫu ở bất kỳ đâu.
+Mục nào Drive chưa có thì section đó hiện khối chỗ trống ghi rõ cần tải gì lên và lấy từ thư mục Drive nào. Riêng **Sản phẩm nổi bật** tạm dùng lại dữ liệu mẫu, chờ mô tả nghiệp vụ.
+
+**Ảnh có hai nguồn song song.** Rê chuột lên bất kỳ ô ảnh nào trong CMS là hiện nút **Tải ảnh lên** hoặc **Đổi ảnh**; ô đã thay có thêm nút **Hoàn tác** để quay về ảnh Drive. Các bộ ảnh nhiều tấm — băng ảnh đầu trang, tiện ích, bản vẽ mặt bằng, ảnh 360, ảnh tiến độ — có nút tải nhiều file một lần. Ảnh tải tay đè lên ảnh Drive ở cùng vị trí và **không bị lần đồng bộ sau ghi đè**.
 
 Trang công khai `/du-an?projectId=...` dùng chung dữ liệu này, nên biên tập xong xem trước là thấy đúng ảnh vừa đồng bộ.
 
