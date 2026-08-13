@@ -19,6 +19,8 @@ interface EmptySlotProps {
   className?: string;
   /** Ẩn chữ khi ô quá nhỏ, chỉ để lại biểu tượng. */
   compact?: boolean;
+  /** Nút hành động đặt giữa khung, ngay dưới dòng chỉ thư mục Drive. */
+  action?: React.ReactNode;
 }
 
 export function EmptySlot({
@@ -26,7 +28,8 @@ export function EmptySlot({
   label,
   source,
   className = '',
-  compact = false
+  compact = false,
+  action
 }: EmptySlotProps) {
   const Icon = variant === 'image' ? ImageIcon : FileTextIcon;
   const text =
@@ -51,6 +54,7 @@ export function EmptySlot({
               Drive rồi bấm Đồng bộ
             </span>
         }
+          {action && <span className="mt-1.5">{action}</span>}
         </>
       }
     </div>);

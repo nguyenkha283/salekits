@@ -117,6 +117,22 @@ export function EditableImage({
     [onUpload, slotKey]
   );
 
+  /** Nút tải lên đặt giữa khung trống, ngay dưới dòng chỉ thư mục Drive. */
+  const uploadInEmpty =
+  editable && !emptyCompact ?
+  <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-[#d8cab4] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#6D3A18] transition-colors hover:bg-white/70">
+      <UploadIcon className="h-3.5 w-3.5" />
+      Tải ảnh từ máy
+      <input
+      type="file"
+      accept="image/png,image/jpeg,image/webp"
+      onChange={(event) => handleFiles(event.target.files)}
+      className="sr-only" />
+
+    </label> :
+
+  undefined;
+
   const picture = effective ?
   <img src={effective} alt={alt} className={className} /> :
 
@@ -124,11 +140,15 @@ export function EditableImage({
     label={emptyLabel}
     source={emptySource}
     className={emptyClassName || className}
-    compact={emptyCompact} />;
+    compact={emptyCompact}
+    action={uploadInEmpty} />;
 
 
 
   if (!editable) return picture;
+
+  // Khung trống đã có nút tải lên ở giữa; lớp phủ chỉ cần cho ô đã có ảnh.
+  if (!effective) return <div className={wrapperClassName}>{picture}</div>;
 
   return (
     <div className={`group/slot ${wrapperClassName}`}>
@@ -147,7 +167,7 @@ export function EditableImage({
         }
         <label className="pointer-events-auto inline-flex cursor-pointer items-center gap-1 rounded-md bg-white/95 px-2 py-1.5 text-[11px] font-semibold text-neutral-700 shadow-sm transition-colors hover:bg-white">
           <UploadIcon className="h-3.5 w-3.5" />
-          {effective ? 'Đổi ảnh' : 'Tải ảnh lên'}
+          Đổi ảnh
           <input
             type="file"
             accept="image/png,image/jpeg,image/webp"

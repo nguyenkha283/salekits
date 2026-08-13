@@ -3,6 +3,8 @@ import {
   ArrowRightIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  ImagePlusIcon,
+  PlusIcon,
   MapPinIcon,
   MessageCircleIcon,
   NavigationIcon,
@@ -17,9 +19,18 @@ import { EmptySlot } from './EmptySlot';
 import {
   EditableImage,
   ImageUploadButton,
+  readImageFiles,
   useExtraImages,
   useImageSlots } from
 './EditableImage';
+
+export interface FeaturedProduct {
+  id: string;
+  /** Ảnh tải lên từ máy; mục này không lấy nội dung từ Drive. */
+  image: string;
+  title: string;
+  description: string;
+}
 
 interface OverviewContentProps {
   tabs: React.ReactNode;
@@ -45,25 +56,11 @@ interface OverviewContentProps {
   };
   floorPlans?: {key: string;label: string;title: string;image: string;}[];
   /** Nhóm sản phẩm — soạn tay trong CMS, không lấy từ Drive. */
-  products?: {image: string;title: string;description: string;}[];
+  products?: FeaturedProduct[];
+  onProductsChange?: (products: FeaturedProduct[]) => void;
   /** Dòng địa chỉ hiển thị trên ảnh vị trí. */
   locationLabel?: string;
 }
-
-/**
- * Sản phẩm nổi bật — dữ liệu mẫu tạm thời, chờ mô tả nghiệp vụ.
- *
- * ⚠️ Đây là ngoại lệ có chủ đích với FR-33c (hệ thống không dùng dữ liệu mẫu ở
- * bất kỳ mục nội dung nào). Gỡ khi có nguồn dữ liệu thật cho mục này.
- */
-const DEFAULT_PRODUCTS = [
-{ image: '/bc3b6fbd-aac1-4c49-be3b-976b35aa7a67.jpg', title: 'Căn hộ Studio', description: 'Thiết kế tối ưu cho nhịp sống trẻ trung, riêng tư và linh hoạt.' },
-{ image: '/af90a9a2-cfa1-4e06-bf16-c3467b5c5fff.jpg', title: 'Căn hộ 2 phòng ngủ', description: 'Không gian cân bằng cho một gia đình hiện đại, luôn đầy ắp ánh sáng.' },
-{ image: '/f757d0c2-1880-4786-9ade-d83bdf5ffd51.jpg', title: 'Căn hộ 3 phòng ngủ', description: 'Một chốn về rộng rãi, tinh tế, mở ra những khoảnh khắc sum vầy.' },
-{ image: '/f04fab1e-81cd-4b76-9643-996fa55133e2.jpg', title: 'Căn hộ Dual Key', description: 'Hai không gian độc lập trong một căn hộ, linh hoạt ở và cho thuê.' },
-{ image: '/85bed7b1-ee07-4e5d-ae92-d9ea75fb82be.jpg', title: 'Căn hộ Sky Villa', description: 'Đặc quyền trên cao với tầm nhìn toàn cảnh và không gian mở rộng rãi.' },
-{ image: '/73dda9ab-a667-4bd9-a168-fc13267d6901.jpg', title: 'Căn hộ Duplex', description: 'Hai tầng thông nhau, tôn vinh chiều cao và ánh sáng tự nhiên.' }];
-
 
 /** Tiện ích hiển thị 7 ô đầu, phần còn lại gộp vào lớp phủ ở ô cuối. */
 const VISIBLE_AMENITIES = 7;
@@ -95,6 +92,7 @@ export function OverviewContent({
   amenities,
   floorPlans,
   products,
+  onProductsChange,
   locationLabel,
   stats,
   hierarchy = 'DỰ ÁN',
@@ -138,10 +136,39 @@ export function OverviewContent({
 
     [floorPlans, uploadedPlans]
   );
-  const PRODUCTS = products?.length ? products : DEFAULT_PRODUCTS;
+  const PRODUCTS = products ?? [];
   const FEATURED_STATS = stats ?? [];
 
   const productsRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Bố cục đổi theo số sản phẩm: một tới hai thì canh giữa, ba thì xếp ba cột,
+   * từ bốn trở lên mới chuyển sang băng cuộn kèm hai nút điều hướng.
+   */
+  const isProductCarousel = PRODUCTS.length >= 4;
+
+  const updateProduct = useCallback(
+    (id: string, patch: Partial<FeaturedProduct>) => {
+      onProductsChange?.(
+        PRODUCTS.map((item) => item.id === id ? { ...item, ...patch } : item)
+      );
+    },
+    [PRODUCTS, onProductsChange]
+  );
+
+  const removeProduct = useCallback(
+    (id: string) => {
+      onProductsChange?.(PRODUCTS.filter((item) => item.id !== id));
+    },
+    [PRODUCTS, onProductsChange]
+  );
+
+  const addProduct = useCallback(() => {
+    onProductsChange?.([
+    ...PRODUCTS,
+    { id: `sp-${Date.now()}`, image: '', title: '', description: '' }]
+    );
+  }, [PRODUCTS, onProductsChange]);
   const [activeHero, setActiveHero] = useState(0);
   const [activeFloor, setActiveFloor] = useState(FLOOR_PLANS[0]?.key ?? '');
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -405,31 +432,65 @@ export function OverviewContent({
         <div className="mx-auto w-[90vw]">
           <div className="flex items-end justify-between gap-6">
             <div><h2 className="text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Sản phẩm nổi bật.</h2></div>
+            {isProductCarousel &&
             <CarouselControls onPrevious={() => scrollCarousel(productsRef.current, -1)} onNext={() => scrollCarousel(productsRef.current, 1)} />
+            }
           </div>
-          {PRODUCTS.length === 0 &&
+
+          {isProductCarousel ?
+          <div ref={productsRef} className="mt-10 flex snap-x snap-mandatory gap-6 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {PRODUCTS.map((product) =>
+            <div key={product.id} className="w-[82%] shrink-0 snap-start sm:w-[48%] lg:w-[31.8%]">
+                  <ProductCard
+                product={product}
+                editable={canEdit}
+                onChange={updateProduct}
+                onRemove={removeProduct} />
+                
+                </div>
+            )}
+              {canEdit &&
+            <div className="w-[82%] shrink-0 snap-start sm:w-[48%] lg:w-[31.8%]">
+                  <AddProductTile onAdd={addProduct} />
+                </div>
+            }
+            </div> :
+
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {PRODUCTS.map((product, index) =>
+            <div
+              key={product.id}
+              className={
+              // Một sản phẩm thì đặt vào cột giữa, dấu cộng nằm cột thứ ba.
+              PRODUCTS.length === 1 && index === 0 ? 'lg:col-start-2' : ''
+              }>
+              
+                  <ProductCard
+                product={product}
+                editable={canEdit}
+                onChange={updateProduct}
+                onRemove={removeProduct} />
+                
+                </div>
+            )}
+              {canEdit && PRODUCTS.length < 3 &&
+            <AddProductTile onAdd={addProduct} />
+            }
+            </div>
+          }
+
+          {canEdit && !isProductCarousel && PRODUCTS.length === 3 &&
+          <div className="mt-6 flex justify-center">
+            <AddProductTile onAdd={addProduct} compact />
+          </div>
+          }
+
+          {!canEdit && PRODUCTS.length === 0 &&
           <EmptySlot
             variant="content"
-            label="Tải nội dung sản phẩm nổi bật lên"
-            className="mt-10 min-h-[320px] rounded-lg" />
+            label="Chưa có sản phẩm nổi bật"
+            className="mt-10 min-h-[240px] rounded-lg" />
           }
-          <div ref={productsRef} className="mt-10 flex snap-x snap-mandatory gap-6 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {PRODUCTS.map((product) =>
-            <article key={product.title} className="w-[82%] shrink-0 snap-start sm:w-[48%] lg:w-[31.8%]">
-                <EditableImage
-                  slotKey={`product-${product.title}`}
-                  src={product.image}
-                  alt={product.title}
-                  className="aspect-[4/5] w-full object-cover"
-                  wrapperClassName="relative w-full"
-                  emptySource="01. Tổng quan"
-                  emptyClassName="aspect-[4/5] w-full" />
-                <h3 className="mt-4 text-xl font-semibold tracking-[-0.02em]">{product.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-[#675e56]">{product.description}</p>
-                <a href="#products" className="mt-4 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.1em] underline underline-offset-4">Tìm hiểu thêm <ArrowRightIcon className="h-3.5 w-3.5" /></a>
-              </article>
-            )}
-          </div>
         </div>
       </section>
 
@@ -549,6 +610,116 @@ export function OverviewContent({
 interface CarouselControlsProps {
   onPrevious: () => void;
   onNext: () => void;
+}
+
+interface ProductCardProps {
+  product: FeaturedProduct;
+  editable: boolean;
+  onChange: (id: string, patch: Partial<FeaturedProduct>) => void;
+  onRemove: (id: string) => void;
+}
+
+/**
+ * Một sản phẩm nổi bật. Mục này soạn tay trong CMS, ảnh tải thẳng từ máy chứ
+ * không đi qua Drive, nên khung ảnh cũng chính là nút tải lên.
+ */
+function ProductCard({ product, editable, onChange, onRemove }: ProductCardProps) {
+  async function handleFiles(files: FileList | null) {
+    const [url] = await readImageFiles(files);
+    if (url) onChange(product.id, { image: url });
+  }
+
+  return (
+    <article className="group/product relative">
+      {editable ?
+      <label className="relative block aspect-[4/5] w-full cursor-pointer overflow-hidden">
+          {product.image ?
+        <img src={product.image} alt={product.title} className="h-full w-full object-cover" /> :
+
+        <span className="flex h-full w-full flex-col items-center justify-center gap-2 border border-dashed border-[#d8cab4] bg-[#faf6ef] text-center text-[#a08b6c]">
+              <ImagePlusIcon className="h-7 w-7" aria-hidden="true" />
+              <span className="px-3 text-[13px] font-semibold text-[#8a6a3f]">
+                Tải ảnh sản phẩm lên
+              </span>
+              <span className="px-3 text-[11px] leading-snug">
+                Bấm vào khung để chọn ảnh từ máy
+              </span>
+            </span>
+        }
+          {product.image &&
+        <span className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-end p-2 opacity-0 transition-opacity group-hover/product:opacity-100">
+              <span className="rounded-md bg-white/95 px-2 py-1.5 text-[11px] font-semibold text-neutral-700 shadow-sm">
+                Đổi ảnh
+              </span>
+            </span>
+        }
+          <input
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          onChange={(event) => handleFiles(event.target.files)}
+          className="sr-only" />
+
+        </label> :
+
+      <img
+        src={product.image}
+        alt={product.title}
+        className="aspect-[4/5] w-full object-cover" />
+      }
+
+      <h3 className="mt-4 text-xl font-semibold tracking-[-0.02em]">
+        <InlineText
+          value={product.title}
+          editable={editable}
+          label="Tên sản phẩm"
+          placeholder="Nhập tên loại sản phẩm"
+          onChange={(value) => onChange(product.id, { title: value })} />
+        
+      </h3>
+      <p className="mt-2 text-sm leading-6 text-[#675e56]">
+        <InlineText
+          value={product.description}
+          editable={editable}
+          label="Mô tả sản phẩm"
+          placeholder="Nhập mô tả ngắn cho loại sản phẩm này"
+          onChange={(value) => onChange(product.id, { description: value })} />
+        
+      </p>
+
+      {editable &&
+      <button
+        type="button"
+        onClick={() => onRemove(product.id)}
+        aria-label={`Xóa sản phẩm ${product.title || 'chưa đặt tên'}`}
+        className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-md bg-white/95 text-neutral-500 opacity-0 shadow-sm transition-opacity hover:text-red-600 group-hover/product:opacity-100">
+        
+          <XIcon className="h-4 w-4" />
+        </button>
+      }
+    </article>);
+
+}
+
+/** Ô dấu cộng để thêm một sản phẩm mới. */
+function AddProductTile({
+  onAdd,
+  compact = false
+}: {onAdd: () => void;compact?: boolean;}) {
+  return (
+    <button
+      type="button"
+      onClick={onAdd}
+      aria-label="Thêm sản phẩm nổi bật"
+      className={`group/add flex w-full flex-col items-center justify-center gap-3 text-[#a08b6c] transition-colors hover:text-[#6D3A18] ${
+      compact ? 'py-2' : 'aspect-[4/5]'}`
+      }>
+      
+      <span className="grid h-16 w-16 place-items-center rounded-full border-2 border-dashed border-[#d8cab4] transition-colors group-hover/add:border-[#6D3A18]">
+        <PlusIcon className="h-7 w-7" />
+      </span>
+      <span className="text-[13px] font-semibold">Thêm sản phẩm</span>
+    </button>);
+
 }
 
 function CarouselControls({ onPrevious, onNext }: CarouselControlsProps) {

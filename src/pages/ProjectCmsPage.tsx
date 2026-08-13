@@ -22,6 +22,7 @@ import {
 'lucide-react';
 import { Role } from '../detail/components/Header';
 import { CANVAS_TABS, ProjectCanvas, canEditTab } from '../detail/ProjectCanvas';
+import type { FeaturedProduct } from '../detail/components/OverviewContent';
 import type { InventorySource } from '../detail/components/InventorySetup';
 import type { UpstreamChange } from '../detail/components/InventorySourceBar';
 import type { GridModel } from '../detail/gridModel';
@@ -160,6 +161,13 @@ export function ProjectCmsPage() {
   /** Ảnh tải tay từ máy, đè lên ảnh Drive ở cùng vị trí (song song với đồng bộ). */
   const [imageOverrides, setImageOverrides] = useState<Record<string, string>>({});
   const [imageExtras, setImageExtras] = useState<Record<string, string[]>>({});
+  /**
+   * Sản phẩm nổi bật — soạn tay, không lấy từ Drive. Khởi tạo một ô trống để
+   * người dùng thấy ngay khung cần điền thay vì một mục rỗng.
+   */
+  const [products, setProducts] = useState<FeaturedProduct[]>([
+  { id: 'sp-1', image: '', title: '', description: '' }]
+  );
   const [isResyncing, setIsResyncing] = useState(false);
   const [notice, setNotice] = useState('');
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -615,6 +623,8 @@ export function ProjectCmsPage() {
             projectLayout={projectLayout}
             grids={grids}
             onGridsChange={setGrids}
+            products={products}
+            onProductsChange={setProducts}
             imageSlots={{
               editable,
               overrides: imageOverrides,

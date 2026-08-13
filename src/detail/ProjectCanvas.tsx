@@ -15,6 +15,7 @@ import { BuildingsContent } from './components/BuildingsContent';
 import { FloorPlanContent } from './components/FloorPlanContent';
 import { TeamContent } from './components/TeamContent';
 import { ImageSlotProvider, type ImageSlotState } from './components/EditableImage';
+import type { FeaturedProduct } from './components/OverviewContent';
 import { InventorySetup, type InventorySource } from './components/InventorySetup';
 import { buildInventory, type InventoryData } from './inventoryParser';
 import type { ProjectLayout } from './parseWorkbook';
@@ -138,6 +139,9 @@ interface ProjectCanvasProps {
   };
   /** Ảnh và tài liệu đã đồng bộ, gom theo tab. */
   syncedMedia?: SyncedMedia;
+  /** Sản phẩm nổi bật — soạn tay trong CMS. */
+  products?: FeaturedProduct[];
+  onProductsChange?: (products: FeaturedProduct[]) => void;
   /** Ảnh tải tay từ máy, đè lên ảnh Drive ở cùng vị trí. */
   imageSlots?: ImageSlotState;
   /** Ẩn breadcrumb và nút chia sẻ khi hiển thị bên trong CMS. */
@@ -168,6 +172,8 @@ export function ProjectCanvas({
   onGridsChange,
   editing,
   syncedMedia = {},
+  products,
+  onProductsChange,
   imageSlots,
   chrome = true
 }: ProjectCanvasProps) {
@@ -318,6 +324,8 @@ export function ProjectCanvas({
           amenities={amenities}
           floorPlans={floorPlans}
           stats={stats}
+          products={products}
+          onProductsChange={onProductsChange}
           hierarchy={hierarchy}
           projectName={projectName}
           tagline={tagline}
