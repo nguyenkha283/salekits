@@ -26,6 +26,12 @@ import {
   type DashboardRole } from
 '../dashboard/roles';
 import type { Investor } from '../types/investor';
+import { NotificationBanner, NotificationBell } from '../components/NotificationBell';
+import {
+  setRole as setWorkflowRole,
+  useWorkflow,
+  type WorkflowRole } from
+'../app/workflowStore';
 
 type MenuKey = 'tong-quan' | 'du-an' | 'chu-dau-tu';
 
@@ -48,8 +54,9 @@ export function DashboardPage() {
   const [projects, setProjects] = useState<DashboardProject[]>(DASHBOARD_PROJECTS);
   const [investors, setInvestors] = useState<Investor[]>(DASHBOARD_INVESTORS);
   const [contacts, setContacts] = useState<ProjectContact[]>(DEMO_CONTACTS);
-  /** Bộ chọn vai trò là giả lập để trình diễn phân quyền, chưa gắn HRM. */
-  const [role, setRole] = useState<DashboardRole>('APM');
+  // Vai trò lấy từ kho dùng chung để luồng duyệt đi xuyên các màn.
+  const workflow = useWorkflow();
+  const role = workflow.role as DashboardRole;
 
   const scopedProjects = visibleProjects(projects, {
     role,
@@ -91,7 +98,9 @@ export function DashboardPage() {
             <select
               id="dashboard-role"
               value={role}
-              onChange={(event) => setRole(event.target.value as DashboardRole)}
+              onChange={(event) =>
+              setWorkflowRole(event.target.value as WorkflowRole)
+              }
               className="rounded-lg border border-neutral-300 bg-white px-2.5 py-1.5 text-sm font-semibold text-neutral-800 outline-none transition-colors focus:border-[#6D3A18] focus:ring-2 focus:ring-orange-100">
               
               {DASHBOARD_ROLES.map((item) =>
@@ -101,6 +110,8 @@ export function DashboardPage() {
               )}
             </select>
           </div>
+
+          <NotificationBell role={role as WorkflowRole} />
 
           <span className="hidden h-6 w-px bg-neutral-200 sm:block" aria-hidden="true" />
 
@@ -121,6 +132,8 @@ export function DashboardPage() {
           </div>
         </div>
       </header>
+
+      <NotificationBanner role={role as WorkflowRole} />
 
       <div className="mx-auto flex max-w-[1400px] flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row lg:gap-8 lg:py-8">
         {/* Cột trái — menu người dùng */}

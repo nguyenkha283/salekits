@@ -23,6 +23,20 @@ import {
 import { Role } from '../detail/components/Header';
 import { CANVAS_TABS, ProjectCanvas, canEditTab } from '../detail/ProjectCanvas';
 import type { FeaturedProduct } from '../detail/components/OverviewContent';
+import { NotificationBanner } from '../components/NotificationBell';
+import {
+  approveProject,
+  isCreatorRole,
+  rejectProject,
+  setProjectIdentity,
+  setRole as setWorkflowRole,
+  submitForApproval,
+  teamReadyIssues,
+  toggleAssignment,
+  updateTeam,
+  useWorkflow,
+  type WorkflowRole } from
+'../app/workflowStore';
 import type { InventorySource } from '../detail/components/InventorySetup';
 import type { UpstreamChange } from '../detail/components/InventorySourceBar';
 import type { GridModel } from '../detail/gridModel';
@@ -45,6 +59,14 @@ import {
 '../components/ProjectConfigurationDialog';
 import type { CmsRole } from '../types/cms';
 import type { ProjectConfiguration, ProjectDraft } from '../types/project';
+
+/** Nhãn hiển thị của vòng đời trạng thái dự án (SRS mục 3.2). */
+const STATUS_LABEL: Record<string, string> = {
+  'nhap': 'Nháp',
+  'cho-duyet': 'Chờ duyệt',
+  'da-duyet': 'Đã duyệt · Xuất bản',
+  'tu-choi': 'Chưa được duyệt'
+};
 
 const ROLES: Role[] = [
 'APM',
@@ -136,7 +158,8 @@ export function ProjectCmsPage() {
   const projectLayout: ProjectLayout =
   searchParams.get('loaiHinh') === 'thap-tang' ? 'thap-tang' : 'cao-tang';
 
-  const [role, setRole] = useState<Role>('APM');
+  // Vai trò nằm ở kho dùng chung để luồng duyệt đi qua được nhiều màn.
+  const role = useWorkflow().role as Role;
   const [activeTab, setActiveTab] = useState('tong-quan');
 
   // Dự án thấp tầng không có tab Bảng hàng — chuyển sang Quỹ căn nếu đang ở đó.
@@ -161,6 +184,11 @@ export function ProjectCmsPage() {
   /** Ảnh tải tay từ máy, đè lên ảnh Drive ở cùng vị trí (song song với đồng bộ). */
   const [imageOverrides, setImageOverrides] = useState<Record<string, string>>({});
   const [imageExtras, setImageExtras] = useState<Record<string, string[]>>({});
+  const workflow = useWorkflow();
+  const [approvalOpen, setApprovalOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejectMode, setRejectMode] = useState(false);
+  const [submitIssues, setSubmitIssues] = useState<string[]>([]);
   /**
    * Sản phẩm nổi bật — soạn tay, không lấy từ Drive. Khởi tạo một ô trống để
    * người dùng thấy ngay khung cần điền thay vì một mục rỗng.
@@ -339,6 +367,11 @@ export function ProjectCmsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inventorySource, notify]);
 
+  // Tên và mã dự án đưa vào kho dùng chung để thông báo hiển thị đúng.
+  useEffect(() => {
+    setProjectIdentity(heroName, configuration.projectCode || project.code);
+  }, [heroName, configuration.projectCode, project.code]);
+
   const showNotice = useCallback((message: string) => {
     setNotice(message);
     window.setTimeout(() => setNotice(''), 2800);
@@ -417,6 +450,31 @@ export function ProjectCmsPage() {
     }
   }
 
+  /**
+   * Điều kiện tối thiểu để gửi duyệt — UC-16: đủ trường bắt buộc, có nội dung
+   * tab Tổng quan, có ít nhất một ảnh hero banner, và đội ngũ đã đủ người.
+   */
+  function collectSubmitIssues(): string[] {
+    const issues = teamReadyIssues(workflow.team);
+    if (!heroName.trim()) issues.push('Chưa có tên dự án');
+    const hasHero =
+    (syncedMedia['tong-quan']?.length ?? 0) > 0 ||
+    (imageExtras['hero']?.length ?? 0) > 0;
+    if (!hasHero) issues.push('Chưa có ảnh băng đầu trang');
+    if (!(edits.overviewHtml ?? '').trim()) {
+      issues.push('Chưa có nội dung tab Tổng quan');
+    }
+    return issues;
+  }
+
+  function handleSubmitForApproval() {
+    const issues = collectSubmitIssues();
+    setSubmitIssues(issues);
+    if (issues.length > 0) return;
+    submitForApproval(heroName, configuration.projectCode || project.code);
+    showNotice('Đã gửi duyệt tới Trưởng line');
+  }
+
   const publicHref = `/du-an?loaiHinh=${projectLayout}${
   projectId ? `&projectId=${encodeURIComponent(projectId)}` : ''}`;
   const sectionsInTab = SECTIONS.filter((item) => item.tab === activeTab);
@@ -455,7 +513,9 @@ export function ProjectCmsPage() {
           <select
             id="cms-role"
             value={role}
-            onChange={(event) => setRole(event.target.value as Role)}
+            onChange={(event) =>
+            setWorkflowRole(event.target.value as WorkflowRole)
+            }
             className="h-8 rounded-md border border-[#e0d2bd] bg-white px-2.5 text-xs font-semibold text-stone-800 outline-none focus:border-[#f5921f] sm:text-sm">
 
             {ROLES.map((item) =>
@@ -582,15 +642,75 @@ export function ProjectCmsPage() {
 
             <Settings2Icon className="h-4 w-4" />
           </button>
+          <span
+            className={`hidden rounded-md px-2 py-1 text-[11px] font-bold lg:inline-block ${
+            workflow.status === 'da-duyet' ?
+            'bg-emerald-50 text-emerald-700' :
+            workflow.status === 'cho-duyet' ?
+            'bg-sky-50 text-sky-700' :
+            workflow.status === 'tu-choi' ?
+            'bg-amber-50 text-amber-700' :
+            'bg-stone-100 text-stone-600'}`
+            }>
+            
+            {STATUS_LABEL[workflow.status]}
+          </span>
+
+          {role === 'Trưởng line' && workflow.status === 'cho-duyet' &&
           <button
             type="button"
-            onClick={() => showNotice('Đã gửi duyệt tới Trưởng line')}
-            className="h-8 rounded-md bg-[#f5921f] px-3 text-xs font-semibold text-white transition-colors hover:bg-[#db7214] sm:text-sm">
-
-            Gửi duyệt
+            onClick={() => {
+              setRejectMode(false);
+              setRejectReason('');
+              setApprovalOpen(true);
+            }}
+            className="h-8 rounded-md bg-emerald-600 px-3 text-xs font-semibold text-white transition-colors hover:bg-emerald-700 sm:text-sm">
+            
+            Duyệt
           </button>
+          }
+
+          {isCreatorRole(role as WorkflowRole) &&
+          (workflow.status === 'nhap' || workflow.status === 'tu-choi') &&
+          <button
+            type="button"
+            onClick={handleSubmitForApproval}
+            className="h-8 rounded-md bg-[#f5921f] px-3 text-xs font-semibold text-white transition-colors hover:bg-[#db7214] sm:text-sm">
+            
+            {workflow.status === 'tu-choi' ? 'Gửi duyệt lại' : 'Gửi duyệt'}
+          </button>
+          }
+
+          {workflow.status === 'da-duyet' &&
+          <a
+            href={publicHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="grid h-8 items-center rounded-md bg-emerald-600 px-3 text-xs font-semibold text-white transition-colors hover:bg-emerald-700 sm:text-sm">
+            
+            Xem trang dự án
+          </a>
+          }
         </div>
       </header>
+
+      <NotificationBanner role={role as WorkflowRole} />
+
+      {workflow.status === 'tu-choi' && isCreatorRole(role as WorkflowRole) &&
+      <div className="border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-900">
+          <span className="font-bold">Lý do chưa được duyệt: </span>
+          {workflow.rejectReason}
+        </div>
+      }
+
+      {submitIssues.length > 0 &&
+      <div className="border-b border-red-200 bg-red-50 px-4 py-2.5 text-xs text-red-800">
+          <p className="font-bold">Chưa gửi duyệt được, còn thiếu:</p>
+          <ul className="mt-1 list-inside list-disc">
+            {submitIssues.map((issue) => <li key={issue}>{issue}</li>)}
+          </ul>
+        </div>
+      }
 
       {isBlankSource &&
       <div className="flex flex-wrap items-center gap-2 border-b border-[#e3c79f] bg-[#fdf3e2] px-4 py-2.5 text-xs text-[#8a6a3f]">
@@ -633,6 +753,10 @@ export function ProjectCmsPage() {
             onGridsChange={setGrids}
             products={products}
             onProductsChange={setProducts}
+            team={workflow.team}
+            teamEditable={editable && isCreatorRole(role as WorkflowRole)}
+            onTeamChange={updateTeam}
+            onToggleAssignment={toggleAssignment}
             imageSlots={{
               editable,
               overrides: imageOverrides,
@@ -785,6 +909,100 @@ export function ProjectCmsPage() {
       <div className="pointer-events-none fixed bottom-5 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-md bg-[#3b2c1d] px-4 py-2.5 text-sm font-medium text-white shadow-lg">
           <CheckCircle2Icon className="h-4 w-4 shrink-0 text-[#6ee7b7]" />
           {notice}
+        </div>
+      }
+
+      {approvalOpen &&
+      <div
+        className="fixed inset-0 z-50 grid place-items-center bg-neutral-900/50 p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Duyệt dự án">
+        
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <h2 className="text-base font-bold text-neutral-900">
+              {rejectMode ? 'Không duyệt dự án' : 'Duyệt dự án'}
+            </h2>
+            <p className="mt-1.5 text-sm leading-relaxed text-neutral-600">
+              <span className="font-semibold text-neutral-900">
+                {workflow.projectName || heroName || 'Dự án chưa đặt tên'}
+              </span>
+              {workflow.submittedAt && ` · gửi duyệt lúc ${workflow.submittedAt}`}
+            </p>
+
+            {rejectMode &&
+            <div className="mt-4">
+              <label
+                className="mb-1.5 block text-xs font-semibold text-neutral-700"
+                htmlFor="reject-reason">
+                
+                Lý do không duyệt <span className="text-orange-600">*</span>
+              </label>
+              <textarea
+                id="reject-reason"
+                value={rejectReason}
+                onChange={(event) => setRejectReason(event.target.value)}
+                rows={4}
+                placeholder="Nêu rõ chỗ cần sửa để người tạo biết phải làm gì."
+                className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none transition-colors focus:border-[#6D3A18] focus:ring-2 focus:ring-orange-100" />
+              
+              <p className="mt-1 text-[11px] text-neutral-500">
+                Lý do được gửi tới APM, Trợ lý dự án và Hành chính dự án.
+              </p>
+            </div>
+            }
+
+            <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setApprovalOpen(false);
+                  setRejectMode(false);
+                }}
+                className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-50">
+                
+                Đóng
+              </button>
+
+              {!rejectMode &&
+              <button
+                type="button"
+                onClick={() => setRejectMode(true)}
+                className="rounded-md border border-amber-300 px-4 py-2 text-sm font-semibold text-amber-700 transition-colors hover:bg-amber-50">
+                
+                Không duyệt
+              </button>
+              }
+
+              {rejectMode ?
+              <button
+                type="button"
+                disabled={rejectReason.trim().length === 0}
+                onClick={() => {
+                  rejectProject(rejectReason);
+                  setApprovalOpen(false);
+                  setRejectMode(false);
+                  showNotice('Đã gửi lý do tới người tạo dự án');
+                }}
+                className="rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-amber-700 disabled:cursor-not-allowed disabled:bg-neutral-300">
+                
+                Gửi lý do
+              </button> :
+
+              <button
+                type="button"
+                onClick={() => {
+                  approveProject();
+                  setApprovalOpen(false);
+                  showNotice('Đã duyệt và xuất bản dự án');
+                }}
+                className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700">
+                
+                Duyệt và xuất bản
+              </button>
+              }
+            </div>
+          </div>
         </div>
       }
 

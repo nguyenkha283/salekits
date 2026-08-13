@@ -8,6 +8,8 @@ import {
   XIcon } from
 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { NotificationBell } from './NotificationBell';
+import { isCreatorRole, useWorkflow } from '../app/workflowStore';
 const NAV_ITEMS = [
 'Kho dự án',
 'Nhà bán lẻ',
@@ -23,6 +25,9 @@ export function Header({ variant = 'hero' }: HeaderProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
+  const { role } = useWorkflow();
+  /** Chỉ nhóm Người tạo dự án mới thấy nút Tạo dự án (SRS mục 2.5). */
+  const canCreate = isCreatorRole(role);
   const navigate = useNavigate();
   const isLight = variant === 'light';
   const foreground = isLight ? 'text-neutral-900' : 'text-white';
@@ -103,6 +108,9 @@ export function Header({ variant = 'hero' }: HeaderProps) {
             Trở thành môi giới
             <ChevronDownIcon className="h-4 w-4" />
           </button>
+          <NotificationBell role={role} />
+
+          {canCreate &&
           <button
             type="button"
             onClick={goToCreateProject}
@@ -111,6 +119,7 @@ export function Header({ variant = 'hero' }: HeaderProps) {
             <PlusIcon className="h-4 w-4" />
             Tạo dự án
           </button>
+          }
           <div ref={accountRef} className="relative hidden sm:block">
             <button
               type="button"
@@ -126,7 +135,7 @@ export function Header({ variant = 'hero' }: HeaderProps) {
                 <UserIcon className="h-5 w-5" />
               </span>
               <span className="leading-tight">
-                <span className="block text-sm font-semibold">Role APM</span>
+                <span className="block text-sm font-semibold">{role}</span>
                 <span
                   className={`block text-xs ${isLight ? 'text-neutral-500' : 'text-white/80'}`}>
                   

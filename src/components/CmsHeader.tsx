@@ -1,6 +1,8 @@
 import React from 'react';
 import { EyeIcon, PanelRightIcon, RefreshCwIcon, Settings2Icon, ExternalLinkIcon } from 'lucide-react';
 import { CmsRole } from '../types/cms';
+import { NotificationBell } from './NotificationBell';
+import type { WorkflowRole, WorkflowStatus } from '../app/workflowStore';
 export type CmsRightPanelMode = 'document' | null;
 const ROLES: CmsRole[] = ['APM', 'Trưởng line', 'Quản lý bán hàng', 'Marketing'];
 interface CmsHeaderProps {
@@ -15,6 +17,11 @@ interface CmsHeaderProps {
   driveFolderUrl?: string;
   isResyncing?: boolean;
   onResync?: () => void;
+  /** Vai trò đang đóng, dùng cho hộp thông báo và nút duyệt. */
+  workflowRole: WorkflowRole;
+  workflowStatus: WorkflowStatus;
+  onSubmitForApproval: () => void;
+  onOpenApproval: () => void;
 }
 interface IconControlProps {
   active?: boolean;
@@ -51,8 +58,39 @@ export function CmsHeader({
   onPublish,
   driveFolderUrl,
   isResyncing = false,
-  onResync
+  onResync,
+  workflowRole,
+  workflowStatus,
+  onSubmitForApproval,
+  onOpenApproval
 }: CmsHeaderProps) {
+  const isApprover = workflowRole === 'Trưởng line';
+  const isCreator =
+  workflowRole === 'APM' ||
+  workflowRole === 'Trợ lý dự án' ||
+  workflowRole === 'Hành chính dự án';
+
+  /**
+   * Nút chính đổi theo vai trò và trạng thái: người tạo thấy Gửi duyệt, Trưởng
+   * line thấy Duyệt khi dự án đang chờ. Xuất bản là hệ quả của việc duyệt chứ
+   * không còn là một nút riêng cho người tạo.
+   */
+  const primary =
+  isApprover && workflowStatus === 'cho-duyet' ?
+  { label: 'Duyệt', onClick: onOpenApproval, tone: 'bg-emerald-600 hover:bg-emerald-700' } :
+  isCreator && workflowStatus === 'tu-choi' ?
+  { label: 'Gửi duyệt lại', onClick: onSubmitForApproval, tone: 'bg-[#f5881f] hover:bg-[#db7214]' } :
+  isCreator && workflowStatus === 'nhap' ?
+  { label: 'Gửi duyệt', onClick: onSubmitForApproval, tone: 'bg-[#f5881f] hover:bg-[#db7214]' } :
+  null;
+
+  const statusLabel: Record<WorkflowStatus, string> = {
+    'nhap': 'Nháp',
+    'cho-duyet': 'Chờ duyệt',
+    'da-duyet': 'Đã duyệt · Xuất bản',
+    'tu-choi': 'Chưa được duyệt'
+  };
+
   return (
     <header className="relative flex h-16 w-full items-center justify-between border-b border-neutral-200 bg-white px-4 sm:px-5">
       <div
@@ -123,6 +161,20 @@ export function CmsHeader({
           <ExternalLinkIcon className="h-4 w-4" aria-hidden="true" />
           Trang công khai
         </a>
+        <span
+          className={`hidden rounded-md px-2 py-1 text-[11px] font-bold sm:inline-block ${
+          workflowStatus === 'da-duyet' ?
+          'bg-emerald-50 text-emerald-700' :
+          workflowStatus === 'cho-duyet' ?
+          'bg-sky-50 text-sky-700' :
+          workflowStatus === 'tu-choi' ?
+          'bg-amber-50 text-amber-700' :
+          'bg-neutral-100 text-neutral-600'}`
+          }>
+          
+          {statusLabel[workflowStatus]}
+        </span>
+        <NotificationBell role={workflowRole} />
         <IconControl label="Xem trước" onClick={onPreview}>
           <EyeIcon className="h-5 w-5" aria-hidden="true" />
         </IconControl>
@@ -140,13 +192,29 @@ export function CmsHeader({
           
           <PanelRightIcon className="h-5 w-5" aria-hidden="true" />
         </IconControl>
+        {primary ?
+        <button
+          type="button"
+          onClick={primary.onClick}
+          className={`h-8 rounded-md px-2.5 text-xs font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-orange-300 sm:px-3 sm:text-sm ${primary.tone}`}>
+          
+            {primary.label}
+          </button> :
+
         <button
           type="button"
           onClick={onPublish}
-          className="h-8 rounded-md bg-[#f5881f] px-2.5 text-xs font-semibold text-white transition-colors hover:bg-[#db7214] focus:outline-none focus:ring-2 focus:ring-orange-300 sm:px-3 sm:text-sm">
+          disabled={workflowStatus !== 'da-duyet'}
+          title={
+          workflowStatus !== 'da-duyet' ?
+          'Dự án phải được Trưởng line duyệt trước khi xuất bản' :
+          undefined
+          }
+          className="h-8 rounded-md bg-[#f5881f] px-2.5 text-xs font-semibold text-white transition-colors hover:bg-[#db7214] focus:outline-none focus:ring-2 focus:ring-orange-300 disabled:cursor-not-allowed disabled:bg-neutral-300 sm:px-3 sm:text-sm">
           
-          Xuất bản
-        </button>
+            Xuất bản
+          </button>
+        }
       </div>
     </header>);
 

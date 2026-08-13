@@ -1,6 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { ChangeEvent } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
+import {
+  approveProject,
+  submitForApproval,
+  useWorkflow } from
+'../app/workflowStore';
 import { CmsHeader, CmsRightPanelMode } from '../components/CmsHeader';
 import { CmsRightPanel } from '../components/CmsRightPanel';
 import {
@@ -162,6 +167,7 @@ synced: SyncedContentPayload)
   };
 }
 export function ProjectCreatedPage() {
+  const workflow = useWorkflow();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const locationState = location.state as ProjectEditorLocationState | null;
@@ -1167,7 +1173,11 @@ export function ProjectCreatedPage() {
         onPublish={() => showNotice('Dự án đã được xuất bản')}
         driveFolderUrl={driveFolderUrl}
         isResyncing={isResyncing}
-        onResync={handleResync} />
+        onResync={handleResync}
+        workflowRole={workflow.role}
+        workflowStatus={workflow.status}
+        onSubmitForApproval={() => submitForApproval(project.name, project.code)}
+        onOpenApproval={() => approveProject()} />
       
 
       <input

@@ -16,6 +16,7 @@ import { FloorPlanContent } from './components/FloorPlanContent';
 import { TeamContent } from './components/TeamContent';
 import { ImageSlotProvider, type ImageSlotState } from './components/EditableImage';
 import type { FeaturedProduct } from './components/OverviewContent';
+import type { TeamAssignment } from '../app/workflowStore';
 import { InventorySetup, type InventorySource } from './components/InventorySetup';
 import { buildInventory, type InventoryData } from './inventoryParser';
 import type { ProjectLayout } from './parseWorkbook';
@@ -139,6 +140,14 @@ interface ProjectCanvasProps {
   };
   /** Ảnh và tài liệu đã đồng bộ, gom theo tab. */
   syncedMedia?: SyncedMedia;
+  /** Đội ngũ dự án — đồng bộ từ HRM, gán trong tab Đội ngũ. */
+  team?: TeamAssignment;
+  teamEditable?: boolean;
+  onTeamChange?: (patch: Partial<TeamAssignment>) => void;
+  onToggleAssignment?: (
+  group: 'salesCodes' | 'marketingCodes',
+  code: string)
+  => void;
   /** Sản phẩm nổi bật — soạn tay trong CMS. */
   products?: FeaturedProduct[];
   onProductsChange?: (products: FeaturedProduct[]) => void;
@@ -172,6 +181,10 @@ export function ProjectCanvas({
   onGridsChange,
   editing,
   syncedMedia = {},
+  team,
+  teamEditable = false,
+  onTeamChange,
+  onToggleAssignment,
   products,
   onProductsChange,
   imageSlots,
@@ -372,7 +385,14 @@ export function ProjectCanvas({
         <FundInventory data={inventoryData} showNotice={chrome} />
         }
         {activeTab === 'tin-tuc' && <NewsContent />}
-        {activeTab === 'doi-ngu' && canViewRestricted(role) && <TeamContent />}
+        {activeTab === 'doi-ngu' && canViewRestricted(role) && team &&
+        <TeamContent
+          projectName={projectName}
+          team={team}
+          editable={teamEditable}
+          onChange={(patch) => onTeamChange?.(patch)}
+          onToggleAssignment={(group, code) => onToggleAssignment?.(group, code)} />
+        }
         {!CANVAS_TABS.some((entry) => entry.id === activeTab) && <ProjectContent />}
       </div>
     </ImageSlotProvider>);

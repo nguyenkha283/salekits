@@ -45,6 +45,30 @@ Bấm Tạo dự án là `/api/sync-project` ghi một lượt: dự án, chủ 
 
 Toàn bộ dữ liệu nhập ở đây chảy thẳng sang **Cấu hình dự án** trong CMS, không phải nhập lại lần hai.
 
+### Bước 1b — Đội ngũ dự án và gửi duyệt
+
+Vào tab **Đội ngũ** trong CMS. Tiêu đề nhỏ *Đội ngũ dự án*, tiêu đề lớn là tên dự án, bên dưới là các nhóm chức danh:
+
+| Nhóm | Cách điền |
+|---|---|
+| **Trưởng line** | Gắn sẵn từ HRM theo line của dự án, không sửa được |
+| **APM · Trợ lý dự án · Hành chính dự án** | Nhập **mã nhân viên**, hệ thống tra HRM và điền tên, chức danh, số điện thoại, email. Thử với `NV-1042`, `NV-2087`, `NV-3155` |
+| **Quản lý giao dịch** | Cây phòng ban: trưởng phòng ở trên, nhân viên bên dưới, mỗi người có nút **Gán vào dự án** |
+| **Marketing** | Cấu trúc giống Quản lý giao dịch |
+
+Xong bấm **Gửi duyệt** trên thanh đầu. Hệ thống kiểm điều kiện tối thiểu của UC-16 trước — thiếu APM, chưa gán Quản lý giao dịch nào, chưa có tên dự án, chưa có ảnh băng đầu trang hay chưa có nội dung Tổng quan thì liệt kê cụ thể chỗ thiếu và không cho gửi.
+
+**Đổi vai trò sang Trưởng line** trên thanh đầu: chuông hiện số chưa đọc, dải thông báo báo *"Có dự án mới cần duyệt"*, và nút Gửi duyệt đổi thành **Duyệt**.
+
+Bấm Duyệt có hai nhánh:
+
+- **Duyệt và xuất bản** — dự án chuyển sang *Đã duyệt*, xem được ở trang chi tiết dự án.
+- **Không duyệt** — mở ô nhập lý do, gửi tới APM, Trợ lý dự án và Hành chính dự án.
+
+Đổi vai trò về APM sẽ thấy *"Dự án đã được duyệt"* hoặc *"Dự án bị từ chối vì…"*, kèm dải màu vàng ghi lý do ngay dưới thanh đầu và nút đổi thành **Gửi duyệt lại**.
+
+Trạng thái và thông báo lưu ở `sessionStorage` nên sống qua các lần chuyển trang và tải lại, mất khi đóng tab.
+
 ### Bước 2 — Biên tập trong CMS · `/hoan-tat` (5 phút)
 
 **CMS dùng đúng template của trang công khai.** Vùng canvas giữa màn hình render cùng một component với `/du-an`, nên cái nhìn thấy khi biên tập chính là cái sẽ xuất bản.
