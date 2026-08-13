@@ -276,13 +276,18 @@ Bấm đồng bộ lại sẽ hiện **màn so khác biệt** trước khi ghi �
 
 ### Tab Quỹ căn
 
-Mười một cột: Mã căn, Giá niêm yết, Loại hình, Hướng, View, DT tim tường, DT thông thủy, Tầng, Trục căn, Tòa nhà, Tình trạng.
+Bộ cột đổi theo loại hình dự án:
+
+- **Cao tầng** — Mã căn, Giá niêm yết, Loại hình, Hướng, View, DT tim tường, DT thông thủy, Tầng, Trục căn, Tòa nhà, Tình trạng.
+- **Thấp tầng** — Mã sản phẩm, Loại hình, DT đất (m²), DT xây dựng (m²), Giá bán, Trạng thái. Không có Tầng, Trục căn, DT thông thủy vì mỗi căn là một lô đất riêng; thay vào đó là hai cột diện tích đất và diện tích xây dựng đọc thẳng từ bảng hàng.
+
+Hệ thống tự nhận loại hình từ bảng hàng: file không có cột Tầng (chỉ có DT đất, DT xây dựng) là thấp tầng.
 
 **Loại giá đang hiển thị** ghi trong dải xanh ngay trên bảng.
 
-**Lọc hai tầng, cùng một bộ tiêu chí:** dải nút bên trên bảng, và nút nhỏ cạnh mỗi tên cột. Bảy tiêu chí — Giá (11 khoảng), Loại hình, Diện tích (7 khoảng), Tầng, Trục căn, Tòa nhà, Tình trạng.
+**Lọc hai tầng, cùng một bộ tiêu chí:** dải nút bên trên bảng, và nút nhỏ cạnh mỗi tên cột. Tiêu chí lọc cũng theo loại hình — cao tầng lọc theo Tầng, Trục căn, Tòa nhà; thấp tầng lọc theo Loại hình, Giá bán, Trạng thái.
 
-Chọn nhiều giá trị trong cùng một cột thì lấy hợp; kết hợp nhiều cột thì lấy giao. Danh sách lựa chọn sinh từ chính dữ liệu nên không bao giờ thừa tầng hay trục không tồn tại.
+Chọn nhiều giá trị trong cùng một cột thì lấy hợp; kết hợp nhiều cột thì lấy giao. Danh sách lựa chọn sinh từ chính dữ liệu nên không bao giờ thừa giá trị không tồn tại.
 
 ### Quỹ trên tab Bảng hàng
 

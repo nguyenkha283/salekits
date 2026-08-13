@@ -390,7 +390,7 @@ export function ProjectCanvas({
           onGridsChange={onGridsChange} />
         }
         {activeTab === 'quy-can' && inventoryData &&
-        <FundInventory data={inventoryData} showNotice={chrome} />
+        <FundInventory data={inventoryData} layout={projectLayout} showNotice={chrome} />
         }
         {activeTab === 'tin-tuc' && <NewsContent />}
         {activeTab === 'doi-ngu' && canViewRestricted(role) && team &&

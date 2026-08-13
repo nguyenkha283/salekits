@@ -104,11 +104,18 @@ function extraByKeyword(unit: ParsedUnit, keyword: string): string {
 
 interface FundInventoryProps {
   data: InventoryData;
+  /** Bộ cột đổi theo loại hình: thấp tầng dùng DT đất và DT xây dựng. */
+  layout?: 'cao-tang' | 'thap-tang';
   /** Ghi chú pháp lý chỉ hiện ở trang xem trước và trang công khai. */
   showNotice?: boolean;
 }
 
-export function FundInventory({ data, showNotice = false }: FundInventoryProps) {
+export function FundInventory({
+  data,
+  layout = 'cao-tang',
+  showNotice = false
+}: FundInventoryProps) {
+  const isLowRise = layout === 'thap-tang';
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   /**
@@ -215,7 +222,34 @@ export function FundInventory({ data, showNotice = false }: FundInventoryProps) 
     align: 'left' | 'center';
     width: number;
     options?: Array<{id: string;label: string;}>;
-  }> = [
+  }> = isLowRise ?
+  [
+  { key: null, label: 'Mã sản phẩm', align: 'left', width: 150 },
+  {
+    key: 'bedrooms',
+    label: 'Loại hình',
+    align: 'center',
+    width: 120,
+    options: options.bedrooms.map((value) => ({ id: value, label: value }))
+  },
+  { key: null, label: 'DT đất', unit: 'm²', align: 'center', width: 100 },
+  { key: null, label: 'DT xây dựng', unit: 'm²', align: 'center', width: 110 },
+  {
+    key: 'price',
+    label: 'Giá bán',
+    align: 'center',
+    width: 140,
+    options: PRICE_RANGES.map((range) => ({ id: range.id, label: range.label }))
+  },
+  {
+    key: 'status',
+    label: 'Trạng thái',
+    align: 'center',
+    width: 106,
+    options: STATUS_OPTIONS.map((value) => ({ id: value, label: value }))
+  }] :
+
+  [
   { key: null, label: 'Mã căn', align: 'left', width: 150 },
   {
     key: 'price',
@@ -444,7 +478,7 @@ export function FundInventory({ data, showNotice = false }: FundInventoryProps) 
               const funds = fundsByCode.get(row.code) ?? [];
               const crown = funds.some(isExclusiveFund);
 
-              const cells = [
+              const codeCell =
               <span key="code" className="inline-flex items-center gap-1 font-semibold text-[#4a3728]">
                   {row.code}
                   {crown &&
@@ -453,10 +487,33 @@ export function FundInventory({ data, showNotice = false }: FundInventoryProps) 
                   aria-label="Quỹ độc quyền" />
 
                 }
-                </span>,
+                </span>;
+
+              const priceCell =
               <span key="price" className="font-semibold tabular-nums">
                   {shortPrice(row.prices[priceIndex])}
-                </span>,
+                </span>;
+
+              const statusCell =
+              <span
+                key="status"
+                className={`inline-block rounded px-2 py-0.5 text-[11.5px] font-semibold ${STATUS_STYLES[row.status]}`}>
+
+                  {row.status}
+                </span>;
+
+              const cells = isLowRise ?
+              [
+              codeCell,
+              row.bedrooms || '—',
+              <span key="land" className="tabular-nums">{row.landArea?.toFixed(1) ?? '—'}</span>,
+              <span key="build" className="tabular-nums">{row.buildArea?.toFixed(1) ?? '—'}</span>,
+              priceCell,
+              statusCell] :
+
+              [
+              codeCell,
+              priceCell,
               row.bedrooms || '—',
               extraByKeyword(row, 'huong') || '—',
               <span key="view" className="block truncate" title={extraByKeyword(row, 'view')}>
@@ -467,12 +524,7 @@ export function FundInventory({ data, showNotice = false }: FundInventoryProps) 
               <span key="floor" className="tabular-nums">{row.floor || '—'}</span>,
               <span key="unit" className="tabular-nums">{row.unit || '—'}</span>,
               row.tower || '—',
-              <span
-                key="status"
-                className={`inline-block rounded px-2 py-0.5 text-[11.5px] font-semibold ${STATUS_STYLES[row.status]}`}>
-
-                  {row.status}
-                </span>];
+              statusCell];
 
 
               return (

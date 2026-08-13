@@ -34,6 +34,10 @@ export interface ParsedUnit {
   /** Trường nào được suy ra từ mã căn thay vì đọc thẳng từ cột. */
   derived?: Array<'tower' | 'floor' | 'unit'>;
   area: number | null;
+  /** Diện tích đất — dự án thấp tầng (liền kề, biệt thự, shophouse). */
+  landArea: number | null;
+  /** Diện tích xây dựng — dự án thấp tầng. */
+  buildArea: number | null;
   bedrooms: string;
   handover: string;
   status: UnitStatusValue;
@@ -53,6 +57,9 @@ export interface ColumnMapping {
   floor?: number;
   unit?: number;
   area?: number;
+  /** DT đất và DT xây dựng — dự án thấp tầng. */
+  landArea?: number;
+  buildArea?: number;
   bedrooms?: number;
   handover?: number;
   status?: number;
@@ -182,9 +189,20 @@ const FIELD_PATTERNS: Array<{field: keyof ColumnMapping;patterns: RegExp[];}> = 
 },
 { field: 'unit', patterns: [/^can so$/, /^so can$/, /^can$/, /^truc/, /^ma so can$/, /^vi tri can$/] },
 {
+  field: 'landArea',
+  // "DT đất (m2)", "Diện tích đất", "DT lô đất" — chỉ có ở thấp tầng.
+  patterns: [/dt dat/, /dien tich dat/, /^s dat/, /dt lo/, /^land area$/]
+},
+{
+  field: 'buildArea',
+  // "DT xây dựng (m2)", "Diện tích xây dựng", "DTXD" — chỉ có ở thấp tầng.
+  patterns: [/xay dung/, /^dtxd/, /^dt xd/, /^s xd/, /^build area$/, /^gfa$/]
+},
+{
   field: 'area',
   // "DT thông thủy (m2)", "Diện tích thông thủy", "DTTT", "DT TT" — ưu tiên
-  // thông thủy vì đó là diện tích tính tiền.
+  // thông thủy vì đó là diện tích tính tiền. Đặt SAU đất và xây dựng để không
+  // bắt nhầm hai cột kia bằng nhánh /^dt\b/.
   patterns: [
   /thong thuy/, /^dttt/, /^dt tt/, /^s tt/, /dien tich/, /^dt\b/, /^area$/, /^s\s*\(m2\)/]
 },
@@ -195,7 +213,7 @@ const FIELD_PATTERNS: Array<{field: keyof ColumnMapping;patterns: RegExp[];}> = 
   /loai san pham/, /^bedroom/, /^type$/, /^loai$/]
 },
 { field: 'handover', patterns: [/ban giao/, /^hoan thien$/] },
-{ field: 'status', patterns: [/tinh trang/, /^trang thai/, /^status$/, /^tt$/] },
+{ field: 'status', patterns: [/tinh trang/, /^trang thai/, /^status$/] },
 { field: 'fund', patterns: [/^quy$/, /loai quy/, /phan loai quy/, /^quy can$/, /^nguon hang$/] }];
 
 
@@ -463,6 +481,8 @@ options: AnalyzeOptions = {})
       floor: cellText(cells[mapping.floor ?? -1]),
       unit: cellText(cells[mapping.unit ?? -1]),
       area: parseNumber(cells[mapping.area ?? -1]),
+      landArea: parseNumber(cells[mapping.landArea ?? -1]),
+      buildArea: parseNumber(cells[mapping.buildArea ?? -1]),
       bedrooms: cellText(cells[mapping.bedrooms ?? -1]),
       handover: cellText(cells[mapping.handover ?? -1]),
       status: status ?? 'Còn hàng',
