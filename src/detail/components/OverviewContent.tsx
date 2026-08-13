@@ -19,7 +19,7 @@ import { EmptySlot } from './EmptySlot';
 import {
   EditableImage,
   ImageUploadButton,
-  readImageFiles,
+  storeImageFiles,
   useExtraImages,
   useImageSlots } from
 './EditableImage';
@@ -211,9 +211,12 @@ export function OverviewContent({
         <EmptySlot
           label="Tải băng ảnh đầu trang lên"
           source="01. Tổng quan / Ảnh hero banner"
-          className="absolute inset-0 border-0 bg-[#4b4035]" />
+          className="absolute inset-0 z-20 border-0 bg-[#4b4035]"
+          action={<ImageUploadButton collectionKey="hero" label="Chọn ảnh từ máy" />} />
         }
-        <div className="absolute inset-0 bg-[#2e261e]/35" aria-hidden="true" />
+        <div
+          className="pointer-events-none absolute inset-0 bg-[#2e261e]/35"
+          aria-hidden="true" />
         <div className="relative mx-auto flex min-h-[87dvh] w-[90vw] flex-col pb-16 pt-7 text-white">
           <div className="mt-auto max-w-3xl pt-32 sm:pt-44">
             {canEdit ?
@@ -254,7 +257,9 @@ export function OverviewContent({
             {hasHero && <button type="button" onClick={() => setActiveHero((current) => (current - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)} className="rounded-full border border-white/60 p-2 text-white transition-colors hover:bg-white hover:text-[#302922]" aria-label="Banner trước"><ChevronLeftIcon className="h-4 w-4" /></button>}
             <div className="flex gap-2" aria-label="Chọn banner">{HERO_SLIDES.map((_, index) => <button key={index} type="button" onClick={() => setActiveHero(index)} aria-label={`Banner ${index + 1}`} aria-current={activeHero === index} className={`h-2 rounded-full transition-all ${activeHero === index ? 'w-7 bg-white' : 'w-2 bg-white/55 hover:bg-white'}`} />)}</div>
             {hasHero && <button type="button" onClick={() => setActiveHero((current) => (current + 1) % HERO_SLIDES.length)} className="rounded-full border border-white/60 p-2 text-white transition-colors hover:bg-white hover:text-[#302922]" aria-label="Banner tiếp theo"><ChevronRightIcon className="h-4 w-4" /></button>}
-            <ImageUploadButton collectionKey="hero" label="Tải băng ảnh từ máy" className="ml-2" />
+            {hasHero &&
+            <ImageUploadButton collectionKey="hero" label="Thêm ảnh từ máy" className="ml-2" />
+            }
           </div>
         </div>
       </section>
@@ -375,11 +380,14 @@ export function OverviewContent({
           <EmptySlot
             label="Tải bản vẽ mặt bằng lên"
             source="03. Mặt bằng"
-            className="mt-10 min-h-[360px] rounded-lg" />
+            className="mt-10 min-h-[360px] rounded-lg"
+            action={
+            <ImageUploadButton collectionKey="plan-preview" label="Chọn ảnh từ máy" />
+            } />
           }
-          {canUploadImages &&
+          {canUploadImages && FLOOR_PLANS.length > 0 &&
           <div className="mt-4">
-            <ImageUploadButton collectionKey="plan-preview" label="Tải bản vẽ từ máy" />
+            <ImageUploadButton collectionKey="plan-preview" label="Thêm bản vẽ từ máy" />
           </div>
           }
 
@@ -432,9 +440,21 @@ export function OverviewContent({
         <div className="mx-auto w-[90vw]">
           <div className="flex items-end justify-between gap-6">
             <div><h2 className="text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Sản phẩm nổi bật.</h2></div>
-            {isProductCarousel &&
-            <CarouselControls onPrevious={() => scrollCarousel(productsRef.current, -1)} onNext={() => scrollCarousel(productsRef.current, 1)} />
-            }
+            <div className="flex items-center gap-3">
+              {canEdit &&
+              <button
+                type="button"
+                onClick={addProduct}
+                className="inline-flex items-center gap-1.5 rounded-md border border-[#d8cab4] bg-white px-3 py-2 text-xs font-semibold text-[#6D3A18] transition-colors hover:bg-[#faf6ef]">
+                
+                <PlusIcon className="h-4 w-4" />
+                Thêm sản phẩm
+              </button>
+              }
+              {isProductCarousel &&
+              <CarouselControls onPrevious={() => scrollCarousel(productsRef.current, -1)} onNext={() => scrollCarousel(productsRef.current, 1)} />
+              }
+            </div>
           </div>
 
           {isProductCarousel ?
@@ -449,11 +469,6 @@ export function OverviewContent({
                 
                 </div>
             )}
-              {canEdit &&
-            <div className="w-[82%] shrink-0 snap-start sm:w-[48%] lg:w-[31.8%]">
-                  <AddProductTile onAdd={addProduct} />
-                </div>
-            }
             </div> :
 
           <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -479,12 +494,6 @@ export function OverviewContent({
             </div>
           }
 
-          {canEdit && !isProductCarousel && PRODUCTS.length === 3 &&
-          <div className="mt-6 flex justify-center">
-            <AddProductTile onAdd={addProduct} compact />
-          </div>
-          }
-
           {!canEdit && PRODUCTS.length === 0 &&
           <EmptySlot
             variant="content"
@@ -503,11 +512,14 @@ export function OverviewContent({
           <EmptySlot
             label="Tải hình ảnh tiện ích lên"
             source="01. Tổng quan / Tiện ích"
-            className="mt-10 min-h-[360px] rounded-lg" />
+            className="mt-10 min-h-[360px] rounded-lg"
+            action={
+            <ImageUploadButton collectionKey="amenity" label="Chọn ảnh từ máy" />
+            } />
           }
-          {canUploadImages &&
+          {canUploadImages && AMENITIES.length > 0 &&
           <div className="mt-4">
-            <ImageUploadButton collectionKey="amenity" label="Tải ảnh tiện ích từ máy" />
+            <ImageUploadButton collectionKey="amenity" label="Thêm ảnh tiện ích từ máy" />
           </div>
           }
           <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:h-[660px] lg:grid-rows-6">
@@ -625,7 +637,7 @@ interface ProductCardProps {
  */
 function ProductCard({ product, editable, onChange, onRemove }: ProductCardProps) {
   async function handleFiles(files: FileList | null) {
-    const [url] = await readImageFiles(files);
+    const [url] = await storeImageFiles(files, 'san-pham');
     if (url) onChange(product.id, { image: url });
   }
 
@@ -701,18 +713,13 @@ function ProductCard({ product, editable, onChange, onRemove }: ProductCardProps
 }
 
 /** Ô dấu cộng để thêm một sản phẩm mới. */
-function AddProductTile({
-  onAdd,
-  compact = false
-}: {onAdd: () => void;compact?: boolean;}) {
+function AddProductTile({ onAdd }: {onAdd: () => void;}) {
   return (
     <button
       type="button"
       onClick={onAdd}
       aria-label="Thêm sản phẩm nổi bật"
-      className={`group/add flex w-full flex-col items-center justify-center gap-3 text-[#a08b6c] transition-colors hover:text-[#6D3A18] ${
-      compact ? 'py-2' : 'aspect-[4/5]'}`
-      }>
+      className="group/add flex aspect-[4/5] w-full flex-col items-center justify-center gap-3 text-[#a08b6c] transition-colors hover:text-[#6D3A18]">
       
       <span className="grid h-16 w-16 place-items-center rounded-full border-2 border-dashed border-[#d8cab4] transition-colors group-hover/add:border-[#6D3A18]">
         <PlusIcon className="h-7 w-7" />

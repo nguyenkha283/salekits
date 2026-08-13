@@ -157,7 +157,9 @@ Bấm **Đồng bộ lại** (thanh trên hoặc trong ngăn kéo). Hệ thống
 
 Mục nào Drive chưa có thì section đó hiện khối chỗ trống ghi rõ cần tải gì lên và lấy từ thư mục Drive nào. Riêng **Sản phẩm nổi bật** là mục soạn tay: bấm thẳng vào khung ảnh để tải ảnh từ máy, gõ tên và mô tả tại chỗ, dấu **+** trong vòng tròn nét đứt để thêm mục. Bố cục đổi theo số lượng — 1–2 mục canh giữa, 3 mục xếp ba cột, từ 4 mục mới chuyển sang băng cuộn kèm hai nút điều hướng.
 
-**Ảnh có hai nguồn song song.** Ô chưa có ảnh hiện nút **Tải ảnh từ máy** ngay giữa khung, dưới dòng chỉ thư mục Drive. Ô đã có ảnh thì rê chuột lên là hiện nút **Đổi ảnh**; ô đã thay có thêm nút **Hoàn tác** để quay về ảnh Drive. Các bộ ảnh nhiều tấm — băng ảnh đầu trang, tiện ích, bản vẽ mặt bằng, ảnh 360, ảnh tiến độ — có nút tải nhiều file một lần. Ảnh tải tay đè lên ảnh Drive ở cùng vị trí và **không bị lần đồng bộ sau ghi đè**.
+**Ảnh có hai nguồn song song.** Ô chưa có ảnh hiện nút **Chọn ảnh từ máy** ngay giữa khung, dưới dòng chỉ thư mục Drive — bấm là mở hộp chọn file thật, các mục nhiều ảnh chọn được nhiều file một lượt. Ô đã có ảnh thì rê chuột lên là hiện nút **Đổi ảnh**; ô đã thay có thêm nút **Hoàn tác** để quay về ảnh Drive. Các bộ ảnh nhiều tấm — băng ảnh đầu trang, tiện ích, bản vẽ mặt bằng, ảnh 360, ảnh tiến độ — có nút tải nhiều file một lần. Ảnh tải tay đè lên ảnh Drive ở cùng vị trí và **không bị lần đồng bộ sau ghi đè**.
+
+Ảnh được đẩy lên **Supabase Storage** qua `/api/upload-image` và trả về đường dẫn công khai, nên tồn tại thật sau khi tải lại trang. Chạy `supabase/storage-anh-du-an.sql` một lần để tạo bucket. Chưa chạy thì ảnh vẫn hiển thị được trong phiên nhưng mất khi reload — hệ thống tự lùi về chế độ đó, không báo lỗi chặn thao tác.
 
 Trang công khai `/du-an?projectId=...` dùng chung dữ liệu này, nên biên tập xong xem trước là thấy đúng ảnh vừa đồng bộ.
 

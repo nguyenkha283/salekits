@@ -51,7 +51,11 @@ export function useExtraImages(collectionKey: string): string[] {
 }
 
 const ACCEPTED = ['image/png', 'image/jpeg', 'image/webp'];
-const MAX_BYTES = 5 * 1024 * 1024;
+/**
+ * 3 MB, khớp với giới hạn của /api/upload-image: Vercel chặn request body quá
+ * 4,5 MB và base64 làm ảnh phình thêm khoảng một phần ba.
+ */
+const MAX_BYTES = 3 * 1024 * 1024;
 
 /** Đọc các file hợp lệ thành data URL; file sai định dạng hoặc quá nặng bị bỏ. */
 export function readImageFiles(files: FileList | null): Promise<string[]> {
@@ -71,6 +75,36 @@ export function readImageFiles(files: FileList | null): Promise<string[]> {
       })
     )
   ).then((urls) => urls.filter(Boolean));
+}
+
+/**
+ * Đẩy ảnh lên Supabase Storage và trả về đường dẫn công khai.
+ *
+ * Chưa cấu hình Storage thì giữ nguyên data URL để bản demo vẫn chạy được
+ * trong phiên — mất khi tải lại trang, nhưng không chặn luồng thao tác.
+ */
+async function persistImage(dataUrl: string, folder: string): Promise<string> {
+  try {
+    const response = await fetch('/api/upload-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dataUrl, folder })
+    });
+    if (!response.ok) return dataUrl;
+    const data = await response.json();
+    return typeof data.url === 'string' && data.url ? data.url : dataUrl;
+  } catch {
+    return dataUrl;
+  }
+}
+
+/** Đọc file người dùng chọn, lưu lên Storage, trả về danh sách đường dẫn. */
+export async function storeImageFiles(
+files: FileList | null,
+folder = 'chung')
+: Promise<string[]> {
+  const dataUrls = await readImageFiles(files);
+  return Promise.all(dataUrls.map((dataUrl) => persistImage(dataUrl, folder)));
 }
 
 interface EditableImageProps {
@@ -111,7 +145,7 @@ export function EditableImage({
 
   const handleFiles = useCallback(
     async (files: FileList | null) => {
-      const [url] = await readImageFiles(files);
+      const [url] = await storeImageFiles(files, slotKey);
       if (url) onUpload?.(slotKey, url);
     },
     [onUpload, slotKey]
@@ -210,7 +244,7 @@ export function ImageUploadButton({
         accept="image/png,image/jpeg,image/webp"
         multiple
         onChange={async (event) => {
-          const urls = await readImageFiles(event.target.files);
+          const urls = await storeImageFiles(event.target.files, collectionKey);
           if (urls.length) onAddMany?.(collectionKey, urls);
           event.target.value = '';
         }}

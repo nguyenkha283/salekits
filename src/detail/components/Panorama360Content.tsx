@@ -108,13 +108,18 @@ export function Panorama360Content({ scenes }: Panorama360ContentProps = {}) {
       <EmptySlot
         label="Tải ảnh 360° lên"
         source="04. Ảnh 360"
-        className="mt-6 aspect-[16/9] w-full rounded-lg" />
+        className="mt-6 aspect-[16/9] w-full rounded-lg"
+        action={
+        <ImageUploadButton collectionKey="scene-360" label="Chọn ảnh từ máy" />
+        } />
 
       }
 
+      {hasScenes &&
       <div className="mt-4">
-        <ImageUploadButton collectionKey="scene-360" label="Tải ảnh 360° từ máy" />
+        <ImageUploadButton collectionKey="scene-360" label="Thêm ảnh 360° từ máy" />
       </div>
+      }
 
       {/* Khung xem 360 */}
       {hasScenes &&

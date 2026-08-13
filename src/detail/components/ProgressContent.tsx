@@ -126,7 +126,9 @@ export function ProgressContent({ photos: syncedPhotos }: ProgressContentProps =
           <h3 className="inline-block border-b-2 border-[#f5921f] pb-2 text-base font-semibold text-[#4a3728]">
             Hình ảnh tiến độ
           </h3>
-          <ImageUploadButton collectionKey="progress" label="Tải ảnh tiến độ từ máy" />
+          {photos.length > 0 &&
+          <ImageUploadButton collectionKey="progress" label="Thêm ảnh từ máy" />
+          }
         </div>
 
         {pagePhotos.length > 0 ?
@@ -144,7 +146,10 @@ export function ProgressContent({ photos: syncedPhotos }: ProgressContentProps =
         <EmptySlot
           label="Tải ảnh tiến độ lên"
           source="06. Tiến độ"
-          className="mt-6 min-h-[320px] rounded-lg" />}
+          className="mt-6 min-h-[320px] rounded-lg"
+          action={
+          <ImageUploadButton collectionKey="progress" label="Chọn ảnh từ máy" />
+          } />}
 
 
         {/* Phân trang */}
