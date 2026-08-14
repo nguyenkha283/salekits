@@ -157,19 +157,9 @@ export function ProjectCmsPage() {
   /** Thông tin đã khai ở màn Khởi tạo dự án, truyền qua location.state. */
   const draft = (location.state as {project?: ProjectDraft;} | null)?.project;
   /** Loại hình khai ở bước Khởi tạo dự án; mặc định cao tầng. */
-  const projectLayout: ProjectLayout =
-  searchParams.get('loaiHinh') === 'thap-tang' ? 'thap-tang' : 'cao-tang';
-
   // Vai trò nằm ở kho dùng chung để luồng duyệt đi qua được nhiều màn.
   const role = useWorkflow().role as Role;
   const [activeTab, setActiveTab] = useState('tong-quan');
-
-  // Dự án thấp tầng không có tab Bảng hàng — chuyển sang Quỹ căn nếu đang ở đó.
-  useEffect(() => {
-    if (projectLayout === 'thap-tang' && activeTab === 'bang-hang') {
-      setActiveTab('quy-can');
-    }
-  }, [projectLayout, activeTab]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [configOpen, setConfigOpen] = useState(false);
@@ -222,6 +212,30 @@ export function ProjectCmsPage() {
   const [configuration, setConfiguration] = useState<ProjectConfiguration>(() =>
   createProjectConfiguration(project)
   );
+
+  /**
+   * Loại hình quyết định bộ cột Quỹ căn và việc có tab Bảng hàng hay không.
+   *
+   * Ưu tiên loại hình đã lưu trong cấu hình dự án — đó là nơi loại hình thuộc
+   * về, bền qua điều hướng và tải lại. Query string chỉ là dự phòng cho lần đầu
+   * mở từ màn Khởi tạo, khi cấu hình chưa kịp có projectType.
+   */
+  const projectLayout: ProjectLayout =
+  configuration.projectType === 'Thấp tầng' ?
+  'thap-tang' :
+  configuration.projectType === 'Cao tầng' ?
+  'cao-tang' :
+  searchParams.get('loaiHinh') === 'thap-tang' ?
+  'thap-tang' :
+  'cao-tang';
+
+  // Dự án thấp tầng không có tab Bảng hàng — chuyển sang Quỹ căn nếu đang ở đó.
+  useEffect(() => {
+    if (projectLayout === 'thap-tang' && activeTab === 'bang-hang') {
+      setActiveTab('quy-can');
+    }
+  }, [projectLayout, activeTab]);
+
 
   useEffect(() => {
     if (!projectId) return;

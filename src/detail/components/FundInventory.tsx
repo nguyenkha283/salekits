@@ -116,11 +116,12 @@ export function FundInventory({
   layout = 'cao-tang',
   showNotice = false
 }: FundInventoryProps) {
-  // Ưu tiên loại hình suy từ chính bảng hàng; chỉ dùng prop khi dữ liệu chưa
-  // đủ căn cứ. Nhờ vậy tab đổi đúng cột kể cả khi URL không mang tham số loaiHinh.
-  const isLowRise =
-  data.detectedLayout === 'thap-tang' ||
-  data.detectedLayout === 'khong-ro' && layout === 'thap-tang';
+  // Loại hình do người dùng khai ở màn Khởi tạo quyết định bộ cột — đây là
+  // nguồn chân lý, không để thuật toán đoán ghi đè. detectedLayout chỉ dùng để
+  // cảnh báo khi dữ liệu bảng hàng có vẻ không khớp loại hình đã khai.
+  const isLowRise = layout === 'thap-tang';
+  const layoutMismatch =
+  data.detectedLayout !== 'khong-ro' && data.detectedLayout !== layout;
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   /**
@@ -332,6 +333,18 @@ export function FundInventory({
           {data.sheetNames.join(' · ')} — {data.units.length} căn
         </span>
       </div>
+
+      {layoutMismatch && !showNotice &&
+      <p className="mt-2 flex gap-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-[12px] leading-relaxed text-amber-800">
+          <InfoIcon className="mt-px h-3.5 w-3.5 shrink-0" />
+          Dự án khai là{' '}
+          <b>{isLowRise ? 'thấp tầng' : 'cao tầng'}</b> nhưng dữ liệu bảng hàng
+          trông giống{' '}
+          <b>{data.detectedLayout === 'thap-tang' ? 'thấp tầng' : 'cao tầng'}</b>.
+          Bảng đang hiển thị theo loại hình đã khai; nếu sai, kiểm tra lại loại
+          hình dự án hoặc file bảng hàng.
+        </p>
+      }
 
       {showNotice &&
       <p className="mt-2 flex gap-2 rounded border border-[#f0dcb6] bg-[#fdf3e2] px-3 py-2 text-[12px] leading-relaxed text-[#92600a]">
