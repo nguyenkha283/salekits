@@ -137,6 +137,8 @@ interface SyncedProject {
   drive_folder_url?: string;
   updated_at?: string;
   content?: SyncedContent;
+  /** Cấu hình đã lưu, gồm loại hình dự án. */
+  configuration?: {projectType?: string;};
 }
 
 interface SectionEdits {
@@ -214,16 +216,19 @@ export function ProjectCmsPage() {
   );
 
   /**
-   * Loại hình quyết định bộ cột Quỹ căn và việc có tab Bảng hàng hay không.
+   * Loại hình quyết định template Quỹ căn và việc có tab Bảng hàng. Thứ tự
+   * nguồn, rõ ràng nhất trước:
+   *  1. Loại hình đã lưu trong dữ liệu dự án (synced.configuration) — nguồn thật
+   *     từ DB khi mở lại một dự án đã tạo.
+   *  2. Loại hình khai ở màn Khởi tạo, truyền qua draft trong cùng phiên.
+   *  3. Query string, dự phòng cuối.
    *
-   * Ưu tiên loại hình đã lưu trong cấu hình dự án — đó là nơi loại hình thuộc
-   * về, bền qua điều hướng và tải lại. Query string chỉ là dự phòng cho lần đầu
-   * mở từ màn Khởi tạo, khi cấu hình chưa kịp có projectType.
+   * Không suy đoán từ bảng hàng được tải lên.
    */
   const projectLayout: ProjectLayout =
-  configuration.projectType === 'Thấp tầng' ?
+  synced?.configuration?.projectType === 'Thấp tầng' || draft?.propertyType === 'Thấp tầng' ?
   'thap-tang' :
-  configuration.projectType === 'Cao tầng' ?
+  synced?.configuration?.projectType === 'Cao tầng' || draft?.propertyType === 'Cao tầng' ?
   'cao-tang' :
   searchParams.get('loaiHinh') === 'thap-tang' ?
   'thap-tang' :
