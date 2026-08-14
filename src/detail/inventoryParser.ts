@@ -38,6 +38,10 @@ export interface ParsedUnit {
   landArea: number | null;
   /** Diện tích xây dựng — dự án thấp tầng. */
   buildArea: number | null;
+  /** Loại lô — dự án thấp tầng: góc, thường, áp góc… */
+  lotType: string;
+  /** Phân khu — dự án thấp tầng. */
+  subdivision: string;
   bedrooms: string;
   handover: string;
   status: UnitStatusValue;
@@ -60,6 +64,9 @@ export interface ColumnMapping {
   /** DT đất và DT xây dựng — dự án thấp tầng. */
   landArea?: number;
   buildArea?: number;
+  /** Loại lô và phân khu — dự án thấp tầng. */
+  lotType?: number;
+  subdivision?: number;
   bedrooms?: number;
   handover?: number;
   status?: number;
@@ -179,7 +186,9 @@ export function parseNumber(value: Cell): number | null {
 /** Từ khoá nhận diện, xếp theo độ ưu tiên giảm dần. */
 const FIELD_PATTERNS: Array<{field: keyof ColumnMapping;patterns: RegExp[];}> = [
 { field: 'code', patterns: [/ma can/, /^ma sp$/, /ma san pham/, /^ma căn/, /^unit code$/] },
-{ field: 'tower', patterns: [/^toa/, /truc.*toa/, /toa.*truc/, /^block$/, /^phan khu$/, /^tower$/] },
+{ field: 'subdivision', patterns: [/^phan khu$/, /^phankhu$/, /^pk$/, /^subdivision$/] },
+{ field: 'lotType', patterns: [/^loai lo$/, /^loai lô$/, /kieu lo/, /^lot type$/] },
+{ field: 'tower', patterns: [/^toa/, /truc.*toa/, /toa.*truc/, /^block$/, /^tower$/] },
 // "Tầng" là VỊ TRÍ của căn trong tòa. Phải loại "Số tầng" — với nhà phố và
 // biệt thự thì đó là QUY MÔ của căn (nhà 5 tầng), không phải vị trí.
 { field: 'floor', patterns: [/^tang$/, /^tang\b/, /^floor$/, /^lau$/] },
@@ -483,7 +492,9 @@ options: AnalyzeOptions = {})
       area: parseNumber(cells[mapping.area ?? -1]),
       landArea: parseNumber(cells[mapping.landArea ?? -1]),
       buildArea: parseNumber(cells[mapping.buildArea ?? -1]),
-      bedrooms: cellText(cells[mapping.bedrooms ?? -1]),
+      lotType: cellText(cells[mapping.lotType ?? -1]),
+      subdivision: cellText(cells[mapping.subdivision ?? -1]),
+      bedrooms: normalizePropertyType(cellText(cells[mapping.bedrooms ?? -1])),
       handover: cellText(cells[mapping.handover ?? -1]),
       status: status ?? 'Còn hàng',
       fundLabel,
@@ -746,9 +757,31 @@ export function isExclusiveFund(name: string): boolean {
 }
 
 /**
- * Gộp kết quả các sheet đã chọn thành một bộ dữ liệu.
- * Sheet loại "inventory" cung cấp căn; sheet "fund" chỉ đánh dấu căn thuộc quỹ.
+ * Chuẩn hóa tên loại hình để "Liền kề", "Liền Kề", "liền  kề" quy về một giá
+ * trị. Bảng hàng do nhiều người nhập nên cùng một loại hình hay khác hoa thường
+ * và khoảng trắng; nếu không gộp, bộ lọc và danh sách loại hình sẽ đếm trùng.
+ *
+ * Cách gộp: bỏ khoảng trắng thừa, rồi viết hoa chữ đầu mỗi từ. "LIỀN KỀ" và
+ * "liền kề" đều thành "Liền Kề". Giữ nguyên chữ có dấu tiếng Việt.
  */
+export function normalizePropertyType(value: string): string {
+  const cleaned = value.trim().replace(/\s+/g, ' ');
+  if (!cleaned) return '';
+  return cleaned.
+  split(' ').
+  map((word) => {
+    // Từ toàn hoa (LIỀN) hoặc toàn thường (kề) thì đưa về hoa đầu; từ đã viết
+    // hỗn hợp như "ShopHouse" giữ nguyên để không phá tên riêng.
+    const isAllUpper = word === word.toLocaleUpperCase('vi');
+    const isAllLower = word === word.toLocaleLowerCase('vi');
+    if (!isAllUpper && !isAllLower) return word;
+    const lower = word.toLocaleLowerCase('vi');
+    return lower.charAt(0).toLocaleUpperCase('vi') + lower.slice(1);
+  }).
+  join(' ');
+}
+
+
 export function buildInventory(
 sheets: Array<{name: string;kind: string;analysis: SheetAnalysis;}>,
 priceIndex = 0)

@@ -280,7 +280,9 @@ Bấm đồng bộ lại sẽ hiện **màn so khác biệt** trước khi ghi �
 Bộ cột đổi theo loại hình dự án:
 
 - **Cao tầng** — Mã căn, Giá niêm yết, Loại hình, Hướng, View, DT tim tường, DT thông thủy, Tầng, Trục căn, Tòa nhà, Tình trạng.
-- **Thấp tầng** — Mã sản phẩm, Loại hình, DT đất (m²), DT xây dựng (m²), Giá bán, Trạng thái. Không có Tầng, Trục căn, DT thông thủy vì mỗi căn là một lô đất riêng; thay vào đó là hai cột diện tích đất và diện tích xây dựng đọc thẳng từ bảng hàng.
+- **Thấp tầng** — Mã sản phẩm (kèm nhãn Quỹ), Loại hình, Loại lô, DT đất (m²), DT xây dựng (m²), Đơn giá, Giá bán, Phân khu, Trạng thái. Không có Tầng, Trục căn, DT thông thủy vì mỗi căn là một lô đất riêng; các cột diện tích, đơn giá, loại lô, phân khu đọc thẳng từ bảng hàng.
+
+Tên loại hình được chuẩn hóa khi đồng bộ: "Liền kề", "Liền Kề", "LIỀN KỀ" quy về một giá trị nên bộ lọc không đếm trùng. Tên đã viết dạng hỗn hợp như "ShopHouse" giữ nguyên.
 
 Hệ thống tự nhận loại hình từ **chính dữ liệu bảng hàng** sau khi đồng bộ: file không có cột Tầng nhưng có DT đất và DT xây dựng thì tab Quỹ căn tự chuyển sang bộ cột thấp tầng — không phụ thuộc tham số trên URL.
 

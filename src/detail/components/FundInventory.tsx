@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { CheckIcon, ChevronDownIcon, CrownIcon, InfoIcon, XIcon } from 'lucide-react';
 import {
   isExclusiveFund,
+  fullPrice,
   shortPrice,
   type InventoryData,
   type ParsedUnit,
@@ -160,6 +161,14 @@ export function FundInventory({
 
   const priceIndex = data.priceIndex;
   const activePriceColumn = data.priceFields[priceIndex];
+  // Cột đơn giá (đồng/m²) nhận diện qua nhãn, để hiển thị riêng ở bảng thấp tầng.
+  const unitPriceIndex = data.priceFields.findIndex((field) =>
+  field.label.
+  normalize('NFD').
+  replace(/[\u0300-\u036f]/g, '').
+  toLowerCase().
+  includes('don gia')
+  );
 
   /** Danh sách lựa chọn sinh từ chính dữ liệu — không thừa, không thiếu. */
   const options = useMemo(() => {
@@ -233,18 +242,21 @@ export function FundInventory({
     key: 'bedrooms',
     label: 'Loại hình',
     align: 'center',
-    width: 120,
+    width: 116,
     options: options.bedrooms.map((value) => ({ id: value, label: value }))
   },
-  { key: null, label: 'DT đất', unit: 'm²', align: 'center', width: 100 },
-  { key: null, label: 'DT xây dựng', unit: 'm²', align: 'center', width: 110 },
+  { key: null, label: 'Loại lô', align: 'center', width: 110 },
+  { key: null, label: 'DT đất', unit: 'm²', align: 'center', width: 92 },
+  { key: null, label: 'DT xây dựng', unit: 'm²', align: 'center', width: 104 },
+  { key: null, label: 'Đơn giá', unit: 'đ/m²', align: 'center', width: 120 },
   {
     key: 'price',
     label: 'Giá bán',
     align: 'center',
-    width: 140,
+    width: 130,
     options: PRICE_RANGES.map((range) => ({ id: range.id, label: range.label }))
   },
+  { key: null, label: 'Phân khu', align: 'center', width: 110 },
   {
     key: 'status',
     label: 'Trạng thái',
@@ -482,14 +494,22 @@ export function FundInventory({
               const funds = fundsByCode.get(row.code) ?? [];
               const crown = funds.some(isExclusiveFund);
 
+              const fundLabel = row.fundLabel || funds[0] || '';
               const codeCell =
-              <span key="code" className="inline-flex items-center gap-1 font-semibold text-[#4a3728]">
-                  {row.code}
-                  {crown &&
-                <CrownIcon
-                  className="h-3 w-3 shrink-0 fill-[#173b7a] text-[#173b7a]"
-                  aria-label="Quỹ độc quyền" />
+              <span key="code" className="inline-flex flex-col items-start gap-0.5">
+                  <span className="inline-flex items-center gap-1 font-semibold text-[#4a3728]">
+                    {row.code}
+                    {crown &&
+                  <CrownIcon
+                    className="h-3 w-3 shrink-0 fill-[#173b7a] text-[#173b7a]"
+                    aria-label="Quỹ độc quyền" />
 
+                  }
+                  </span>
+                  {fundLabel &&
+                <span className="text-[10.5px] font-medium text-stone-500">
+                    {fundLabel}
+                  </span>
                 }
                 </span>;
 
@@ -506,13 +526,22 @@ export function FundInventory({
                   {row.status}
                 </span>;
 
+              // Đơn giá là cột giá có nhãn "đơn giá"; không có thì để trống.
+              const unitPriceValue =
+              unitPriceIndex >= 0 ? row.prices[unitPriceIndex] : null;
+
               const cells = isLowRise ?
               [
               codeCell,
               row.bedrooms || '—',
+              row.lotType || '—',
               <span key="land" className="tabular-nums">{row.landArea?.toFixed(1) ?? '—'}</span>,
               <span key="build" className="tabular-nums">{row.buildArea?.toFixed(1) ?? '—'}</span>,
+              <span key="unit-price" className="tabular-nums text-stone-600">
+                  {unitPriceValue ? fullPrice(unitPriceValue) : '—'}
+                </span>,
               priceCell,
+              row.subdivision || '—',
               statusCell] :
 
               [
