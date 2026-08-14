@@ -21,6 +21,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const {
     driveFolderUrl,
     projectName,
+    propertyType,
     projectCode,
     aliases,
     slogan,
@@ -32,6 +33,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } = (req.body ?? {}) as {
     driveFolderUrl?: string;
     projectName?: string;
+    propertyType?: string;
     projectCode?: string;
     aliases?: string[];
     slogan?: string;
@@ -122,6 +124,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         province: province?.trim() || null,
         ward: ward?.trim() || null,
         contact_id: contactResult?.id ?? null,
+        // Loại hình quyết định template Quỹ căn; lưu để trang công khai và các
+        // lần mở sau đọc lại đúng, không phải suy từ bảng hàng.
+        configuration: {
+          projectType: propertyType?.trim() || 'Cao tầng'
+        },
         content
       },
       { onConflict: 'drive_folder_id' }

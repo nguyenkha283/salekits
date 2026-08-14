@@ -284,7 +284,7 @@ Bộ cột đổi theo loại hình dự án:
 
 Tên loại hình được chuẩn hóa khi đồng bộ: "Liền kề", "Liền Kề", "LIỀN KỀ" quy về một giá trị nên bộ lọc không đếm trùng. Tên đã viết dạng hỗn hợp như "ShopHouse" giữ nguyên.
 
-Bộ cột theo **loại hình đã khai ở màn Khởi tạo dự án** (lưu trong cấu hình dự án, bền qua điều hướng và tải lại) — không để thuật toán đoán từ dữ liệu ghi đè. Nếu dữ liệu bảng hàng trông không khớp loại hình đã khai, tab hiện **cảnh báo vàng** để kiểm tra, chứ không tự đổi cột. Nhờ vậy quỹ căn thấp tầng và cao tầng không còn bị nhầm sang nhau.
+Template bảng Quỹ căn **hoàn toàn theo loại hình khai ở màn Khởi tạo dự án**, không suy đoán từ bảng hàng được tải lên. Loại hình lưu trong cấu hình dự án (`configuration.projectType`) nên bền qua điều hướng, tải lại và cả trang công khai — mở dự án từ đâu cũng ra đúng template. Bảng hàng khi import chỉ được **đối chiếu** với loại hình đã khai để nhắc chọn đúng sheet, không đổi template.
 
 **Thấp tầng chỉ có tab Quỹ căn, không có tab Bảng hàng.** Cao tầng có cả hai: tab Bảng hàng dạng lưới tự sinh chỉnh sửa được, và tab Quỹ căn.
 

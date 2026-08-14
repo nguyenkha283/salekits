@@ -182,6 +182,7 @@ export function KhoiTaoDuAnPage() {
         body: JSON.stringify({
           driveFolderUrl: trimmedDriveLink,
           projectName: tenDuAn.trim(),
+          propertyType: loaiHinh === 'cao-tang' ? 'Cao tầng' : 'Thấp tầng',
           projectCode: maGoiY.trim().toUpperCase(),
           aliases: tenKhac.map((item) => item.trim()).filter(Boolean),
           slogan: slogan.trim(),

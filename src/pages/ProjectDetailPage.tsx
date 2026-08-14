@@ -14,17 +14,29 @@ interface SyncedProject {
   project_name?: string;
   updated_at?: string;
   content?: SyncedContent;
+  configuration?: {projectType?: string;};
 }
 
 export function ProjectDetailPage() {
   const [searchParams] = useSearchParams();
   const projectId = searchParams.get('projectId');
-  const projectLayout: ProjectLayout =
-  searchParams.get('loaiHinh') === 'thap-tang' ? 'thap-tang' : 'cao-tang';
 
   const [role, setRole] = useState<Role>('Quản lý giao dịch');
   const [activeTab, setActiveTab] = useState('tong-quan');
   const [synced, setSynced] = useState<SyncedProject | null>(null);
+  /**
+   * Loại hình do khai báo ở màn Khởi tạo quyết định template Quỹ căn, không suy
+   * từ bảng hàng. Ưu tiên loại hình đã lưu trong cấu hình dự án; query string
+   * chỉ là dự phòng cho lần mở từ trang trước khi dữ liệu kịp tải.
+   */
+  const projectLayout: ProjectLayout =
+  synced?.configuration?.projectType === 'Thấp tầng' ?
+  'thap-tang' :
+  synced?.configuration?.projectType === 'Cao tầng' ?
+  'cao-tang' :
+  searchParams.get('loaiHinh') === 'thap-tang' ?
+  'thap-tang' :
+  'cao-tang';
   /** Bảng hàng vừa nhập trong CMS, dùng cho trang xem trước cùng phiên. */
   const [inventorySource] = useState<InventorySource | undefined>(() => {
     try {
