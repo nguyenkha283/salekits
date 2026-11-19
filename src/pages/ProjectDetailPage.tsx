@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { PencilIcon } from 'lucide-react';
 import { Header, Role } from '../detail/components/Header';
 import { Footer } from '../detail/components/Footer';
+import { VideoCallWidget } from '../components/VideoCallWidget';
 import { ProjectCanvas } from '../detail/ProjectCanvas';
 import { buildSyncedMedia, type SyncedContent } from '../detail/syncedMedia';
 import type { InventorySource } from '../detail/components/InventorySetup';
@@ -122,6 +123,8 @@ export function ProjectDetailPage() {
       </main>
 
       <Footer />
+
+      <VideoCallWidget projectId={projectId} />
     </div>);
 
 }

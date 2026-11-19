@@ -30,8 +30,7 @@ import {
   rejectProject,
   setProjectIdentity,
   setRole as setWorkflowRole,
-  submitForApproval,
-  teamReadyIssues,
+  publishProject,
   toggleAssignment,
   updateTeam,
   useWorkflow,
@@ -42,6 +41,8 @@ import type { UpstreamChange } from '../detail/components/InventorySourceBar';
 import type { GridModel } from '../detail/gridModel';
 import type { ProjectLayout } from '../detail/parseWorkbook';
 import { checkSheetStatus } from '../detail/parseWorkbook';
+import { buildInventory } from '../detail/inventoryParser';
+import { buildSnapshot } from '../detail/unitSearch';
 import { HIERARCHY_OPTIONS, SECTIONS, findSection } from '../detail/sectionRegistry';
 import {
   IMG,
@@ -64,7 +65,7 @@ import type { ProjectConfiguration, ProjectDraft } from '../types/project';
 const STATUS_LABEL: Record<string, string> = {
   'nhap': 'Nháp',
   'cho-duyet': 'Chờ duyệt',
-  'da-duyet': 'Đã duyệt · Xuất bản',
+  'da-duyet': 'Đã xuất bản',
   'tu-choi': 'Chưa được duyệt'
 };
 
@@ -137,8 +138,8 @@ interface SyncedProject {
   drive_folder_url?: string;
   updated_at?: string;
   content?: SyncedContent;
-  /** Cấu hình đã lưu, gồm loại hình dự án. */
-  configuration?: {projectType?: string;};
+  /** Cấu hình đã lưu, gồm loại hình dự án và link kho tri thức. */
+  configuration?: {projectType?: string;knowledgeBaseUrl?: string;};
 }
 
 interface SectionEdits {
@@ -252,7 +253,14 @@ export function ProjectCmsPage() {
           `/api/get-project?id=${encodeURIComponent(projectId as string)}`
         );
         const data = await response.json();
-        if (!cancelled && response.ok) setSynced(data);
+        if (!cancelled && response.ok) {
+          setSynced(data);
+          // Link kho tri thức đã lưu trên server → nạp vào hộp Cấu hình dự án.
+          const savedKnowledgeUrl = (data as SyncedProject).configuration?.knowledgeBaseUrl;
+          if (typeof savedKnowledgeUrl === 'string') {
+            setConfiguration((current) => ({ ...current, knowledgeBaseUrl: savedKnowledgeUrl }));
+          }
+        }
       } catch {
         // Prototype: lỗi tải thì rơi về dữ liệu mẫu, không chặn màn hình.
       }
@@ -398,6 +406,32 @@ export function ProjectCmsPage() {
     window.setTimeout(() => setNotice(''), 2800);
   }, []);
 
+  /**
+   * Lưu bản chụp quỹ căn (chỉ các cột công khai) lên server sau mỗi lần nhập
+   * hoặc đồng bộ bảng hàng, để trợ lý AI Bích Ngọc tra cứu được.
+   */
+  async function saveInventorySnapshot(source: InventorySource) {
+    if (!projectId) return;
+    try {
+      const data = buildInventory(source.sheets, source.priceIndex);
+      const snapshot = buildSnapshot(data, projectLayout, source.syncedAt || new Date().toISOString());
+      const response = await fetch('/api/save-inventory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId, snapshot })
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error((body as {error?: string;}).error ?? `HTTP ${response.status}`);
+      }
+    } catch (error) {
+      showNotice(
+        `Bảng hàng chưa lưu được cho Bích Ngọc: ${
+        error instanceof Error ? error.message : 'lỗi không xác định'}`
+      );
+    }
+  }
+
   // ── Chọn section bằng cách bấm thẳng lên canvas ───────────────
   function handleCanvasClick(event: React.MouseEvent<HTMLDivElement>) {
     const target = event.target as HTMLElement;
@@ -472,28 +506,31 @@ export function ProjectCmsPage() {
   }
 
   /**
-   * Điều kiện tối thiểu để gửi duyệt — UC-16: đủ trường bắt buộc, có nội dung
-   * tab Tổng quan, có ít nhất một ảnh hero banner, và đội ngũ đã đủ người.
+   * Điều kiện tối thiểu để đăng dự án: có tên, có nội dung tab Tổng quan và có
+   * ít nhất một ảnh hero banner. Không còn bắt buộc đội ngũ đủ người.
    */
   function collectSubmitIssues(): string[] {
-    const issues = teamReadyIssues(workflow.team);
+    const issues: string[] = [];
     if (!heroName.trim()) issues.push('Chưa có tên dự án');
     const hasHero =
     (syncedMedia['tong-quan']?.length ?? 0) > 0 ||
     (imageExtras['hero']?.length ?? 0) > 0;
     if (!hasHero) issues.push('Chưa có ảnh băng đầu trang');
-    if (!(edits.overviewHtml ?? '').trim()) {
+    // Kiểm tra đúng nội dung đang hiển thị: bản đã sửa, không có thì bản đồng
+    // bộ từ Drive. Bỏ thẻ HTML để "<p></p>" rỗng vẫn tính là chưa có.
+    const overviewText = overviewHtml.replace(/<[^>]*>|&nbsp;/g, '').trim();
+    if (!overviewText) {
       issues.push('Chưa có nội dung tab Tổng quan');
     }
     return issues;
   }
 
-  function handleSubmitForApproval() {
+  function handlePublish() {
     const issues = collectSubmitIssues();
     setSubmitIssues(issues);
     if (issues.length > 0) return;
-    submitForApproval(heroName, configuration.projectCode || project.code);
-    showNotice('Đã gửi duyệt tới Trưởng line');
+    publishProject(heroName, configuration.projectCode || project.code);
+    showNotice('Đã đăng dự án');
   }
 
   const publicHref = `/du-an?loaiHinh=${projectLayout}${
@@ -692,13 +729,13 @@ export function ProjectCmsPage() {
           }
 
           {isCreatorRole(role as WorkflowRole) &&
-          (workflow.status === 'nhap' || workflow.status === 'tu-choi') &&
+          workflow.status !== 'da-duyet' &&
           <button
             type="button"
-            onClick={handleSubmitForApproval}
+            onClick={handlePublish}
             className="h-8 rounded-md bg-[#f5921f] px-3 text-xs font-semibold text-white transition-colors hover:bg-[#db7214] sm:text-sm">
-            
-            {workflow.status === 'tu-choi' ? 'Gửi duyệt lại' : 'Gửi duyệt'}
+
+            Đăng dự án
           </button>
           }
 
@@ -726,7 +763,7 @@ export function ProjectCmsPage() {
 
       {submitIssues.length > 0 &&
       <div className="border-b border-red-200 bg-red-50 px-4 py-2.5 text-xs text-red-800">
-          <p className="font-bold">Chưa gửi duyệt được, còn thiếu:</p>
+          <p className="font-bold">Chưa đăng được, còn thiếu:</p>
           <ul className="mt-1 list-inside list-disc">
             {submitIssues.map((issue) => <li key={issue}>{issue}</li>)}
           </ul>
@@ -823,6 +860,7 @@ export function ProjectCmsPage() {
                 `Đã nhập ${units} căn từ ${picked.length} sheet · ${priceColumns} cột giá` :
                 `Đã đồng bộ lại — ${units} căn từ ${picked.length} sheet`
               );
+              void saveInventorySnapshot(source);
             }}
             editing={{
               enabled: editable,
@@ -1035,9 +1073,32 @@ export function ProjectCmsPage() {
         project={project}
         role={toCmsRole(role)}
         onChange={setConfiguration}
-        onSave={() => {
+        onSave={async () => {
           setConfigOpen(false);
-          showNotice('Đã lưu cấu hình trong phiên làm việc');
+          if (!projectId) {
+            showNotice('Đã lưu cấu hình trong phiên làm việc');
+            return;
+          }
+          // Link kho tri thức lưu lên server để trợ lý AI Bích Ngọc đọc được;
+          // các trường khác vẫn chỉ lưu trong phiên như trước.
+          try {
+            const response = await fetch('/api/project-settings', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                projectId,
+                knowledgeBaseUrl: configuration.knowledgeBaseUrl ?? ''
+              })
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error ?? 'Lưu thất bại.');
+            showNotice('Đã lưu cấu hình · link kho tri thức đã cập nhật cho Bích Ngọc');
+          } catch (error) {
+            showNotice(
+              `Chưa lưu được link kho tri thức: ${
+              error instanceof Error ? error.message : 'lỗi không xác định'}`
+            );
+          }
         }}
         onClose={() => setConfigOpen(false)} />
 

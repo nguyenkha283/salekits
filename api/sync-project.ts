@@ -106,6 +106,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const supabase = getSupabaseClient();
+
+    // Đồng bộ lại một folder đã có dự án: giữ các phần cấu hình do màn khác lưu
+    // (link kho tri thức, bản chụp bảng hàng…), chỉ cập nhật loại hình.
+    const { data: existing } = await supabase.
+    from('projects').
+    select('configuration').
+    eq('drive_folder_id', rootFolderId).
+    maybeSingle();
+    const previousConfiguration =
+    (existing as {configuration?: Record<string, unknown> | null;} | null)?.configuration ?? {};
+
     const { data, error } = await supabase.
     from('projects').
     upsert(
@@ -127,6 +138,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Loại hình quyết định template Quỹ căn; lưu để trang công khai và các
         // lần mở sau đọc lại đúng, không phải suy từ bảng hàng.
         configuration: {
+          ...previousConfiguration,
           projectType: propertyType?.trim() || 'Cao tầng'
         },
         content

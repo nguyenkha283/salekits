@@ -31,6 +31,11 @@ export interface ProjectConfiguration {
   contractorManager: string;
   constructionManager: string;
   publishingStatus: string;
+  /**
+   * Link folder Google Drive chứa tài liệu dự án — trợ lý AI Bích Ngọc đọc kho
+   * này để trả lời khách. Sau này thay bằng API kho tri thức.
+   */
+  knowledgeBaseUrl: string;
   soldUnits: number;
   teamMembers: ProjectTeamMember[];
 }

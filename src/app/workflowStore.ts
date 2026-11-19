@@ -236,6 +236,25 @@ export function submitForApproval(projectName: string, projectCode: string) {
   });
 }
 
+/**
+ * Đăng dự án ngay, không qua bước gửi duyệt Trưởng line và không bắt buộc đội
+ * ngũ đủ người. Thay cho submitForApproval trên màn CMS.
+ *
+ * ⚠️ Lệch SRS UC-16/UC-17 (gửi duyệt → Trưởng line duyệt mới xuất bản) theo
+ * yêu cầu nghiệp vụ mới — cần cập nhật tài liệu tương ứng.
+ */
+export function publishProject(projectName: string, projectCode: string) {
+  setState({
+    status: 'da-duyet',
+    projectName,
+    projectCode,
+    submittedByRole: state.role,
+    submittedAt: now(),
+    decidedAt: now(),
+    rejectReason: ''
+  });
+}
+
 export function approveProject() {
   setState({ status: 'da-duyet', decidedAt: now(), rejectReason: '' });
   notify({

@@ -8,6 +8,8 @@ import {
   type ParsedUnit,
   type UnitStatusValue } from
 '../inventoryParser';
+import { matchesUnit, toPublicUnits } from '../unitSearch';
+import { UnitSearchForm, toUnitQuery, type UnitSearchValues } from './UnitSearchForm';
 
 /* ═══════════════════════════════════════════════════════════════
    Khoảng giá và khoảng diện tích
@@ -179,9 +181,20 @@ export function FundInventory({
       bedrooms: distinct((unit) => unit.bedrooms),
       floor: distinct((unit) => unit.floor),
       unit: distinct((unit) => unit.unit),
-      tower: distinct((unit) => unit.tower)
+      tower: distinct((unit) => unit.tower),
+      subdivision: distinct((unit) => unit.subdivision),
+      lotType: distinct((unit) => unit.lotType)
     };
   }, [data.units]);
+
+  // Form tìm kiếm: dùng chung hàm lọc với công cụ tra bảng hàng của Bích Ngọc.
+  const [searchValues, setSearchValues] = useState<UnitSearchValues>({});
+  const publicUnits = useMemo(() => toPublicUnits(data), [data]);
+  const searchMatches = useMemo(() => {
+    const query = toUnitQuery(searchValues);
+    return publicUnits.map((unit) => matchesUnit(unit, query));
+  }, [publicUnits, searchValues]);
+  const searchMatchCount = searchMatches.filter(Boolean).length;
 
   /** Tra nhanh mã căn → tên các quỹ chứa nó. */
   const fundsByCode = useMemo(() => {
@@ -197,7 +210,8 @@ export function FundInventory({
   const rows = useMemo(
     () =>
     data.units.filter(
-      (unit) =>
+      (unit, index) =>
+      searchMatches[index] !== false &&
       inRanges(unit.prices[priceIndex] ?? null, PRICE_RANGES, filters.price) &&
       inRanges(unit.area, AREA_RANGES, filters.area) && (
       !filters.bedrooms.length || filters.bedrooms.includes(unit.bedrooms)) && (
@@ -206,7 +220,7 @@ export function FundInventory({
       !filters.tower.length || filters.tower.includes(unit.tower)) && (
       !filters.status.length || filters.status.includes(unit.status))
     ),
-    [data.units, filters, priceIndex]
+    [data.units, filters, priceIndex, searchMatches]
   );
 
   const activeCount = (Object.keys(filters) as FilterKey[]).reduce(
@@ -338,6 +352,20 @@ export function FundInventory({
           thức được công bố tại thời điểm ký Hợp đồng mua bán.
         </p>
       }
+
+      <UnitSearchForm
+        layout={isLowRise ? 'thap-tang' : 'cao-tang'}
+        values={searchValues}
+        onChange={setSearchValues}
+        onReset={() => setSearchValues({})}
+        matchCount={searchMatchCount}
+        totalCount={data.units.length}
+        options={{
+          propertyTypes: options.bedrooms,
+          towers: options.tower,
+          subdivisions: options.subdivision,
+          lotTypes: options.lotType
+        }} />
 
       {/* Loại giá đang hiển thị — đặt ngay trên bảng cho dễ thấy */}
       <div className="mt-3 flex flex-wrap items-center gap-2 rounded border border-[#d9e6dc] bg-[#eaf5ec] px-3 py-2">

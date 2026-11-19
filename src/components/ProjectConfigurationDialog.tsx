@@ -210,6 +210,7 @@ project: ProjectDraft)
     contractorManager: '',
     constructionManager: '',
     publishingStatus: 'Chưa xuất bản',
+    knowledgeBaseUrl: '',
     soldUnits: 0,
     teamMembers: [
     {
@@ -850,7 +851,29 @@ function ProjectInformationPanel({
           }
           options={['Đang bán', 'Sắp mở bán', 'Dừng bán']}
           placeholder="Chọn trạng thái" />
-        
+
+        <div className="md:col-span-3">
+          <FieldLabel label="Link kho tri thức dự án">
+            <input
+              type="url"
+              value={configuration.knowledgeBaseUrl ?? ''}
+              placeholder="https://drive.google.com/drive/folders/…"
+              readOnly={!canEdit}
+              onChange={(event) =>
+              onChange({
+                knowledgeBaseUrl: event.target.value
+              })
+              }
+              className={getFieldClassName(!canEdit)} />
+
+          </FieldLabel>
+          <p className="mt-1.5 text-xs text-neutral-500">
+            Folder Google Drive chứa tài liệu dự án (Google Docs, Google Sheets,
+            PDF dạng chữ, .docx, .txt, .md; PDF scan chưa đọc được). Trợ lý AI
+            Bích Ngọc đọc kho này để trả lời khách khi gọi video. Folder phải
+            được chia sẻ quyền xem cho Service Account.
+          </p>
+        </div>
       </div>
     </div>);
 
